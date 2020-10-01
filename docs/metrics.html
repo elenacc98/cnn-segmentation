@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.9.1" />
+<title>segmentation.metrics API documentation</title>
+<meta name="description" content="" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>segmentation.metrics</code></h1>
+</header>
+<section id="section-intro">
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="segmentation.metrics.Dice"><code class="flex name class">
+<span>class <span class="ident">Dice</span></span>
+<span>(</span><span>num_classes, name=None, dtype=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Computes the Dice metric per-class.
+Dice is a common evaluation metric for semantic image
+segmentation, obtained by computing the Dice for each semantic class.
+Dice is defined as follows:
+Dice = 2<em>true_positive / (2</em>true_positive + false_positive + false_negative).
+The predictions are accumulated in a confusion matrix, weighted by
+<code>sample_weight</code> and the metric is then calculated from it.
+If <code>sample_weight</code> is <code>None</code>, weights default to 1.
+Use <code>sample_weight</code> of 0 to mask values.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>num_classes</code></strong></dt>
+<dd>The possible number of labels the prediction task can have.
+This value must be provided, since a confusion matrix of dimension =
+[num_classes, num_classes] will be allocated.</dd>
+<dt><strong><code>name</code></strong></dt>
+<dd>(Optional) string name of the metric instance.</dd>
+<dt><strong><code>dtype</code></strong></dt>
+<dd>(Optional) data type of the metric result.</dd>
+</dl>
+<p>Standalone usage:</p>
+<pre><code class="python-repl">&gt;&gt;&gt; # cm = [[1, 1],
+&gt;&gt;&gt; #        [1, 1]]
+&gt;&gt;&gt; # sum_row = [2, 2], sum_col = [2, 2], true_positives = [1, 1]
+&gt;&gt;&gt; # dice = 2*true_positives / (sum_row + sum_col - true_positives))
+&gt;&gt;&gt; # result = (1 / (2 + 2 - 1) , 1 / (2 + 2 - 1)) = 0.33, 0.33
+&gt;&gt;&gt; m = tf.keras.metrics.MeanIoU(num_classes=2)
+&gt;&gt;&gt; m.update_state([0, 0, 1, 1], [0, 1, 0, 1])
+&gt;&gt;&gt; m.result().numpy()
+0.33333334, 0.33333334
+&gt;&gt;&gt; m.reset_states()
+&gt;&gt;&gt; m.update_state([0, 0, 1, 1], [0, 1, 0, 1],
+...                sample_weight=[0.3, 0.3, 0.3, 0.1])
+&gt;&gt;&gt; m.result().numpy()
+0.33333334, 0.14285715
+Usage with &lt;code&gt;compile()&lt;/code&gt; API:
+```python
+model.compile(
+  optimizer='sgd',
+  loss='mse',
+  metrics=[tf.keras.metrics.MeanIoU(num_classes=2)])
+</code></pre>
+<p>```</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>tensorflow.python.keras.metrics.Metric</li>
+<li>tensorflow.python.keras.engine.base_layer.Layer</li>
+<li>tensorflow.python.module.module.Module</li>
+<li>tensorflow.python.training.tracking.tracking.AutoTrackable</li>
+<li>tensorflow.python.training.tracking.base.Trackable</li>
+<li>tensorflow.python.keras.utils.version_utils.LayerVersionSelector</li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="segmentation.metrics.Dice.get_config"><code class="name flex">
+<span>def <span class="ident">get_config</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Returns the serializable config of the metric.</p></div>
+</dd>
+<dt id="segmentation.metrics.Dice.reset_states"><code class="name flex">
+<span>def <span class="ident">reset_states</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Resets all of the metric state variables.</p>
+<p>This function is called between epochs/steps,
+when a metric is evaluated during training.</p></div>
+</dd>
+<dt id="segmentation.metrics.Dice.result"><code class="name flex">
+<span>def <span class="ident">result</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Compute the mean intersection-over-union via the confusion matrix.</p></div>
+</dd>
+<dt id="segmentation.metrics.Dice.update_state"><code class="name flex">
+<span>def <span class="ident">update_state</span></span>(<span>self, y_true, y_pred, sample_weight=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Accumulates the confusion matrix statistics.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>y_true</code></strong></dt>
+<dd>The ground truth values.</dd>
+<dt><strong><code>y_pred</code></strong></dt>
+<dd>The predicted values.</dd>
+<dt><strong><code>sample_weight</code></strong></dt>
+<dd>Optional weighting of each example. Defaults to 1. Can be a
+<code>Tensor</code> whose rank is either 0, or the same rank as <code>y_true</code>, and must
+be broadcastable to <code>y_true</code>.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>Update op.</p></div>
+</dd>
+</dl>
+</dd>
+<dt id="segmentation.metrics.MeanDice"><code class="flex name class">
+<span>class <span class="ident">MeanDice</span></span>
+<span>(</span><span>num_classes, name=None, dtype=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Computes the Dice metric average over classes.
+Dice is a common evaluation metric for semantic image
+segmentation, obtained by computing the Dice for each semantic class
+and then by averaging the values.
+Dice is defined as follows:
+Dice = 2<em>true_positive / (2</em>true_positive + false_positive + false_negative).
+The predictions are accumulated in a confusion matrix, weighted by
+<code>sample_weight</code> and the metric is then calculated from it.
+If <code>sample_weight</code> is <code>None</code>, weights default to 1.
+Use <code>sample_weight</code> of 0 to mask values.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>num_classes</code></strong></dt>
+<dd>The possible number of labels the prediction task can have.
+This value must be provided, since a confusion matrix of dimension =
+[num_classes, num_classes] will be allocated.</dd>
+<dt><strong><code>name</code></strong></dt>
+<dd>(Optional) string name of the metric instance.</dd>
+<dt><strong><code>dtype</code></strong></dt>
+<dd>(Optional) data type of the metric result.</dd>
+</dl>
+<p>Standalone usage:</p>
+<pre><code class="python-repl">&gt;&gt;&gt; # cm = [[1, 1],
+&gt;&gt;&gt; #        [1, 1]]
+&gt;&gt;&gt; # sum_row = [2, 2], sum_col = [2, 2], true_positives = [1, 1]
+&gt;&gt;&gt; # dice = 2*true_positives / (sum_row + sum_col - true_positives))
+&gt;&gt;&gt; # result = (1 / (2 + 2 - 1) , 1 / (2 + 2 - 1)) = 0.33, 0.33
+&gt;&gt;&gt; m = tf.keras.metrics.MeanIoU(num_classes=2)
+&gt;&gt;&gt; m.update_state([0, 0, 1, 1], [0, 1, 0, 1])
+&gt;&gt;&gt; m.result().numpy()
+0.33333334, 0.33333334
+&gt;&gt;&gt; m.reset_states()
+&gt;&gt;&gt; m.update_state([0, 0, 1, 1], [0, 1, 0, 1],
+...                sample_weight=[0.3, 0.3, 0.3, 0.1])
+&gt;&gt;&gt; m.result().numpy()
+0.33333334, 0.14285715
+Usage with &lt;code&gt;compile()&lt;/code&gt; API:
+```python
+model.compile(
+  optimizer='sgd',
+  loss='mse',
+  metrics=[tf.keras.metrics.MeanIoU(num_classes=2)])
+</code></pre>
+<p>```</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>tensorflow.python.keras.metrics.Metric</li>
+<li>tensorflow.python.keras.engine.base_layer.Layer</li>
+<li>tensorflow.python.module.module.Module</li>
+<li>tensorflow.python.training.tracking.tracking.AutoTrackable</li>
+<li>tensorflow.python.training.tracking.base.Trackable</li>
+<li>tensorflow.python.keras.utils.version_utils.LayerVersionSelector</li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="segmentation.metrics.MeanDice.get_config"><code class="name flex">
+<span>def <span class="ident">get_config</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Returns the serializable config of the metric.</p></div>
+</dd>
+<dt id="segmentation.metrics.MeanDice.reset_states"><code class="name flex">
+<span>def <span class="ident">reset_states</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Resets all of the metric state variables.</p>
+<p>This function is called between epochs/steps,
+when a metric is evaluated during training.</p></div>
+</dd>
+<dt id="segmentation.metrics.MeanDice.result"><code class="name flex">
+<span>def <span class="ident">result</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Compute the mean intersection-over-union via the confusion matrix.</p></div>
+</dd>
+<dt id="segmentation.metrics.MeanDice.update_state"><code class="name flex">
+<span>def <span class="ident">update_state</span></span>(<span>self, y_true, y_pred, sample_weight=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Accumulates the confusion matrix statistics.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>y_true</code></strong></dt>
+<dd>The ground truth values.</dd>
+<dt><strong><code>y_pred</code></strong></dt>
+<dd>The predicted values.</dd>
+<dt><strong><code>sample_weight</code></strong></dt>
+<dd>Optional weighting of each example. Defaults to 1. Can be a
+<code>Tensor</code> whose rank is either 0, or the same rank as <code>y_true</code>, and must
+be broadcastable to <code>y_true</code>.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>Update op.</p></div>
+</dd>
+</dl>
+</dd>
+<dt id="segmentation.metrics.PerClassIoU"><code class="flex name class">
+<span>class <span class="ident">PerClassIoU</span></span>
+<span>(</span><span>num_classes, name=None, dtype=None, class_to_return=0)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Computes the Intersection-Over-Union metric per-class.
+Intersection-Over-Union is a common evaluation metric for semantic image
+segmentation, obtained by computing the IOU for each semantic class.
+IOU is defined as follows:
+IOU = true_positive / (true_positive + false_positive + false_negative).
+The predictions are accumulated in a confusion matrix, weighted by
+<code>sample_weight</code> and the metric is then calculated from it.
+If <code>sample_weight</code> is <code>None</code>, weights default to 1.
+Use <code>sample_weight</code> of 0 to mask values.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>num_classes</code></strong></dt>
+<dd>The possible number of labels the prediction task can have.
+This value must be provided, since a confusion matrix of dimension =
+[num_classes, num_classes] will be allocated.</dd>
+<dt><strong><code>name</code></strong></dt>
+<dd>(Optional) string name of the metric instance.</dd>
+<dt><strong><code>dtype</code></strong></dt>
+<dd>(Optional) data type of the metric result.</dd>
+</dl>
+<p>Standalone usage:</p>
+<pre><code class="python-repl">&gt;&gt;&gt; # cm = [[1, 1],
+&gt;&gt;&gt; #        [1, 1]]
+&gt;&gt;&gt; # sum_row = [2, 2], sum_col = [2, 2], true_positives = [1, 1]
+&gt;&gt;&gt; # iou = true_positives / (sum_row + sum_col - true_positives))
+&gt;&gt;&gt; # result = (1 / (2 + 2 - 1) , 1 / (2 + 2 - 1)) = 0.33, 0.33
+&gt;&gt;&gt; m = tf.keras.metrics.MeanIoU(num_classes=2, class_to_return=1)
+&gt;&gt;&gt; m.update_state([0, 0, 1, 1], [0, 1, 0, 1])
+&gt;&gt;&gt; m.result().numpy()
+0.33333334
+&gt;&gt;&gt; m.reset_states()
+&gt;&gt;&gt; m.update_state([0, 0, 1, 1], [0, 1, 0, 1],
+...                sample_weight=[0.3, 0.3, 0.3, 0.1])
+&gt;&gt;&gt; m.result().numpy()
+0.14285715
+Usage with &lt;code&gt;compile()&lt;/code&gt; API:
+```python
+model.compile(
+  optimizer='sgd',
+  loss='mse',
+  metrics=[tf.keras.metrics.PerClassIoU(num_classes=2, class_to_return=0)])
+</code></pre>
+<p>```</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>tensorflow.python.keras.metrics.Metric</li>
+<li>tensorflow.python.keras.engine.base_layer.Layer</li>
+<li>tensorflow.python.module.module.Module</li>
+<li>tensorflow.python.training.tracking.tracking.AutoTrackable</li>
+<li>tensorflow.python.training.tracking.base.Trackable</li>
+<li>tensorflow.python.keras.utils.version_utils.LayerVersionSelector</li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="segmentation.metrics.PerClassIoU.get_config"><code class="name flex">
+<span>def <span class="ident">get_config</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Returns the serializable config of the metric.</p></div>
+</dd>
+<dt id="segmentation.metrics.PerClassIoU.reset_states"><code class="name flex">
+<span>def <span class="ident">reset_states</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Resets all of the metric state variables.</p>
+<p>This function is called between epochs/steps,
+when a metric is evaluated during training.</p></div>
+</dd>
+<dt id="segmentation.metrics.PerClassIoU.result"><code class="name flex">
+<span>def <span class="ident">result</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Compute the mean intersection-over-union via the confusion matrix.</p></div>
+</dd>
+<dt id="segmentation.metrics.PerClassIoU.update_state"><code class="name flex">
+<span>def <span class="ident">update_state</span></span>(<span>self, y_true, y_pred, sample_weight=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Accumulates the confusion matrix statistics.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>y_true</code></strong></dt>
+<dd>The ground truth values.</dd>
+<dt><strong><code>y_pred</code></strong></dt>
+<dd>The predicted values.</dd>
+<dt><strong><code>sample_weight</code></strong></dt>
+<dd>Optional weighting of each example. Defaults to 1. Can be a
+<code>Tensor</code> whose rank is either 0, or the same rank as <code>y_true</code>, and must
+be broadcastable to <code>y_true</code>.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>Update op.</p></div>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="segmentation" href="index.html">segmentation</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="segmentation.metrics.Dice" href="#segmentation.metrics.Dice">Dice</a></code></h4>
+<ul class="">
+<li><code><a title="segmentation.metrics.Dice.get_config" href="#segmentation.metrics.Dice.get_config">get_config</a></code></li>
+<li><code><a title="segmentation.metrics.Dice.reset_states" href="#segmentation.metrics.Dice.reset_states">reset_states</a></code></li>
+<li><code><a title="segmentation.metrics.Dice.result" href="#segmentation.metrics.Dice.result">result</a></code></li>
+<li><code><a title="segmentation.metrics.Dice.update_state" href="#segmentation.metrics.Dice.update_state">update_state</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="segmentation.metrics.MeanDice" href="#segmentation.metrics.MeanDice">MeanDice</a></code></h4>
+<ul class="">
+<li><code><a title="segmentation.metrics.MeanDice.get_config" href="#segmentation.metrics.MeanDice.get_config">get_config</a></code></li>
+<li><code><a title="segmentation.metrics.MeanDice.reset_states" href="#segmentation.metrics.MeanDice.reset_states">reset_states</a></code></li>
+<li><code><a title="segmentation.metrics.MeanDice.result" href="#segmentation.metrics.MeanDice.result">result</a></code></li>
+<li><code><a title="segmentation.metrics.MeanDice.update_state" href="#segmentation.metrics.MeanDice.update_state">update_state</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="segmentation.metrics.PerClassIoU" href="#segmentation.metrics.PerClassIoU">PerClassIoU</a></code></h4>
+<ul class="">
+<li><code><a title="segmentation.metrics.PerClassIoU.get_config" href="#segmentation.metrics.PerClassIoU.get_config">get_config</a></code></li>
+<li><code><a title="segmentation.metrics.PerClassIoU.reset_states" href="#segmentation.metrics.PerClassIoU.reset_states">reset_states</a></code></li>
+<li><code><a title="segmentation.metrics.PerClassIoU.result" href="#segmentation.metrics.PerClassIoU.result">result</a></code></li>
+<li><code><a title="segmentation.metrics.PerClassIoU.update_state" href="#segmentation.metrics.PerClassIoU.update_state">update_state</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.1</a>.</p>
+</footer>
+</body>
+</html>

@@ -156,22 +156,22 @@ class UNet(object):
         # Up sampling branch
         for i in range(self.depth):
 
-            
-              # Deconvolution 32 filters 
-  cumulative_resulting_tensor = keras.layers.Conv3DTranspose(16, kernel_size = (2, 2, 2), strides = (2, 2, 2), padding = 'same', activation = 'linear', kernel_regularizer = keras.regularizers.l2(L2_REG_LAMBDA), bias_regularizer = keras.regularizers.l2(L2_REG_LAMBDA))(cumulative_resulting_tensor)
-  # RELU
-  cumulative_resulting_tensor = keras.layers.Activation('relu')(cumulative_resulting_tensor)
-  # Concatenation
-  cumulative_resulting_tensor = keras.layers.Concatenate(axis = CONCATENATION_DIRECTION_OF_FEATURES)([intermediate_tensor_2, cumulative_resulting_tensor])
-  # Convolution 32 filters 
-  cumulative_resulting_tensor = keras.layers.Conv3D(16, kernel_size = (3, 3, 3), strides = (1, 1, 1), padding = 'same', activation = 'linear', kernel_regularizer = keras.regularizers.l2(L2_REG_LAMBDA), bias_regularizer = keras.regularizers.l2(L2_REG_LAMBDA))(cumulative_resulting_tensor)
-  # RELU
-  cumulative_resulting_tensor = keras.layers.Activation('relu')(cumulative_resulting_tensor)
-  # Convolution 32 filters 
-  cumulative_resulting_tensor = keras.layers.Conv3D(16, kernel_size = (3, 3, 3), strides = (1, 1, 1), padding = 'same', activation = 'linear', kernel_regularizer = keras.regularizers.l2(L2_REG_LAMBDA), bias_regularizer = keras.regularizers.l2(L2_REG_LAMBDA))(cumulative_resulting_tensor)
-  # RELU
-  cumulative_resulting_tensor = keras.layers.Activation('relu')(cumulative_resulting_tensor)
-
+            '''
+            # Deconvolution 32 filters 
+            cumulative_resulting_tensor = keras.layers.Conv3DTranspose(16, kernel_size = (2, 2, 2), strides = (2, 2, 2), padding = 'same', activation = 'linear', kernel_regularizer = keras.regularizers.l2(L2_REG_LAMBDA), bias_regularizer = keras.regularizers.l2(L2_REG_LAMBDA))(cumulative_resulting_tensor)
+            # RELU
+            cumulative_resulting_tensor = keras.layers.Activation('relu')(cumulative_resulting_tensor)
+            # Concatenation
+            cumulative_resulting_tensor = keras.layers.Concatenate(axis = CONCATENATION_DIRECTION_OF_FEATURES)([intermediate_tensor_2, cumulative_resulting_tensor])
+            # Convolution 32 filters 
+            cumulative_resulting_tensor = keras.layers.Conv3D(16, kernel_size = (3, 3, 3), strides = (1, 1, 1), padding = 'same', activation = 'linear', kernel_regularizer = keras.regularizers.l2(L2_REG_LAMBDA), bias_regularizer = keras.regularizers.l2(L2_REG_LAMBDA))(cumulative_resulting_tensor)
+            # RELU
+            cumulative_resulting_tensor = keras.layers.Activation('relu')(cumulative_resulting_tensor)
+            # Convolution 32 filters 
+            cumulative_resulting_tensor = keras.layers.Conv3D(16, kernel_size = (3, 3, 3), strides = (1, 1, 1), padding = 'same', activation = 'linear', kernel_regularizer = keras.regularizers.l2(L2_REG_LAMBDA), bias_regularizer = keras.regularizers.l2(L2_REG_LAMBDA))(cumulative_resulting_tensor)
+            # RELU
+            cumulative_resulting_tensor = keras.layers.Activation('relu')(cumulative_resulting_tensor)
+            '''
         
 
     def set_initial_weights(self, weights):
