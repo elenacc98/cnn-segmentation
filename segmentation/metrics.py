@@ -30,25 +30,25 @@ class PerClassIoU(Metric):
   >>> # sum_row = [2, 2], sum_col = [2, 2], true_positives = [1, 1]
   >>> # iou = true_positives / (sum_row + sum_col - true_positives))
   >>> # result = (1 / (2 + 2 - 1) , 1 / (2 + 2 - 1)) = 0.33, 0.33
-  >>> m = tf.keras.metrics.MeanIoU(num_classes=2)
+  >>> m = tf.keras.metrics.MeanIoU(num_classes=2, class_to_return=1)
   >>> m.update_state([0, 0, 1, 1], [0, 1, 0, 1])
   >>> m.result().numpy()
-  0.33333334, 0.33333334
+  0.33333334
   >>> m.reset_states()
   >>> m.update_state([0, 0, 1, 1], [0, 1, 0, 1],
   ...                sample_weight=[0.3, 0.3, 0.3, 0.1])
   >>> m.result().numpy()
-  0.33333334, 0.14285715
+  0.14285715
   Usage with `compile()` API:
   ```python
   model.compile(
     optimizer='sgd',
     loss='mse',
-    metrics=[tf.keras.metrics.MeanIoU(num_classes=2)])
+    metrics=[tf.keras.metrics.PerClassIoU(num_classes=2, class_to_return=0)])
   ```
   """
 
-  def __init__(self, num_classes, name=None, dtype=None):
+  def __init__(self, num_classes, name=None, dtype=None, class_to_return=0):
     super(PerClassIoU, self).__init__(name=name, dtype=dtype)
     self.num_classes = num_classes
 
@@ -59,6 +59,7 @@ class PerClassIoU(Metric):
         shape=(num_classes, num_classes),
         initializer=init_ops.zeros_initializer,
         dtype=dtypes.float64)
+    self.class_to_return = class_to_return
 
   def update_state(self, y_true, y_pred, sample_weight=None):
     """Accumulates the confusion matrix statistics.
@@ -116,9 +117,7 @@ class PerClassIoU(Metric):
         math_ops.cast(math_ops.not_equal(denominator, 0), dtype=self._dtype))
 
     iou = math_ops.div_no_nan(true_positives, denominator)
-    return iou
-    #return math_ops.div_no_nan(
-    #    math_ops.reduce_sum(iou, name='mean_iou'), num_valid_entries)
+    return iou[self.class_to_return]
 
   def reset_states(self):
     K.set_value(self.total_cm, np.zeros((self.num_classes, self.num_classes)))
@@ -170,7 +169,7 @@ class Dice(Metric):
   """
 
   def __init__(self, num_classes, name=None, dtype=None):
-    super(PerClassIoU, self).__init__(name=name, dtype=dtype)
+    super(Dice, self).__init__(name=name, dtype=dtype, class_to_return=0)
     self.num_classes = num_classes
 
     # Variable to accumulate the predictions in the confusion matrix. Setting
@@ -180,6 +179,7 @@ class Dice(Metric):
         shape=(num_classes, num_classes),
         initializer=init_ops.zeros_initializer,
         dtype=dtypes.float64)
+    self.class_to_return = class_to_return
 
   def update_state(self, y_true, y_pred, sample_weight=None):
     """Accumulates the confusion matrix statistics.
@@ -237,7 +237,7 @@ class Dice(Metric):
         math_ops.cast(math_ops.not_equal(denominator, 0), dtype=self._dtype))
 
     dice = math_ops.div_no_nan(true_positives, denominator)
-    return dice
+    return dice[self.class_to_return]
     #return math_ops.div_no_nan(
     #    math_ops.reduce_sum(iou, name='mean_iou'), num_valid_entries)
 
@@ -291,7 +291,7 @@ class MeanDice(Metric):
   """
 
   def __init__(self, num_classes, name=None, dtype=None):
-    super(PerClassIoU, self).__init__(name=name, dtype=dtype)
+    super(MeanDice, self).__init__(name=name, dtype=dtype)
     self.num_classes = num_classes
 
     # Variable to accumulate the predictions in the confusion matrix. Setting
