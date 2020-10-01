@@ -35,7 +35,7 @@
 <dl>
 <dt id="segmentation.cnn.UNet"><code class="flex name class">
 <span>class <span class="ident">UNet</span></span>
-<span>(</span><span>input_size=(128, 128, 128, 1), kernel_size=(3, 3, 3), strides=(1, 1, 1), deconv_strides=(2, 2, 2), pool_size=(2, 2, 2), pool_strides=(2, 2, 2), depth=5, activation='relu', padding='same', n_initial_filters=8, add_batch_normalization=True, kernel_regularizer=&lt;tensorflow.python.keras.regularizers.L2 object&gt;, bias_regularizer=&lt;tensorflow.python.keras.regularizers.L2 object&gt;, n_classes=2)</span>
+<span>(</span><span>input_size=(128, 128, 128, 1), kernel_size=(3, 3, 3), strides=(1, 1, 1), deconv_kernel_size=(2, 2, 2), deconv_strides=(2, 2, 2), pool_size=(2, 2, 2), pool_strides=(2, 2, 2), depth=5, activation='relu', padding='same', n_initial_filters=8, add_batch_normalization=True, kernel_regularizer=&lt;tensorflow.python.keras.regularizers.L2 object&gt;, bias_regularizer=&lt;tensorflow.python.keras.regularizers.L2 object&gt;, n_classes=3)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>This class provides a simple interface to create
@@ -50,6 +50,8 @@ a U-Net network with custom parameters. </p>
 <dd>stride shape to be used in the convolutional layers of the U-Net</dd>
 <dt><strong><code>deconv_strides</code></strong></dt>
 <dd>stride shape to be used in the deconvolutional layers of the U-Net</dd>
+<dt><strong><code>deconv_kernel_size</code></strong></dt>
+<dd>kernel size shape to be used in the deconvolutional layers of the U-Net</dd>
 <dt><strong><code>pool_size</code></strong></dt>
 <dd>size of the pool size to be used in MaxPooling layers</dd>
 <dt><strong><code>pool_strides</code></strong></dt>
@@ -78,7 +80,7 @@ a U-Net network with custom parameters. </p>
 </code></dt>
 <dd>
 <div class="desc"><p>This function creates a U-Net network based
-on the current configuration.</p></div>
+on the configuration.</p></div>
 </dd>
 <dt id="segmentation.cnn.UNet.get_n_parameters"><code class="name flex">
 <span>def <span class="ident">get_n_parameters</span></span>(<span>self)</span>

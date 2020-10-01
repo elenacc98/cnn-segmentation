@@ -11,6 +11,7 @@ class UNet(object):
         kernel_size: size of the kernel to be used in the convolutional layers of the U-Net
         strides: stride shape to be used in the convolutional layers of the U-Net
         deconv_strides: stride shape to be used in the deconvolutional layers of the U-Net
+        deconv_kernel_size: kernel size shape to be used in the deconvolutional layers of the U-Net
         pool_size: size of the pool size to be used in MaxPooling layers
         pool_strides: size of the strides to be used in MaxPooling layers
         depth: depth of the U-Net model
@@ -26,6 +27,7 @@ class UNet(object):
     def __init__(self, input_size = (128,128,128,1), 
                         kernel_size = (3,3,3),
                         strides = (1,1,1),
+                        deconv_kernel_size = (2,2,2),
                         deconv_strides = (2,2,2),
                         pool_size = (2,2,2),
                         pool_strides = (2,2,2),
@@ -36,12 +38,13 @@ class UNet(object):
                         add_batch_normalization = True,
                         kernel_regularizer = regularizers.l2(0.001),
                         bias_regularizer = regularizers.l2(0.001),
-                        n_classes = 2):
+                        n_classes = 3):
 
         self.input_size = input_size
         self.n_dim = len(input_size) # Number of dimensions of the input data
         self.kernel_size = kernel_size
         self.strides = strides
+        self.deconv_kernel_size = deconv_kernel_size
         self.deconv_strides = deconv_strides
         self.depth = depth
         self.activation = activation
@@ -57,18 +60,21 @@ class UNet(object):
     def create_model(self):
         '''
         This function creates a U-Net network based
-        on the current configuration.
+        on the configuration.
         '''
         # Check if 2D or 3D convolution must be used
         if (self.n_dim == 3):
             conv_layer = layers.Conv2D
             max_pool_layer = layers.MaxPooling2D
+            conv_transpose_layer = layers.Conv2DTranspose
         elif (self.n_dim == 4):
             conv_layer = layers.Conv3D
             max_pool_layer = layers.MaxPooling3D
+            conv_transpose_layer = layers.Conv3DTranspose
         else:
             print("Could not handle input dimensions.")
             return
+
         # Input layer
         temp_layer = layers.Input(shape=self.input_size)
         input_tensor = temp_layer
@@ -95,7 +101,6 @@ class UNet(object):
             temp_layer = max_pool_layer(pool_size = self.pool_size,
                                          strides=self.pool_strides, 
                                          padding=self.padding)(temp_layer)
-        
         for j in range(2): 
             # Bottleneck
             temp_layer = conv_layer(self.n_initial_filters*pow(2,self.depth), kernel_size = self.kernel_size, 
@@ -111,8 +116,8 @@ class UNet(object):
         
         # Up sampling branch
         for i in range(self.depth):
-            temp_layer = layers.Conv3DTranspose(self.n_initial_filters*pow(2,(self.depth-1)-i),
-                                                    kernel_size=self.kernel_size,
+            temp_layer = conv_transpose_layer(self.n_initial_filters*pow(2,(self.depth-1)-i),
+                                                    kernel_size=self.deconv_kernel_size,
                                                     strides=self.deconv_strides,
                                                     activation='linear',
                                                     padding=self.padding,
@@ -121,11 +126,13 @@ class UNet(object):
             # activation
             temp_layer = layers.Activation(self.activation)(temp_layer)
             # concatenation
-            temp_layer = layers.Concatenate(axis=self.n_classes)([downsampling_layers[(self.depth-1)-i], temp_layer])
+            print(downsampling_layers[(self.depth-1)-i])
+            temp_layer = layers.Concatenate(axis=self.n_dim)([downsampling_layers[(self.depth-1)-i], temp_layer])
             # convolution
             for j in range(2):
                 # Convolution
-                temp_layer = conv_layer(self.n_initial_filters*pow(2,(self.depth-1)-i), kernel_size = self.kernel_size, 
+                temp_layer = conv_layer(self.n_initial_filters*pow(2,(self.depth-1)-i),
+                                            kernel_size = self.kernel_size, 
                                             strides = self.strides, 
                                             padding = self.padding,
                                             activation = 'linear', 
@@ -133,10 +140,10 @@ class UNet(object):
                                             bias_regularizer = self.bias_regularizer)(temp_layer)
                 # activation
                 temp_layer = layers.Activation(self.activation)(temp_layer)
-            
+  
 
         # Convolution 1 filter sigmoidal (to make size converge to final one)
-        temp_layer = layers.Conv2D(self.n_classes, kernel_size = (1, 1, 1),
+        temp_layer = conv_layer(self.n_classes, kernel_size = (1, 1, 1),
                                                        strides = self.strides,
                                                        padding = 'same', 
                                                        activation = 'linear',

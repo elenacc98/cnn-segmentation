@@ -1,4 +1,6 @@
-import medacta
-import medacta.data
+from segmentation.cnn import UNet
 
-medacta.data.load_data()
+unet = UNet(depth=3)
+unet.create_model()
+print(unet.get_n_parameters())
+unet.summary()
