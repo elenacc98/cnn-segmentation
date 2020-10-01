@@ -13,7 +13,9 @@ class PerClassIoU(Metric):
   Intersection-Over-Union is a common evaluation metric for semantic image
   segmentation, obtained by computing the IOU for each semantic class.
   IOU is defined as follows:
-    IOU = true_positive / (true_positive + false_positive + false_negative).
+  .. math::
+        IOU = \\frac{TP}{TP+FP+FN}
+        
   The predictions are accumulated in a confusion matrix, weighted by
   `sample_weight` and the metric is then calculated from it.
   If `sample_weight` is `None`, weights default to 1.
@@ -39,6 +41,7 @@ class PerClassIoU(Metric):
   ...                sample_weight=[0.3, 0.3, 0.3, 0.1])
   >>> m.result().numpy()
   0.14285715
+
   Usage with `compile()` API:
   ```python
   model.compile(
