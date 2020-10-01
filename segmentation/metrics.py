@@ -15,7 +15,7 @@ class PerClassIoU(Metric):
   IOU is defined as follows:
   .. math::
         IOU = \\frac{TP}{TP+FP+FN}
-        
+
   The predictions are accumulated in a confusion matrix, weighted by
   `sample_weight` and the metric is then calculated from it.
   If `sample_weight` is `None`, weights default to 1.
@@ -32,7 +32,7 @@ class PerClassIoU(Metric):
   >>> # sum_row = [2, 2], sum_col = [2, 2], true_positives = [1, 1]
   >>> # iou = true_positives / (sum_row + sum_col - true_positives))
   >>> # result = (1 / (2 + 2 - 1) , 1 / (2 + 2 - 1)) = 0.33, 0.33
-  >>> m = tf.keras.metrics.MeanIoU(num_classes=2, class_to_return=1)
+  >>> m = segmentation.metrics.MeanIoU(num_classes=2, class_to_return=1)
   >>> m.update_state([0, 0, 1, 1], [0, 1, 0, 1])
   >>> m.result().numpy()
   0.33333334
@@ -47,7 +47,7 @@ class PerClassIoU(Metric):
   model.compile(
     optimizer='sgd',
     loss='mse',
-    metrics=[tf.keras.metrics.PerClassIoU(num_classes=2, class_to_return=0)])
+    metrics=[segmentation.metrics.PerClassIoU(num_classes=2, class_to_return=0)])
   ```
   """
 
@@ -136,7 +136,9 @@ class Dice(Metric):
   Dice is a common evaluation metric for semantic image
   segmentation, obtained by computing the Dice for each semantic class.
   Dice is defined as follows:
-    Dice = 2*true_positive / (2*true_positive + false_positive + false_negative).
+  .. math::
+      Dice = \\frac{2*TP}{2*TP + FP + FN}
+
   The predictions are accumulated in a confusion matrix, weighted by
   `sample_weight` and the metric is then calculated from it.
   If `sample_weight` is `None`, weights default to 1.
@@ -147,32 +149,34 @@ class Dice(Metric):
       [num_classes, num_classes] will be allocated.
     name: (Optional) string name of the metric instance.
     dtype: (Optional) data type of the metric result.
+    class_to_return: (Optional) class for which Dice value is returned. Default to 0.
   Standalone usage:
   >>> # cm = [[1, 1],
   >>> #        [1, 1]]
   >>> # sum_row = [2, 2], sum_col = [2, 2], true_positives = [1, 1]
-  >>> # dice = 2*true_positives / (sum_row + sum_col - true_positives))
-  >>> # result = (1 / (2 + 2 - 1) , 1 / (2 + 2 - 1)) = 0.33, 0.33
-  >>> m = tf.keras.metrics.MeanIoU(num_classes=2)
+  >>> # dice = 2*true_positives / (sum_row + sum_col))
+  >>> # result = (2 / (2 + 2)) = 0.5
+  >>> m = segmentation.metrics.Dice(num_classes=2, class_to_return=0)
   >>> m.update_state([0, 0, 1, 1], [0, 1, 0, 1])
   >>> m.result().numpy()
-  0.33333334, 0.33333334
-  >>> m.reset_states()
+  0.5
+  >>> m = segmentation.metrics.Dice(num_classes=2, class_to_return=1)
   >>> m.update_state([0, 0, 1, 1], [0, 1, 0, 1],
   ...                sample_weight=[0.3, 0.3, 0.3, 0.1])
   >>> m.result().numpy()
-  0.33333334, 0.14285715
+  0.25
+
   Usage with `compile()` API:
   ```python
   model.compile(
     optimizer='sgd',
     loss='mse',
-    metrics=[tf.keras.metrics.MeanIoU(num_classes=2)])
+    metrics=[segmentation.metrics.Dice(num_classes=2)])
   ```
   """
 
-  def __init__(self, num_classes, name=None, dtype=None):
-    super(Dice, self).__init__(name=name, dtype=dtype, class_to_return=0)
+  def __init__(self, num_classes, name=None, dtype=None, class_to_return=0):
+    super(Dice, self).__init__(name=name, dtype=dtype)
     self.num_classes = num_classes
 
     # Variable to accumulate the predictions in the confusion matrix. Setting
@@ -232,17 +236,15 @@ class Dice(Metric):
     # sum_over_row + sum_over_col =
     #     2 * true_positives + false_positives + false_negatives.
     denominator = sum_over_row + sum_over_col
-
+    numerator = true_positives + true_positives
     # The mean is only computed over classes that appear in the
     # label or prediction tensor. If the denominator is 0, we need to
     # ignore the class.
     num_valid_entries = math_ops.reduce_sum(
         math_ops.cast(math_ops.not_equal(denominator, 0), dtype=self._dtype))
 
-    dice = math_ops.div_no_nan(true_positives, denominator)
+    dice = math_ops.div_no_nan(numerator, denominator)
     return dice[self.class_to_return]
-    #return math_ops.div_no_nan(
-    #    math_ops.reduce_sum(iou, name='mean_iou'), num_valid_entries)
 
   def reset_states(self):
     K.set_value(self.total_cm, np.zeros((self.num_classes, self.num_classes)))
@@ -258,7 +260,8 @@ class MeanDice(Metric):
   segmentation, obtained by computing the Dice for each semantic class 
   and then by averaging the values.
   Dice is defined as follows:
-    Dice = 2*true_positive / (2*true_positive + false_positive + false_negative).
+    .. math::
+    Dice = \\frac{2*true_positive}{2*true_positive + false_positive + false_negative}.
   The predictions are accumulated in a confusion matrix, weighted by
   `sample_weight` and the metric is then calculated from it.
   If `sample_weight` is `None`, weights default to 1.
@@ -354,6 +357,7 @@ class MeanDice(Metric):
     #     2 * true_positives + false_positives + false_negatives.
     denominator = sum_over_row + sum_over_col
 
+    numerator = true_positives + true_positives
     # The mean is only computed over classes that appear in the
     # label or prediction tensor. If the denominator is 0, we need to
     # ignore the class.
