@@ -1,3 +1,7 @@
+"""
+The cnn submodules offers some classes to define CNN-based
+models in a dynamic way.
+"""
 from tensorflow.keras import layers
 from tensorflow.keras import regularizers
 from tensorflow.keras import Model
