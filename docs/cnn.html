@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.9.1" />
 <title>segmentation.cnn API documentation</title>
-<meta name="description" content="" />
+<meta name="description" content="The cnn submodule implements some classes to define CNN-based
+models in a dynamic way." />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
 <link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
@@ -23,6 +24,8 @@
 <h1 class="title">Module <code>segmentation.cnn</code></h1>
 </header>
 <section id="section-intro">
+<p>The cnn submodule implements some classes to define CNN-based
+models in a dynamic way.</p>
 </section>
 <section>
 </section>
@@ -35,7 +38,7 @@
 <dl>
 <dt id="segmentation.cnn.UNet"><code class="flex name class">
 <span>class <span class="ident">UNet</span></span>
-<span>(</span><span>input_size=(128, 128, 128, 1), kernel_size=(3, 3, 3), strides=(1, 1, 1), deconv_strides=(2, 2, 2), pool_size=(2, 2, 2), pool_strides=(2, 2, 2), depth=5, activation='relu', padding='same', n_initial_filters=8, add_batch_normalization=True, kernel_regularizer=&lt;tensorflow.python.keras.regularizers.L2 object&gt;, bias_regularizer=&lt;tensorflow.python.keras.regularizers.L2 object&gt;, n_classes=2)</span>
+<span>(</span><span>input_size=(128, 128, 128, 1), kernel_size=(3, 3, 3), strides=(1, 1, 1), deconv_kernel_size=(2, 2, 2), deconv_strides=(2, 2, 2), pool_size=(2, 2, 2), pool_strides=(2, 2, 2), depth=5, activation='relu', padding='same', n_initial_filters=8, add_batch_normalization=True, kernel_regularizer=&lt;tensorflow.python.keras.regularizers.L2 object&gt;, bias_regularizer=&lt;tensorflow.python.keras.regularizers.L2 object&gt;, n_classes=3)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>This class provides a simple interface to create
@@ -50,6 +53,8 @@ a U-Net network with custom parameters. </p>
 <dd>stride shape to be used in the convolutional layers of the U-Net</dd>
 <dt><strong><code>deconv_strides</code></strong></dt>
 <dd>stride shape to be used in the deconvolutional layers of the U-Net</dd>
+<dt><strong><code>deconv_kernel_size</code></strong></dt>
+<dd>kernel size shape to be used in the deconvolutional layers of the U-Net</dd>
 <dt><strong><code>pool_size</code></strong></dt>
 <dd>size of the pool size to be used in MaxPooling layers</dd>
 <dt><strong><code>pool_strides</code></strong></dt>
@@ -78,7 +83,7 @@ a U-Net network with custom parameters. </p>
 </code></dt>
 <dd>
 <div class="desc"><p>This function creates a U-Net network based
-on the current configuration.</p></div>
+on the configuration.</p></div>
 </dd>
 <dt id="segmentation.cnn.UNet.get_n_parameters"><code class="name flex">
 <span>def <span class="ident">get_n_parameters</span></span>(<span>self)</span>

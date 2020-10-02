@@ -1,4 +1,5 @@
-import medacta
-import medacta.data
+from segmentation.cnn import UNet
+from segmentation.metrics import PerClassIoU
+from segmentation.callbacks import MetricsPlot
 
-medacta.data.load_data()
+m = MetricsPlot()

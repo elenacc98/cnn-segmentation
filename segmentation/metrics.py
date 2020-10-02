@@ -260,8 +260,10 @@ class MeanDice(Metric):
   segmentation, obtained by computing the Dice for each semantic class 
   and then by averaging the values.
   Dice is defined as follows:
-    .. math::
+  
+  .. math::
     Dice = \\frac{2*true_positive}{2*true_positive + false_positive + false_negative}.
+  
   The predictions are accumulated in a confusion matrix, weighted by
   `sample_weight` and the metric is then calculated from it.
   If `sample_weight` is `None`, weights default to 1.
