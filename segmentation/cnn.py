@@ -1,5 +1,5 @@
 """
-The cnn submodules offers some classes to define CNN-based
+The cnn submodule implements some classes to define CNN-based
 models in a dynamic way.
 """
 from tensorflow.keras import layers
@@ -71,10 +71,12 @@ class UNet(object):
             conv_layer = layers.Conv2D
             max_pool_layer = layers.MaxPooling2D
             conv_transpose_layer = layers.Conv2DTranspose
+            softmax_kernel_size = (1,1)
         elif (self.n_dim == 4):
             conv_layer = layers.Conv3D
             max_pool_layer = layers.MaxPooling3D
             conv_transpose_layer = layers.Conv3DTranspose
+            softmax_kernel_size = (1,1,1)
         else:
             print("Could not handle input dimensions.")
             return
@@ -130,7 +132,6 @@ class UNet(object):
             # activation
             temp_layer = layers.Activation(self.activation)(temp_layer)
             # concatenation
-            print(downsampling_layers[(self.depth-1)-i])
             temp_layer = layers.Concatenate(axis=self.n_dim)([downsampling_layers[(self.depth-1)-i], temp_layer])
             # convolution
             for j in range(2):
@@ -147,7 +148,7 @@ class UNet(object):
   
 
         # Convolution 1 filter sigmoidal (to make size converge to final one)
-        temp_layer = conv_layer(self.n_classes, kernel_size = (1, 1, 1),
+        temp_layer = conv_layer(self.n_classes, kernel_size = softmax_kernel_size,
                                                        strides = self.strides,
                                                        padding = 'same', 
                                                        activation = 'linear',

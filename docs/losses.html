@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.9.1" />
 <title>segmentation.losses API documentation</title>
-<meta name="description" content="" />
+<meta name="description" content="The losses submodule implements loss function to be used
+in segmentation tasks." />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
 <link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
@@ -23,6 +24,8 @@
 <h1 class="title">Module <code>segmentation.losses</code></h1>
 </header>
 <section id="section-intro">
+<p>The losses submodule implements loss function to be used
+in segmentation tasks.</p>
 </section>
 <section>
 </section>
@@ -31,6 +34,80 @@
 <section>
 </section>
 <section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="segmentation.losses.MeanDiceLoss"><code class="flex name class">
+<span>class <span class="ident">MeanDiceLoss</span></span>
+<span>(</span><span>num_classes, name=None, dtype=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Computes the Dice metric average over classes.
+Dice is a common evaluation metric for semantic image
+segmentation, obtained by computing the Dice for each semantic class
+and then by averaging the values.
+Dice is defined as follows:</p>
+<p><span><span class="MathJax_Preview"> Dice = \frac{2*true_positive}{2*true_positive + false_positive + false_negative}. </span><script type="math/tex; mode=display"> Dice = \frac{2*true_positive}{2*true_positive + false_positive + false_negative}. </script></span>
+The predictions are accumulated in a confusion matrix, weighted by
+<code>sample_weight</code> and the metric is then calculated from it.
+If <code>sample_weight</code> is <code>None</code>, weights default to 1.
+Use <code>sample_weight</code> of 0 to mask values.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>num_classes</code></strong></dt>
+<dd>The possible number of labels the prediction task can have.
+This value must be provided, since a confusion matrix of dimension =
+[num_classes, num_classes] will be allocated.</dd>
+<dt><strong><code>name</code></strong></dt>
+<dd>(Optional) string name of the metric instance.</dd>
+<dt><strong><code>dtype</code></strong></dt>
+<dd>(Optional) data type of the metric result.</dd>
+</dl>
+<p>Standalone usage:</p>
+<pre><code class="python-repl">&gt;&gt;&gt; # cm = [[1, 1],
+&gt;&gt;&gt; #        [1, 1]]
+&gt;&gt;&gt; # sum_row = [2, 2], sum_col = [2, 2], true_positives = [1, 1]
+&gt;&gt;&gt; # dice = 2*true_positives / (sum_row + sum_col - true_positives))
+&gt;&gt;&gt; # result = (1 / (2 + 2 - 1) , 1 / (2 + 2 - 1)) = 0.33, 0.33
+&gt;&gt;&gt; m = tf.keras.metrics.MeanIoU(num_classes=2)
+&gt;&gt;&gt; m.update_state([0, 0, 1, 1], [0, 1, 0, 1])
+&gt;&gt;&gt; m.result().numpy()
+0.33333334, 0.33333334
+&gt;&gt;&gt; m.reset_states()
+&gt;&gt;&gt; m.update_state([0, 0, 1, 1], [0, 1, 0, 1],
+...                sample_weight=[0.3, 0.3, 0.3, 0.1])
+&gt;&gt;&gt; m.result().numpy()
+0.33333334, 0.14285715
+Usage with &lt;code&gt;compile()&lt;/code&gt; API:
+```python
+model.compile(
+  optimizer='sgd',
+  loss='mse',
+  metrics=[tf.keras.metrics.MeanIoU(num_classes=2)])
+</code></pre>
+<p>```</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="segmentation.metrics.MeanDice" href="metrics.html#segmentation.metrics.MeanDice">MeanDice</a></li>
+<li>tensorflow.python.keras.metrics.Metric</li>
+<li>tensorflow.python.keras.engine.base_layer.Layer</li>
+<li>tensorflow.python.module.module.Module</li>
+<li>tensorflow.python.training.tracking.tracking.AutoTrackable</li>
+<li>tensorflow.python.training.tracking.base.Trackable</li>
+<li>tensorflow.python.keras.utils.version_utils.LayerVersionSelector</li>
+</ul>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="segmentation.metrics.MeanDice" href="metrics.html#segmentation.metrics.MeanDice">MeanDice</a></b></code>:
+<ul class="hlist">
+<li><code><a title="segmentation.metrics.MeanDice.get_config" href="metrics.html#segmentation.metrics.MeanDice.get_config">get_config</a></code></li>
+<li><code><a title="segmentation.metrics.MeanDice.reset_states" href="metrics.html#segmentation.metrics.MeanDice.reset_states">reset_states</a></code></li>
+<li><code><a title="segmentation.metrics.MeanDice.result" href="metrics.html#segmentation.metrics.MeanDice.result">result</a></code></li>
+<li><code><a title="segmentation.metrics.MeanDice.update_state" href="metrics.html#segmentation.metrics.MeanDice.update_state">update_state</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+</dl>
 </section>
 </article>
 <nav id="sidebar">
@@ -42,6 +119,13 @@
 <li><h3>Super-module</h3>
 <ul>
 <li><code><a title="segmentation" href="index.html">segmentation</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="segmentation.losses.MeanDiceLoss" href="#segmentation.losses.MeanDiceLoss">MeanDiceLoss</a></code></h4>
+</li>
 </ul>
 </li>
 </ul>

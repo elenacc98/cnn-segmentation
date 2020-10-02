@@ -143,11 +143,8 @@ be broadcastable to <code>y_true</code>.</dd>
 Dice is a common evaluation metric for semantic image
 segmentation, obtained by computing the Dice for each semantic class
 and then by averaging the values.
-Dice is defined as follows:
-<span><span class="MathJax_Preview">
-</span><script type="math/tex; mode=display">
-</script></span>
-Dice = \frac{2<em>true_positive}{2</em>true_positive + false_positive + false_negative}.
+Dice is defined as follows:</p>
+<p><span><span class="MathJax_Preview"> Dice = \frac{2*true_positive}{2*true_positive + false_positive + false_negative}. </span><script type="math/tex; mode=display"> Dice = \frac{2*true_positive}{2*true_positive + false_positive + false_negative}. </script></span>
 The predictions are accumulated in a confusion matrix, weighted by
 <code>sample_weight</code> and the metric is then calculated from it.
 If <code>sample_weight</code> is <code>None</code>, weights default to 1.
@@ -194,6 +191,10 @@ model.compile(
 <li>tensorflow.python.training.tracking.tracking.AutoTrackable</li>
 <li>tensorflow.python.training.tracking.base.Trackable</li>
 <li>tensorflow.python.keras.utils.version_utils.LayerVersionSelector</li>
+</ul>
+<h3>Subclasses</h3>
+<ul class="hlist">
+<li><a title="segmentation.losses.MeanDiceLoss" href="losses.html#segmentation.losses.MeanDiceLoss">MeanDiceLoss</a></li>
 </ul>
 <h3>Methods</h3>
 <dl>
