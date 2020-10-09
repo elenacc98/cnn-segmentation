@@ -53,7 +53,7 @@ class TimeInfoCallback(Callback):
         seconds_training = (datetime.now()-self.train_start_time).total_seconds()
         hours, remainder = divmod(seconds_training, 3600)
         minutes, seconds = divmod(remainder, 60)
-        print(f'{math.floor(hours):02d}:{math.floor(minutes):02d}:{math.floor(seconds):02d} spent for training')
+        print(f' {math.floor(hours):02d}:{math.floor(minutes):02d}:{math.floor(seconds):02d} spent for training')
         
 class MetricsPlot(Callback):
     """Callback to plot metrics obtained during the training of the network.
@@ -74,7 +74,7 @@ class MetricsPlot(Callback):
         # Flag to determine if there are previous data to be loaded
         self.previous_data = False
         self.epoch_counter = 0
-        self.output_dir = output_dir
+        self.output_dir = Path(output_dir)
         self.metrics = metrics
         self.file_format = file_format
     
@@ -103,13 +103,15 @@ class MetricsPlot(Callback):
     def on_epoch_end(self, batch, logs={}):
         # Append metrics
         for metric in self.metrics:
-            self.data.loc[self.epoch_counter, metric] = float(logs.get(metric))
+            if metric in logs.keys():
+                self.data.loc[self.epoch_counter, metric] = float(logs.get(metric))
         self.epoch_counter += 1
 
         fig, ax = plt.subplots(1,1,figsize=(10, 10))
         sns.set(style='darkgrid')
         for metric in self.metrics:
-            sns.lineplot(x=range(0,len(self.data)),y=metric,data=self.data, ci=None, 
+            if metric in logs.keys
+                sns.lineplot(x=range(0,len(self.data)),y=metric,data=self.data, ci=None, 
                             label=metric, linewidth=3)
 
         ax.set_xlabel("Epochs",fontsize=16)

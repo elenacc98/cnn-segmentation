@@ -1,3 +1,7 @@
+"""
+The metrics module defines some classes to be used as metrics
+during model training.
+"""
 from tensorflow.keras.metrics import Metric
 from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import init_ops
