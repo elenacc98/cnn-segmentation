@@ -110,7 +110,7 @@ class MetricsPlot(Callback):
         fig, ax = plt.subplots(1,1,figsize=(10, 10))
         sns.set(style='darkgrid')
         for metric in self.metrics:
-            if metric in logs.keys
+            if metric in logs.keys():
                 sns.lineplot(x=range(0,len(self.data)),y=metric,data=self.data, ci=None, 
                             label=metric, linewidth=3)
 
