@@ -9,3 +9,4 @@ class MeanDiceLoss(MeanDice):
     def __init__(self, num_classes, name=None, dtype=None):
         super(MeanDice, self).__init__(self, name=name, dtype=dtype)
     
+    
