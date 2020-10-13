@@ -11,6 +11,7 @@ unet = UNet(input_size=(128,128,1),
             deconv_strides=(2,2),
             pool_size=(2,2),
             pool_strides=(2,2))
+
 unet.create_model()
 
 print(unet.summary())
