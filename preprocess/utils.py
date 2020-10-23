@@ -1,5 +1,5 @@
 """
-utils functions
+Utils functions
 """
 
 from __future__ import print_function
@@ -62,13 +62,16 @@ class IndexTracker(object):
         self.im.axes.figure.canvas.draw()
 
 
+
 def setDirVariables():
-    rootDirectory = '/Users/AlbertoFaglia/Desktop/POLIMI Biomedica/TESI/Dati_prova/'
+    rootDirectoryNAS = '/Volumes/Dati/Users/Data-out/'  # NAS
+    rootDirectoryLoc = '/Users/AlbertoFaglia/Desktop/POLIMI Biomedica/TESI/Dati_prova/'
     mainZipDirectory = 'E:\\Users\\Pietro\\Documents\\Work\\Company\\_Medacta\\ModelliStatistici\\Data_Aprile 2016\\'
-    mainInputDataDirectory = os.path.join(rootDirectory, 'Data/MEDACTA/')
+    mainInputDataDirectoryNAS = os.path.join(rootDirectoryNAS, '/MEDACTA_2/')
+    mainInputDataDirectoryLoc = os.path.join(rootDirectoryLoc, 'Data/MEDACTA_2/')
     NASDirectory = 'Z:\\Users\\Data-out\\MEDACTA\\'
-    mainOutputDataDirectory = mainInputDataDirectory
-    mainCodeDirectory = os.path.join(rootDirectory, 'Matlab/')
+    mainOutputDataDirectoryLoc = os.path.join(rootDirectoryLoc, '/Data/MEDACTA_2/preprocessedData)
+    mainCodeDirectory = os.path.join(rootDirectoryLoc, 'Matlab/')
 
 
 def loadDicomVolume(VolumeDir):
@@ -76,6 +79,9 @@ def loadDicomVolume(VolumeDir):
     for dirName, subDirList, fileList in os.walk(VolumeDir):
         for filename in fileList:
             listFilesDCM.append(os.path.join(dirName, filename))
+    if len(listFIlesDCM) == 0:
+        print('No dicom files for patient')
+        return
     listFilesDCM.sort()  # If 'reverse=True' we don't need to adjust volumeOffset[2] and to flip slices in z
     # direction (in Volume_Crop) but slice location is then different from the Matlab one
 
@@ -114,6 +120,9 @@ def loadDicomVolume(VolumeDir):
 
 
 def loadNiiVolume(volumeDir, dicomDir):
+
+    """ Get nii Volumes and all metadata. Dicom directory also needed"""
+
     nii = nib.load(volumeDir)
     volumeData = nii.get_fdata()
     voxelSize = nii.header.get_zooms()
@@ -129,7 +138,36 @@ def loadNiiVolume(volumeDir, dicomDir):
     return VolumeCT
 
 
+
+def loadNiiVolume1(volumeDir):
+
+    """ Function to load nii Volume without storing intercept and slope and sliceLocation,
+ for which dicom files are needed """
+
+    nii = nib.load(volumeDir)
+    volumeData = nii.get_fdata()
+    voxelSize = nii.header.get_zooms()
+    volumeDim = volumeData.shape
+    volumeOffset = (round(float(nii.header['qoffset_x']), 3),
+                    round(float(nii.header['qoffset_y']), 3),
+                    round(float(nii.header['qoffset_z']), 3))
+    bitStored = nii.header['bitpix']
+    rescaleSlope = None
+    rescaleIntercept = None
+    sliceLocation = None
+    # rescaleSlope, rescaleIntercept = nii.header.get_slope_inter() # HEADER RETURNS None VALUES FOR BOTH !!
+    # rescaleSlope, rescaleIntercept, sliceLocation, bitStored = getMetadata(dicomDir)
+
+    VolumeCT = VolumeStruct(volumeData, voxelSize, volumeDim, volumeOffset,
+                            bitStored, rescaleIntercept, rescaleSlope, sliceLocation)
+    return VolumeCT
+
+
 def getMetadata(dicomDir):
+
+    """ Get slope, intercept and slice location from dicom files.
+    They are not accessible through nii FIles in loadNiiVolume"""
+
     listFilesDCM = []
     for dirName, subDirList, fileList in os.walk(dicomDir):
         for filename in fileList:
@@ -225,61 +263,64 @@ def dice_coeff(pyLabel, outSet):
     return dice
 
 
-def cropVolume(VolumeCT, deltaNumberofSlices, minValue, maxValue, indexCoord, indexVolume):
+def cropVolume(Volume, deltaNumberofSlices, minValue, maxValue, indexCoord, indexVolume):
 
-    CropVolumeCT = VolumeCT
+    CropVolume = Volume
 
-    if indexCoord == 0: # indexVolume = 1
+    if indexCoord == 0:  # indexVolume = 1
 
-        numberOfSlicetoRemoveDown = int(np.ceil((minValue - VolumeCT.volumeOffset[indexCoord]) / VolumeCT.voxelSize[indexVolume]))
-        numberOfSlicetoRemoveUp = int(np.ceil((maxValue - VolumeCT.volumeOffset[indexCoord]) / VolumeCT.voxelSize[indexVolume]))
+        numberOfSlicetoRemoveDown = int(np.ceil((minValue - Volume.volumeOffset[indexCoord]) / Volume.voxelSize[indexVolume]))
+        numberOfSlicetoRemoveUp = int(np.ceil((maxValue - Volume.volumeOffset[indexCoord]) / Volume.voxelSize[indexVolume]))
         indexToRemove1 = np.arange(0, (numberOfSlicetoRemoveDown - deltaNumberofSlices), dtype=int)
-        indexToRemove2 = np.arange((numberOfSlicetoRemoveUp + deltaNumberofSlices), VolumeCT.volumeDim[indexVolume],
+        indexToRemove2 = np.arange((numberOfSlicetoRemoveUp + deltaNumberofSlices), Volume.volumeDim[indexVolume],
                                    dtype=int)
         indexToRemove = np.concatenate((indexToRemove1, indexToRemove2))
-        VolumeDataCropped = np.delete(CropVolumeCT.volumeData, [indexToRemove], axis=indexVolume)
+        if len(indexToRemove) < Volume.volumeDim[indexVolume]:
+            VolumeDataCropped = np.delete(CropVolume.volumeData, [indexToRemove], axis=indexVolume)
 
-        CropVolumeCT.volumeData = VolumeDataCropped
-        CropVolumeCT.volumeDim = VolumeDataCropped.shape
-        CropVolumeCT.volumeOffset = (CropVolumeCT.volumeOffset[indexCoord] +
-                                     (numberOfSlicetoRemoveDown - deltaNumberofSlices) * VolumeCT.voxelSize[indexVolume],
-                                     CropVolumeCT.volumeOffset[1],
-                                     CropVolumeCT.volumeOffset[2])
+            CropVolume.volumeData = VolumeDataCropped
+            CropVolume.volumeDim = VolumeDataCropped.shape
+            CropVolume.volumeOffset = (CropVolume.volumeOffset[indexCoord] +
+                                         (numberOfSlicetoRemoveDown - deltaNumberofSlices) * Volume.voxelSize[indexVolume],
+                                         CropVolume.volumeOffset[1],
+                                         CropVolume.volumeOffset[2])
 
-    if indexCoord == 1: # indexVolume = 0
+    if indexCoord == 1:  # indexVolume = 0
 
-        numberOfSlicetoRemoveDown = int(np.ceil((minValue - VolumeCT.volumeOffset[indexCoord]) / VolumeCT.voxelSize[indexVolume]))
-        numberOfSlicetoRemoveUp = int(np.ceil((maxValue - VolumeCT.volumeOffset[indexCoord]) / VolumeCT.voxelSize[indexVolume]))
+        numberOfSlicetoRemoveDown = int(np.ceil((minValue - Volume.volumeOffset[indexCoord]) / Volume.voxelSize[indexVolume]))
+        numberOfSlicetoRemoveUp = int(np.ceil((maxValue - Volume.volumeOffset[indexCoord]) / Volume.voxelSize[indexVolume]))
         indexToRemove1 = np.arange(0, (numberOfSlicetoRemoveDown - deltaNumberofSlices), dtype=int)
-        indexToRemove2 = np.arange((numberOfSlicetoRemoveUp + deltaNumberofSlices), VolumeCT.volumeDim[indexVolume],
+        indexToRemove2 = np.arange((numberOfSlicetoRemoveUp + deltaNumberofSlices), Volume.volumeDim[indexVolume],
                                    dtype=int)
         indexToRemove = np.concatenate((indexToRemove1, indexToRemove2))
-        VolumeDataCropped = np.delete(CropVolumeCT.volumeData, [indexToRemove], axis=indexVolume)
+        if len(indexToRemove) < Volume.volumeDim[indexVolume]:
+            VolumeDataCropped = np.delete(CropVolume.volumeData, [indexToRemove], axis=indexVolume)
 
-        CropVolumeCT.volumeData = VolumeDataCropped
-        CropVolumeCT.volumeDim = VolumeDataCropped.shape
-        CropVolumeCT.volumeOffset = (CropVolumeCT.volumeOffset[0],
-                                     CropVolumeCT.volumeOffset[indexCoord] +
-                                     (numberOfSlicetoRemoveDown - deltaNumberofSlices) * VolumeCT.voxelSize[indexVolume],
-                                     CropVolumeCT.volumeOffset[2])
+            CropVolume.volumeData = VolumeDataCropped
+            CropVolume.volumeDim = VolumeDataCropped.shape
+            CropVolume.volumeOffset = (CropVolume.volumeOffset[0],
+                                         CropVolume.volumeOffset[indexCoord] +
+                                         (numberOfSlicetoRemoveDown - deltaNumberofSlices) * Volume.voxelSize[indexVolume],
+                                         CropVolume.volumeOffset[2])
 
     if indexCoord == 2: # indexVolume = 2
 
-        numberOfSlicetoRemoveDown = int(np.ceil((minValue - VolumeCT.volumeOffset[indexCoord]) / VolumeCT.voxelSize[indexVolume]))
-        numberOfSlicetoRemoveUp = int(np.ceil((maxValue - VolumeCT.volumeOffset[indexCoord]) / VolumeCT.voxelSize[indexVolume]))
+        numberOfSlicetoRemoveDown = int(np.ceil((minValue - Volume.volumeOffset[indexCoord]) / Volume.voxelSize[indexVolume]))
+        numberOfSlicetoRemoveUp = int(np.ceil((maxValue - Volume.volumeOffset[indexCoord]) / Volume.voxelSize[indexVolume]))
         indexToRemove1 = np.arange(0, (numberOfSlicetoRemoveDown - deltaNumberofSlices), dtype=int)
-        indexToRemove2 = np.arange((numberOfSlicetoRemoveUp + deltaNumberofSlices), VolumeCT.volumeDim[indexVolume],
+        indexToRemove2 = np.arange((numberOfSlicetoRemoveUp + deltaNumberofSlices), Volume.volumeDim[indexVolume],
                                    dtype=int)
         indexToRemove = np.concatenate((indexToRemove1, indexToRemove2))
-        VolumeDataCropped = np.delete(CropVolumeCT.volumeData, [indexToRemove], axis=indexVolume)
+        if len(indexToRemove) < Volume.volumeDim[indexVolume]:
+            VolumeDataCropped = np.delete(CropVolume.volumeData, [indexToRemove], axis=indexVolume)
 
-        CropVolumeCT.volumeData = VolumeDataCropped
-        CropVolumeCT.volumeDim = VolumeDataCropped.shape
-        CropVolumeCT.volumeOffset = (CropVolumeCT.volumeOffset[0],
-                                     CropVolumeCT.volumeOffset[1],
-                                     CropVolumeCT.volumeOffset[indexCoord] +
-                                     (numberOfSlicetoRemoveDown - deltaNumberofSlices) * VolumeCT.voxelSize[indexVolume])
-    return CropVolumeCT
+            CropVolume.volumeData = VolumeDataCropped
+            CropVolume.volumeDim = VolumeDataCropped.shape
+            CropVolume.volumeOffset = (CropVolume.volumeOffset[0],
+                                         CropVolume.volumeOffset[1],
+                                         CropVolume.volumeOffset[indexCoord] +
+                                         (numberOfSlicetoRemoveDown - deltaNumberofSlices) * Volume.voxelSize[indexVolume])
+    return CropVolume
 
 def compareLabels():
 

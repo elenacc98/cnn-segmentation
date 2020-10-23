@@ -15,70 +15,64 @@ from scipy.ndimage.morphology import binary_fill_holes, binary_closing, binary_e
 from skimage.transform import resize
 from skimage.morphology.selem import square, disk
 
-
 def Volume_Label():
     setDirVariables()
 
     ## Options
-    b_display = 0
-    cubic = 0
-    compare_Matlab_Python = 0
+    # b_display = 0
+    # compare_Matlab_Python = 0
 
     # Output size
-    if cubic == 1:
-        outSize = [200, 200, 131]
-    else:
-        outSize = [128, 128, 128]
+
+    outSize = [128, 128, 128]
     templateSize = str(outSize[0]) + '_' + str(outSize[1]) + '_' + str(outSize[2])
 
     # Sets
-    if cubic == 0:
-        InDCMmSet = 'reshape_knee_'
-    else:
-        InDCMmSet = 'cubic_vox_knee_'
+    InStlSet = 'stl'
+    InDCMmSet = 'reshape_knee_'
     InDCMmSetdicom = 'knee'
 
     fileTemplate = InDCMmSet + templateSize
-    anatomy = 'tibia'  # 'tibia'
-    position = 'prox'  # 'prox'
+    anatomy = 'tibia'  # 'femur', 'patella', 'fibula'
+    position = 'prox'  # 'dist', '', ''
     InSurfSet = 'ct_' + anatomy + '_'
     outSet = position + anatomy
 
-    os.chdir(mainInputDataDirectory)
+    os.chdir(mainInputDataDirectoryLoc)
 
     fp = open('case.txt', 'r+')
     casePatient = fp.read()
     casePatient = int(casePatient)
-    casePatient = 3
     fp.close()
     print('Patient no. {}'.format(casePatient))
 
-    xlsName = os.path.join(mainInputDataDirectory, 'Preop Data.xlsx')
-    name = pandas.ExcelFile(xlsName)
+    # Read excel file to get patients' codes
+    xlsName = os.path.join(mainInputDataDirectoryLoc, '/Case Statistics.xlsx')
+    # name = pandas.ExcelFile(xlsName)
     name = xlrd.open_workbook(xlsName)
     sheet = name.sheet_by_index(0)
     rows = sheet.nrows
     study = [sheet.cell_value(i, 0) for i in range(1, rows)]
-
-    os.chdir(mainCodeDirectory)
+    patientCode = study[casePatient - 1]
 
     ## Read volume nii
-    mainPatientDirectory = 'Patient{:03d}'.format(casePatient)
-    mainPatientDirectory = mainInputDataDirectory + '/' + mainPatientDirectory + '/'
-    mainInputDicomDirectory = mainPatientDirectory + '/' + InDCMmSetdicom + '/'
+    mainPatientDirectory = 'Patient{:04d}'.format(casePatient)
+    mainInputPatientDirectoryLoc = mainInputDataDirectoryLoc + '/preprocessedData/' + mainPatientDirectory + '/'
+    mainInputPatientDirectoryNAS = mainInputDataDirectoryNAS + '/OriginalData/' + patientCode
+    mainInputDicomDirectory = mainInputPatientDirectoryNAS + '/' + InDCMmSetdicom + '/'
 
-    os.chdir(mainPatientDirectory)
+    os.chdir(mainInputPatientDirectoryLoc)
 
-    niiFilename = 'volumeCT_' + fileTemplate + '_{:03d}.nii'.format(casePatient)
+    niiFilename = 'volumeCT_' + fileTemplate + '_{:04d}.nii'.format(casePatient)
     VolumeCT = loadNiiVolume(niiFilename, mainInputDicomDirectory)
     ## Normalize
     VolumeCT = normVolumeScan(VolumeCT)
 
     # Read stl and display
+    mainInputStlDirectory = mainInputPatientDirectoryNAS + '/' + InStlSet + '/'
+    os.chdir(mainInputStlDirectory)
     filename = InSurfSet + study[casePatient - 1] + '.stl'
-    os.chdir(mainPatientDirectory)
     my_mesh1 = trimesh.load(filename)
-    my_mesh = mesh.Mesh.from_file(filename)
 
     os.chdir(mainCodeDirectory)
 
@@ -161,18 +155,18 @@ def Volume_Label():
     print(counter)
 
     ###### PLOT AND SCROLL ACROSS SLICES
-    if b_display == 1:
-        fig, ax = plt.subplots(1, 1)
-        tracker = IndexTracker(ax, D)
-        fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
-        plt.show()
-
-    if compare_Matlab_Python == 1:
-        name_dir = outSet + 'Label'
-        mainLabelDirectory = os.path.join(mainPatientDirectory, '{}'.format(name_dir))
-        os.chdir(mainLabelDirectory)
-        mean_dice = dice_coeff(VolumeSurfLabeled.volumeData, outSet)
-        print(mean_dice)
+    #if b_display == 1:
+    #    fig, ax = plt.subplots(1, 1)
+    #    tracker = IndexTracker(ax, D)
+    #    fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
+    #    plt.show()
+    #
+    #if compare_Matlab_Python == 1:
+    #    name_dir = outSet + 'Label'
+    #    mainLabelDirectory = os.path.join(mainPatientDirectory, '{}'.format(name_dir))
+    #    os.chdir(mainLabelDirectory)
+    #    mean_dice = dice_coeff(VolumeSurfLabeled.volumeData, outSet)
+    #    print(mean_dice)
 
     # Make nii file label
     volumeData = VolumeSurfLabeled.volumeData.astype(np.short)
@@ -189,10 +183,10 @@ def Volume_Label():
     niiVolumeLabel.header['qoffset_y'] = volumeOffset[1]
     niiVolumeLabel.header['qoffset_z'] = volumeOffset[2]
 
-    os.chdir(mainPatientDirectory)
+    os.chdir(mainInputPatientDirectoryLoc)
 
     # Save nii
-    filenameLabel = 'volumeLabel_' + outSet + '_' + templateSize + '_{:03d}.nii'.format(casePatient)
-    #nib.nifti1.save(niiVolumeLabel, filenameLabel)
+    filenameLabel = 'volumeLabel_' + outSet + '_' + templateSize + '_{:04d}_py.nii'.format(casePatient)
+    nib.nifti1.save(niiVolumeLabel, filenameLabel)
 
     os.chdir(mainCodeDirectory)

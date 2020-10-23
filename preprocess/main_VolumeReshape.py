@@ -14,43 +14,51 @@ import plotly.graph_objects as go
 from scipy.ndimage.morphology import binary_fill_holes, binary_closing, binary_erosion, binary_dilation
 from skimage.transform import resize
 from skimage.morphology.selem import square, disk
+
 def Volume_Reshape():
 
     setDirVariables()
 
     # Options
     b_display = 0
-    export_cubic_voxel = 0
     # Resolution
     resolution = [1, 1, 1]
     # Dimension
-    Dimension = [128, 128, 128]
+    Dimension = [192, 192, 192]
 
     # Sets
     InDCMmSet = 'knee'
     InNiiSet = 'crop_knee'
     OutSurfSet = 'reshape_knee_' + str(Dimension[0]) + '_' + str(Dimension[1]) + '_' + str(Dimension[2])
-    OutSurfSet1 = 'reshape_knee_cubic_' + str(Dimension[0]) + '_' + str(Dimension[1]) + '_' + str(Dimension[2])
 
-    os.chdir(mainInputDataDirectory)
+    os.chdir(mainInputDataDirectoryLoc)
 
     fp = open('case.txt', 'r+')
     casePatient = fp.read()
     casePatient = int(casePatient)
     # casePatient = 3
     fp.close()
-    print('Patient no. {}'.format(casePatient))
+    print('Patient no. {:04d}'.format(casePatient))
 
-    os.chdir(mainCodeDirectory)
+    # Read excel file to get patients' codes
+    xlsName = os.path.join(mainInputDataDirectoryLoc, '/Case Statistics.xlsx')
+    # name = pandas.ExcelFile(xlsName)
+    name = xlrd.open_workbook(xlsName)
+    sheet = name.sheet_by_index(0)
+    rows = sheet.nrows
+    study = [sheet.cell_value(i, 0) for i in range(1, rows)]
+    patientCode = study[casePatient - 1]
 
-    patientDirectory = 'Patient{:03d}'.format(casePatient)
-    mainPatientDirectory = mainInputDataDirectory + '/' + patientDirectory + '/'
-    mainInputDicomDirectory = mainPatientDirectory + '/' + InDCMmSet + '/'
+    ## Read volume nii
+    patientDirectory = 'Patient{:04d}'.format(casePatient)
+    mainInputPatientDirectoryLoc = mainInputDataDirectoryLoc + '/preprocessedData/' + patientDirectory + '/'
+    mainInputPatientDirectoryNAS = mainInputDataDirectoryNAS + '/OriginalData/' + patientCode
+    mainInputDicomDirectory = mainInputPatientDirectoryNAS + '/' + InDCMmSet + '/'
 
-    os.chdir(mainPatientDirectory)
+    os.chdir(mainInputPatientDirectoryLoc)
 
     # Read NII
-    niiFilename = 'volumeCT_' + InNiiSet + '_{:03d}.nii'.format(casePatient)
+    niiFilename = 'volumeCT_' + InNiiSet + '_{:04d}.nii'.format(casePatient)
     VolumeCT = loadNiiVolume(niiFilename, mainInputDicomDirectory)
     # Normalize
     VolumeCT = normVolumeScan(VolumeCT)
@@ -66,7 +74,7 @@ def Volume_Reshape():
     nVolumeDim = [round(dimX / resolution[0] + 1), round(dimX / resolution[1] + 1), round(dimY / resolution[2] + 1)]
 
     # Resample to new dimension
-    VolumeResampled = resampleVolumeScan(VolumeCT, Dimension) ##### THIS COMMAND ALSO CHANGES VolumeCT !!!! ******
+    VolumeResampled = resampleVolumeScan(VolumeCT, Dimension)
     # Normalize between 0 and 1
     VolumeResampled.volumeData = VolumeResampled.volumeData - VolumeResampled.volumeData.min()
     VolumeResampled.volumeData = VolumeResampled.volumeData/VolumeResampled.volumeData.max()
@@ -81,31 +89,11 @@ def Volume_Reshape():
     niiResampledVolumeCT.header['qoffset_y'] = volumeOffset[1]
     niiResampledVolumeCT.header['qoffset_z'] = volumeOffset[2]
 
-    # Cubic Voxel Volume with resolution defined above
-    if export_cubic_voxel == 1:
-        VolumeResampled1 = resampleVolumeScan(VolumeCT, nVolumeDim)
-
-        VolumeResampled1.volumeData = VolumeResampled1.volumeData - VolumeResampled1.volumeData.min()
-        VolumeResampled1.volumeData = VolumeResampled1.volumeData / VolumeResampled1.volumeData.max()
-        volumeOffset1 = VolumeResampled1.volumeOffset
-
-        niiResampledVolumeCT1 = nib.Nifti1Image(VolumeResampled1.volumeData, affine)
-        niiResampledVolumeCT1.header.set_slope_inter(VolumeResampled1.rescaleSlope, VolumeResampled1.rescaleIntercept)
-        niiResampledVolumeCT1.header.set_qform(affine, 1)
-        niiResampledVolumeCT1.header.set_zooms(VolumeResampled1.voxelSize)
-        niiResampledVolumeCT1.header['qoffset_x'] = volumeOffset1[0]
-        niiResampledVolumeCT1.header['qoffset_y'] = volumeOffset1[1]
-        niiResampledVolumeCT1.header['qoffset_z'] = volumeOffset1[2]
-
-    os.chdir(mainPatientDirectory)
+    os.chdir(mainInputPatientDirectoryLoc)
 
     # Save nii
-    filenameCT = 'volumeCT_' + OutSurfSet + '_{:03d}.nii'.format(casePatient)
+    filenameCT = 'volumeCT_' + OutSurfSet + '_{:04d}_py.nii'.format(casePatient)
     nib.nifti1.save(niiResampledVolumeCT, filenameCT)
-
-    if export_cubic_voxel == 1:
-        filenameCT1 = 'volumeCT_' + OutSurfSet1 + '_{:03d}.nii'.format(casePatient)
-        nib.nifti1.save(niiResampledVolumeCT1, filenameCT1)
 
     os.chdir(mainCodeDirectory)
 
