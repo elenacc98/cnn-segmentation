@@ -47,7 +47,7 @@ def Merge_Labels():
     print('Patient no. {:04d}'.format(casePatient))
 
     # Read excel file to get patients' codes
-    xlsName = os.path.join(mainInputDataDirectoryLoc, '/Case Statistics.xlsx')
+    xlsName = os.path.join(mainInputDataDirectoryLoc, 'Case_statistics.xlsx')
     # name = pandas.ExcelFile(xlsName)
     name = xlrd.open_workbook(xlsName)
     sheet = name.sheet_by_index(0)
@@ -58,7 +58,11 @@ def Merge_Labels():
     mainPatientDirectory = 'Patient{:03d}'.format(casePatient)
     mainInputPatientDirectoryLoc = mainInputDataDirectoryLoc + '/preprocessedData/' + mainPatientDirectory + '/'
     mainInputPatientDirectoryNAS = mainInputDataDirectoryNAS + '/OriginalData/' + patientCode
-    mainInputDicomDirectory = mainInputPatientDirectoryNAS + '/' + InDCMmSetdicom + '/'
+    mainInputDicomDirectory = mainInputPatientDirectoryNAS + '/dicom/'
+    if os.path.isdir(mainInputDicomDirectory + '/ct/'):
+        mainInputDicomDirectory = mainInputDicomDirectory + '/ct/' + InDCMmSetdicom + '/'
+    else:
+        mainInputDicomDirectory = mainInputDicomDirectory + InDCMmSetdicom + '/'
 
     os.chdir(mainInputPatientDirectoryLoc)
 

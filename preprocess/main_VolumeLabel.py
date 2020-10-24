@@ -47,7 +47,7 @@ def Volume_Label():
     print('Patient no. {}'.format(casePatient))
 
     # Read excel file to get patients' codes
-    xlsName = os.path.join(mainInputDataDirectoryLoc, '/Case Statistics.xlsx')
+    xlsName = os.path.join(mainInputDataDirectoryLoc, 'Case_statistics.xlsx')
     # name = pandas.ExcelFile(xlsName)
     name = xlrd.open_workbook(xlsName)
     sheet = name.sheet_by_index(0)
@@ -59,7 +59,11 @@ def Volume_Label():
     mainPatientDirectory = 'Patient{:04d}'.format(casePatient)
     mainInputPatientDirectoryLoc = mainInputDataDirectoryLoc + '/preprocessedData/' + mainPatientDirectory + '/'
     mainInputPatientDirectoryNAS = mainInputDataDirectoryNAS + '/OriginalData/' + patientCode
-    mainInputDicomDirectory = mainInputPatientDirectoryNAS + '/' + InDCMmSetdicom + '/'
+    mainInputDicomDirectory = mainInputPatientDirectoryNAS + '/dicom/'
+    if os.path.isdir(mainInputDicomDirectory + '/ct/'):
+        mainInputDicomDirectory = mainInputDicomDirectory + '/ct/' + InDCMmSetdicom + '/'
+    else:
+        mainInputDicomDirectory = mainInputDicomDirectory + InDCMmSetdicom + '/'
 
     os.chdir(mainInputPatientDirectoryLoc)
 
@@ -117,7 +121,8 @@ def Volume_Label():
             indicesY.append([])
 
     VolumeSurfLabeled = VolumeSurf
-    counter = 0
+    counter1 = 0
+    counter2 = 0
     # fill in the image each contour
     for ip in range(VolumeSurfLabeled.volumeDim[2]):
 
@@ -144,7 +149,19 @@ def Volume_Label():
                 binaryImage = binary_fill_holes(binaryImage)
                 binaryImage = binary_erosion(binaryImage, strel)
                 binaryImage = binary_erosion(binaryImage, strel)
-                counter = counter + 1
+                counter1 = counter1 + 1
+
+                non_zero_end2 = np.count_nonzero(binaryImage)
+
+                ######### ALTERNATIVE PROCESSING FOR STILL-NON-CLOSED CONTOURS
+                if non_zero_end2 < non_zero_start * 4:
+                    strel = disk(3)
+                    binaryImage = binary_dilation(VolumeSurf.volumeData[:, :, ip], strel)
+                    binaryImage = binary_dilation(binaryImage, strel)
+                    binaryImage = binary_fill_holes(binaryImage)
+                    binaryImage = binary_erosion(binaryImage, strel)
+                    binaryImage = binary_erosion(binaryImage, strel)
+                    counter2 = counter2 + 1
 
             VolumeSurfLabeled.volumeData[:, :, ip] = binaryImage
 
@@ -152,7 +169,7 @@ def Volume_Label():
             D = VolumeSurfLabeled.volumeData + abs(dMin)
             D = D / D.max() * 255
 
-    print(counter)
+    print('Alternative processing no 1: {} \n Alternative proessing no 2: {}'.format(counter1, counter2))
 
     ###### PLOT AND SCROLL ACROSS SLICES
     #if b_display == 1:

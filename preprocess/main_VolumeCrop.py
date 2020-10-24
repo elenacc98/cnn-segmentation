@@ -40,7 +40,7 @@ def Volume_Crop():
     print('Patient no. {:04d}'.format(casePatient))
 
     # Read excel file to get patients' codes
-    xlsName = os.path.join(mainInputDataDirectoryNAS, '/Case Statistics.xlsx')
+    xlsName = os.path.join(mainInputDataDirectoryNAS, 'Case_statistics.xlsx')
     #name = pandas.ExcelFile(xlsName)
     name = xlrd.open_workbook(xlsName)
     sheet = name.sheet_by_index(0)
@@ -53,7 +53,11 @@ def Volume_Crop():
     mainInputPatientDirectoryNAS = mainInputDataDirectoryNAS + '/OriginalData/' + patientCode
 
     # Load DICOM files
-    mainInputDicomDirectory = mainInputPatientDirectoryNAS + '/' + InDCMmSet + '/'
+    mainInputDicomDirectory = mainInputPatientDirectoryNAS + '/dicom/'
+    if os.path.isdir(mainInputDicomDirectory + '/ct/'):
+        mainInputDicomDirectory = mainInputDicomDirectory + '/ct/' + InDCMmSetdicom + '/'
+    else:
+        mainInputDicomDirectory = mainInputDicomDirectory + InDCMmSetdicom + '/'
     VolumeCT = loadDicomVolume(mainInputDicomDirectory)
     VolumeCT.volumeData = np.flip(VolumeCT.volumeData, axis=2)  # flip on z axis to restore natural positions of bones
 
