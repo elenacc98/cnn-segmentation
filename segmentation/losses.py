@@ -17,7 +17,7 @@ class MeanDiceLoss(MeanDice):
         super(MeanDice, self).__init__(self, name=name, dtype=dtype)
 
 
-class DiceBoundaryLoss(Loss):
+class Weighted_DiceBoundary_Loss(Loss):
     """
     Weighted dice together with boundary loss function. The two contribution are weighted by alpha, which needs to be
     initialized to 1, and decreases its value according to function update_alpha.
