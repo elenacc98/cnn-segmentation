@@ -19,12 +19,16 @@ class MeanDiceLoss(MeanDice):
 
 class Weighted_DiceBoundary_Loss(Loss):
     """
-    Weighted dice together with boundary loss function. The two contribution are weighted by alpha, which needs to be
-    initialized to 1, and decreases its value according to function update_alpha.
+    Weighted dice together with boundary loss function.
+
+    The two contribution are weighted by alpha, which needs to be initialized to 1,
+    and decreases its value according to function update_alpha.
     Passing update_alpha and alpha to callback AlphaScheduler is needed.
     DiceBoundaryLoss is defined as follows:
     .. math::
-          dbLoss = \\sum{alpha * wDice}{(1 - alpha) * boundLoss}
+          \[
+          dbLoss = \alpha * wDice + (1 - \alpha) * boundLoss
+          .\]
 
     Args:
         num_classes: Possible number of classes the prediction task can have
@@ -35,14 +39,14 @@ class Weighted_DiceBoundary_Loss(Loss):
 
     """
 
-    def __init__(self, num_classes, batch_size, alpha, name=None, dtype=Nome):
-        super(DiceBoundaryLoss, self).__init__(name=name, dtype=dtype)
+    def __init__(self, num_classes, batch_size, alpha, name=None, dtype=None):
+        super(Weighted_DiceBoundary_Loss, self).__init__(name=name, dtype=dtype)
         self.num_classes = num_classes
         self.batch_size = batch_size
         self.alpha = alpha
         self.name = name
 
-    def count_total_voxels(self):
+    def _count_total_voxels(self):
         """
         Counts total number of voxels for the given batch size.
         Returns:
@@ -50,7 +54,7 @@ class Weighted_DiceBoundary_Loss(Loss):
         """
         return N_ROWS * N_COLUMNS * N_SLICES * self.batch_size
 
-    def count_class_voxels(self, labels):
+    def _count_class_voxels(self, labels):
         """
         Counts total number of voxels for each class in the batch size.
         input is supposed to be 5-dimensional: (batch, x, y, z, softmax probabilities)
@@ -63,12 +67,12 @@ class Weighted_DiceBoundary_Loss(Loss):
         out[0] = 0
         for c in range(1, N_CLASSES):
             out[c] = tf.math.count_nonzero(labels[:, :, :, :, c])
-        first_term = tf.cast(count_total_voxels(self.batch_size), 'int64')
+        first_term = tf.cast(self._count_total_voxels(self.batch_size), 'int64')
         second_term = tf.reduce_sum(out)
         out[0] = tf.subtract(first_term, second_term)
         return out
 
-    def get_loss_weights(self, labels):
+    def _get_loss_weights(self, labels):
         """
         Compute loss weights for each class.
         Args:
@@ -77,12 +81,12 @@ class Weighted_DiceBoundary_Loss(Loss):
              : 1D tf.tensor of len N_CLASSES with weights to assign to class voxels
         """
         numerator_1 = self.count_class_voxels(labels)
-        denominator_1 = self.count_total_voxels()
+        denominator_1 = self._count_total_voxels()
         numerator = tf.multiply(1.0 / denominator_1, numerator_1)
         subtract_term = tf.subtract(1.0, numerator)
         return tf.multiply(1.0 / (N_CLASSES - 1), subtract_term)
 
-    def calc_dist_map(self, seg):
+    def _calc_dist_map(self, seg):
         """ Computes distance map using scipy function
         Args:
             seg: 3D volume array of ground truth
@@ -98,8 +102,8 @@ class Weighted_DiceBoundary_Loss(Loss):
 
         return res
 
-    def calc_dist_map_batch(self, labels):
-        """ Pass 3D label volumes to calc_dist_map and return the batch distance map to loss function
+    def _calc_dist_map_batch(self, labels):
+        """ Splits 5D labels (batch, x, y, z, classes) into 3D labels (x,y,z) to compute distance map.
         Args:
             labels: y_true, ground truth volumes. Labels is supposed to be 5-dimensional:
             (batch, x, y, z, softmax probabilities).
@@ -109,7 +113,7 @@ class Weighted_DiceBoundary_Loss(Loss):
         dist_batch = np.zeros_like(y_true_numpy)
         for i, y in enumerate(y_true_numpy):
             for c in range(y_true_numpy.shape[-1]):
-                result = self.calc_dist_map(y[:, :, :, c])
+                result = self._calc_dist_map(y[:, :, :, c])
                 dist_batch[i, :, :, :, c] = result
         return np.array(dist_batch).astype(np.float32)
 
@@ -118,8 +122,10 @@ class Weighted_DiceBoundary_Loss(Loss):
         """
         Multiclass weighted dice + boundary loss function.
         Args:
-            y_true: Ground truth. Input is supposed to be 5-dimensional: (batch, x, y, z, softmax probabilities).
-            y_pred: Softmax probabilities. Input is supposed to be 5-dimensional: (batch, x, y, z, softmax probabilities).
+            y_true: Ground truth. Input is supposed to be 5-dimensional:
+                (batch, x, y, z, softmax probabilities).
+            y_pred: Softmax probabilities. Input is supposed to be 5-dimensional:
+                (batch, x, y, z, softmax probabilities).
         Returns: weighted dice + boundary loss function, weighted with alpha parameter.
 
         """
@@ -135,11 +141,10 @@ class Weighted_DiceBoundary_Loss(Loss):
             class_loss_weight = loss_weights[c]
 
             mean_over_classes = tf.add(mean_over_classes,
-                                       tf.multiply(class_loss_weight,
-                                                   tf.divide(numerator, denominator)))
+                                       tf.multiply(class_loss_weight, tf.divide(numerator, denominator)))
 
-        n_voxels = self.count_total_voxels()
-        SDM = tf.py_function(func=self.calc_dist_map_batch,
+        n_voxels = self._count_total_voxels()
+        SDM = tf.py_function(func=self._calc_dist_map_batch(),
                              inp=[y_true],
                              Tout=tf.float32)
         boundary_loss = tf.multiply(tf.reduce_sum(tf.multiply(SDM, y_pred)), 1.0 / n_voxels)
