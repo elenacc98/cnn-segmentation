@@ -40,7 +40,7 @@ class Weighted_DiceBoundary_Loss(Loss):
     """
 
     def __init__(self, num_classes, alpha, name=None, dtype=None):
-        super(Weighted_DiceBoundary_Loss, self).__init__(name=name, dtype=dtype)
+        super(Weighted_DiceBoundary_Loss, self).__init__()
         self.num_classes = num_classes
         self.alpha = alpha
         self.name = name
