@@ -39,10 +39,9 @@ class Weighted_DiceBoundary_Loss(Loss):
 
     """
 
-    def __init__(self, num_classes, batch_size, alpha, name=None, dtype=None):
+    def __init__(self, num_classes, alpha, name=None, dtype=None):
         super(Weighted_DiceBoundary_Loss, self).__init__(name=name, dtype=dtype)
         self.num_classes = num_classes
-        self.batch_size = batch_size
         self.alpha = alpha
         self.name = name
 
@@ -52,7 +51,7 @@ class Weighted_DiceBoundary_Loss(Loss):
         Returns:
              : Total number of voxels
         """
-        return N_ROWS * N_COLUMNS * N_SLICES * self.batch_size
+        return N_ROWS * N_COLUMNS * N_SLICES * BATCH_SIZE
 
     def _count_class_voxels(self, labels):
         """
@@ -67,7 +66,7 @@ class Weighted_DiceBoundary_Loss(Loss):
         out[0] = 0
         for c in range(1, N_CLASSES):
             out[c] = tf.math.count_nonzero(labels[:, :, :, :, c])
-        first_term = tf.cast(self._count_total_voxels(self.batch_size), 'int64')
+        first_term = tf.cast(self._count_total_voxels(), 'int64')
         second_term = tf.reduce_sum(out)
         out[0] = tf.subtract(first_term, second_term)
         return out
