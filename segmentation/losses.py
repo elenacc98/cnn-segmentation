@@ -130,7 +130,7 @@ class Weighted_DiceBoundary_Loss(Loss):
         """
         mean_over_classes = tf.zeros((1,))  # a single scalar, then broadcasted to a scalar for each data-point in the mini-batch
         # Get loss weights
-        loss_weights = self.get_loss_weights(y_true)
+        loss_weights = self._get_loss_weights(y_true)
         # Loop over each class
         for c in range(0, N_CLASSES):
             y_true_c = y_true[:, :, :, :, c]
