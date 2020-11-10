@@ -79,7 +79,6 @@ class Weighted_DiceBoundary_Loss(Loss):
         Returns:
              : 1D tf.tensor of len N_CLASSES with weights to assign to class voxels
         """
-
         self.nVoxels = 1
         for i in range(len(labels.shape) - 1):
             self.nVoxels = self.nVoxels * labels.shape[i]
@@ -101,7 +100,6 @@ class Weighted_DiceBoundary_Loss(Loss):
         if posmask.any():
             negmask = ~posmask
             res = distance(negmask) * negmask - (distance(posmask) - 1) * posmask
-
         return res
 
     def _calc_dist_map_batch(self, labels):
@@ -136,7 +134,7 @@ class Weighted_DiceBoundary_Loss(Loss):
         loss_weights = self._get_loss_weights(y_true)
         # Loop over each class
         for c in range(0, self.num_classes):
-            y_true_c = y_true[:, :, :, :, c]
+            y_true_c = tf.cast(y_true[:, :, :, :, c], 'float32')
             y_pred_c = y_pred[:, :, :, :, c]
             numerator = tf.scalar_mul(2.0, tf.reduce_sum(tf.multiply(y_true_c, y_pred_c), axis=(1, 2, 3)))
             denominator = tf.add(tf.reduce_sum(y_true_c, axis=(1, 2, 3)), tf.reduce_sum(y_pred_c, axis=(1, 2, 3)))
