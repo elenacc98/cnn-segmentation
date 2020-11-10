@@ -79,7 +79,7 @@ class Weighted_DiceBoundary_Loss(Loss):
         Returns:
              : 1D tf.tensor of len N_CLASSES with weights to assign to class voxels
         """
-        numerator_1 = self.count_class_voxels(labels)
+        numerator_1 = self._count_class_voxels(labels)
         denominator_1 = self._count_total_voxels()
         numerator = tf.multiply(1.0 / denominator_1, numerator_1)
         subtract_term = tf.subtract(1.0, numerator)
