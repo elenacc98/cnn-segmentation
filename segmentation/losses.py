@@ -135,7 +135,7 @@ class Weighted_DiceBoundary_Loss(Loss):
         # Loop over each class
         for c in range(0, self.num_classes):
             y_true_c = tf.cast(y_true[:, :, :, :, c], 'float32')
-            y_pred_c = y_pred[:, :, :, :, c]
+            y_pred_c = tf.cast(y_pred[:, :, :, :, c], 'float32')
             numerator = tf.scalar_mul(2.0, tf.reduce_sum(tf.multiply(y_true_c, y_pred_c), axis=(1, 2, 3)))
             denominator = tf.add(tf.reduce_sum(y_true_c, axis=(1, 2, 3)), tf.reduce_sum(y_pred_c, axis=(1, 2, 3)))
             class_loss_weight = loss_weights[c]
