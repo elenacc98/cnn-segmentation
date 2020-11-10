@@ -45,13 +45,13 @@ class Weighted_DiceBoundary_Loss(Loss):
         self.alpha = alpha
         self.name = name
 
-    def _count_total_voxels(self):
-        """
-        Counts total number of voxels for the given batch size.
-        Returns:
-             : Total number of voxels
-        """
-        return N_ROWS * N_COLUMNS * N_SLICES * BATCH_SIZE
+#     def _count_total_voxels(self):
+#         """
+#         Counts total number of voxels for the given batch size.
+#         Returns:
+#              : Total number of voxels
+#         """
+#         return N_ROWS * N_COLUMNS * N_SLICES * BATCH_SIZE
 
     def _count_class_voxels(self, labels):
         """
@@ -62,11 +62,11 @@ class Weighted_DiceBoundary_Loss(Loss):
         Returns:
             out: 1D tf.tensor of len N_CLASSES with number of voxel per class
         """
-        out = [0] * N_CLASSES
+        out = [0] * self.num_classes
         out[0] = 0
-        for c in range(1, N_CLASSES):
+        for c in range(1, self.num_classes):
             out[c] = tf.math.count_nonzero(labels[:, :, :, :, c])
-        first_term = tf.cast(self._count_total_voxels(), 'int64')
+        first_term = tf.cast(self.nVoxels, 'int64')
         second_term = tf.reduce_sum(out)
         out[0] = tf.subtract(first_term, second_term)
         return out
@@ -79,11 +79,14 @@ class Weighted_DiceBoundary_Loss(Loss):
         Returns:
              : 1D tf.tensor of len N_CLASSES with weights to assign to class voxels
         """
+
+        self.nVoxels = 1
+        for i in range(len(labels.shape) - 1):
+            self.nVoxels = self.nVoxels * labels.shape[i]
         numerator_1 = self._count_class_voxels(labels)
-        denominator_1 = self._count_total_voxels()
-        numerator = tf.multiply(1.0 / denominator_1, numerator_1)
+        numerator = tf.multiply(1.0 / self.nVoxels, numerator_1)
         subtract_term = tf.subtract(1.0, numerator)
-        return tf.multiply(1.0 / (N_CLASSES - 1), subtract_term)
+        return tf.multiply(1.0 / (self.num_classes - 1), subtract_term)
 
     def _calc_dist_map(self, seg):
         """ Computes distance map using scipy function
@@ -132,7 +135,7 @@ class Weighted_DiceBoundary_Loss(Loss):
         # Get loss weights
         loss_weights = self._get_loss_weights(y_true)
         # Loop over each class
-        for c in range(0, N_CLASSES):
+        for c in range(0, self.num_classes):
             y_true_c = y_true[:, :, :, :, c]
             y_pred_c = y_pred[:, :, :, :, c]
             numerator = tf.scalar_mul(2.0, tf.reduce_sum(tf.multiply(y_true_c, y_pred_c), axis=(1, 2, 3)))
@@ -142,11 +145,10 @@ class Weighted_DiceBoundary_Loss(Loss):
             mean_over_classes = tf.add(mean_over_classes,
                                        tf.multiply(class_loss_weight, tf.divide(numerator, denominator)))
 
-        n_voxels = self._count_total_voxels()
         SDM = tf.py_function(func=self._calc_dist_map_batch(),
                              inp=[y_true],
                              Tout=tf.float32)
-        boundary_loss = tf.multiply(tf.reduce_sum(tf.multiply(SDM, y_pred)), 1.0 / n_voxels)
+        boundary_loss = tf.multiply(tf.reduce_sum(tf.multiply(SDM, y_pred)), 1.0 / self.nVoxels)
 
         return self.alpha * tf.subtract(1.0, mean_over_classes) + (1 - self.alpha) * boundary_loss
 
