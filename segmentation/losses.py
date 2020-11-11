@@ -174,19 +174,19 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha):
                 dist_batch[i, :, :, :, c] = result
         return np.array(dist_batch).astype(np.float32)
 
-    def surface_loss_keras(y_true, y_pred):
-        y_true_dist_map = tf.py_function(func=calc_dist_map_batch,
-                                         inp=[y_true],
-                                         Tout=tf.float32)
-        multipled = y_pred * y_true_dist_map
-        return K.mean(multipled)
+    # def surface_loss_keras(y_true, y_pred):
+    #     y_true_dist_map = tf.py_function(func=calc_dist_map_batch,
+    #                                      inp=[y_true],
+    #                                      Tout=tf.float32)
+    #     multipled = y_pred * y_true_dist_map
+    #     return K.mean(multipled)
 
     # def count_total_voxels(batch_size):
     #     """
     #     Counts total number of voxels for the given batch size.
     #     """
     #     return N_ROWS * N_COLUMNS * N_SLICES * batch_size
-      
+
     # defining weights for loss function:
     def count_class_voxels(labels, numClasses, nVoxels):
         """
