@@ -81,7 +81,7 @@ class Weighted_DiceBoundary_Loss(Loss):
         """
         self.nVoxels = 1
         for i in range(len(labels.shape) - 1):
-            self.nVoxels = self.nVoxels * labels.shape[i]
+            self.nVoxels = self.nVoxels * K.int_shape(labels)[i]
         numerator_1 = self._count_class_voxels(labels)
         numerator = tf.multiply(1.0 / self.nVoxels, numerator_1)
         subtract_term = tf.subtract(1.0, numerator)
