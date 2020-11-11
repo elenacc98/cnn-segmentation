@@ -143,7 +143,7 @@ class Weighted_DiceBoundary_Loss(Loss):
             mean_over_classes = tf.add(mean_over_classes,
                                        tf.multiply(class_loss_weight, tf.divide(numerator, denominator)))
 
-        SDM = tf.py_function(func=self._calc_dist_map_batch(y_true),
+        SDM = tf.py_function(func=self._calc_dist_map_batch,
                              inp=[y_true],
                              Tout=tf.float32)
         boundary_loss = tf.multiply(tf.reduce_sum(tf.multiply(SDM, y_pred)), 1.0 / self.nVoxels)
