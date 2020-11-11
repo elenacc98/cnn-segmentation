@@ -188,7 +188,7 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha):
     #     return N_ROWS * N_COLUMNS * N_SLICES * batch_size
 
     # defining weights for loss function:
-    def count_class_voxels(labels, numClasses, nVoxels):
+    def count_class_voxels(labels, nVoxels):
         """
         Counts total number of voxels for each class in the batch size.
         input is supposed to be 5-dimensional: (batch, x, y, z, softmax probabilities)
@@ -202,25 +202,28 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha):
         out[0] = tf.subtract(first_term, second_term)
         return out
 
-    def get_loss_weights(labels, numClasses):
+    def get_loss_weights(labels, nVoxels):
         """
         Compute loss weights for each class.
         """
-        nVoxels = 1
-        for i in range(len(labels.shape) - 1):
-            nVoxels = nVoxels * labels.shape[i]
-        numerator_1 = count_class_voxels(labels, numClasses, nVoxels)
+
+        numerator_1 = count_class_voxels(labels, nVoxels)
         numerator = tf.multiply(1.0 / nVoxels, numerator_1)
         subtract_term = tf.subtract(1.0, numerator)
-        return tf.multiply(1.0 / (numClasses - 1), subtract_term), nVoxels
+        return tf.multiply(1.0 / (numClasses - 1), subtract_term)
 
     def multiclass_3D_class_weighted_dice_boundary_loss(y_true, y_pred):
         """
         Compute 3D multiclass class weighted dice loss function.
         """
+
+        nVoxels = 1
+        for i in range(len(y_pred.shape) - 1):
+            nVoxels = tf.multiply(nVoxels * y_pred.shape[i])
+        
         mean_over_classes = tf.zeros((1,))
         # Get loss weights
-        loss_weights, nVoxels = get_loss_weights(y_true, numClasses)
+        loss_weights = get_loss_weights(y_true, nVoxels)
         # Loop over each class
         for c in range(0, numClasses):
             y_true_c = y_true[:, :, :, :, c]
