@@ -174,12 +174,6 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha, dims, batchSize):
                 dist_batch[c,i] = calc_dist_map(y)
         return np.array(dist_batch).astype(np.float32)
 
-    # def surface_loss_keras(y_true, y_pred):
-    #     y_true_dist_map = tf.py_function(func=calc_dist_map_batch,
-    #                                      inp=[y_true],
-    #                                      Tout=tf.float32)
-    #     multipled = y_pred * y_true_dist_map
-    #     return K.mean(multipled)
 
     # def count_total_voxels(batch_size):
     #     """
@@ -262,3 +256,5 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha, dims, batchSize):
     return multiclass_3D_class_weighted_dice_boundary_loss
 
 
+
+def Weighted_Crossentropy_Loss(numClasses, batchSize, )
