@@ -9,6 +9,9 @@ import numpy as np
 import tensorflow as tf
 from scipy.ndimage import distance_transform_edt as distance
 from tensorflow.keras.losses import Loss
+from tensorflow.python.framework import ops
+
+
 
 
 class MeanDiceLoss(MeanDice):
@@ -154,25 +157,7 @@ class MeanDiceLoss(MeanDice):
 
 def Weighted_DiceBoundary_Loss(numClasses, alpha, dims, batchSize):
 
-    def calc_dist_map(seg):
-        """ Computes distance map using scipy function"""
-        res = np.zeros_like(seg)
-        posmask = seg.astype(np.bool)
-
-        if posmask.any():
-            negmask = ~posmask
-            res = distance(negmask) * negmask + (distance(posmask) - 1) * posmask
-        return res
-
-    def calc_dist_map_batch(y_true):
-        """ Pass 3D label volumes to calc_dist_map and return the batch distance map to loss function """
-        y_true_numpy = y_true.numpy()
-        dist_batch = np.zeros_like(y_true_numpy)
-        for c in range(numClasses):
-            temp_y = y_true_numpy[c]
-            for i,y in enumerate(temp_y):
-                dist_batch[c,i] = calc_dist_map(y)
-        return np.array(dist_batch).astype(np.float32)
+    c
 
 
     # def count_total_voxels(batch_size):
@@ -256,5 +241,76 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha, dims, batchSize):
     return multiclass_3D_class_weighted_dice_boundary_loss
 
 
+def Weighted_CatCross_Loss(y_true, y_pred, numClasses, batchSize):
+    """Categorical crossentropy between an y_pred tensor and a target tensor.
+    Arguments:
+        y_true: A tensor of the same shape as `y_pred`.
+        y_pred: A tensor resulting from a softmax
+            (unless `from_logits` is True, in which
+            case `y_pred` is expected to be the logits).
+        from_logits: Boolean, whether `y_pred` is the
+            result of a softmax, or is a tensor of logits.
+        axis: Int specifying the channels axis. `axis=-1` corresponds to data
+            format `channels_last', and `axis=1` corresponds to data format
+            `channels_first`.
+    Returns:
+        Output tensor.
+    Raises:
+        ValueError: if `axis` is neither -1 nor one of the axes of `output`.
+    """
 
-def Weighted_Crossentropy_Loss(numClasses, batchSize, )
+    def calc_dist_map(seg):
+        """ Computes distance map using scipy function"""
+        res = np.zeros_like(seg)
+        posmask = seg.astype(np.bool)
+
+        if posmask.any():
+            negmask = ~posmask
+            res = distance(negmask) * negmask + (distance(posmask) - 1) * posmask
+        return res
+
+    def calc_dist_map_batch(y_true):
+        """ Pass 3D label volumes to calc_dist_map and return the batch distance map to loss function """
+        y_true_numpy = y_true.numpy()
+        dist_batch = np.zeros_like(y_true_numpy)
+        for i,y in enumerate(y_true_numpy):
+            for c in range(numClasses):
+                dist_batch[i,:,:,:,c] = calc_dist_map(y[:,:,:,c])
+        return np.array(dist_batch).astype(np.float32)
+
+    y_true = ops.convert_to_tensor_v2(y_true)
+    y_pred = ops.convert_to_tensor_v2(y_pred)
+
+    tot_voxels = tf.size(y_true)
+
+    y_true.shape.assert_is_compatible_with(y_pred.shape)
+    # if from_logits:
+    #     return nn.softmax_cross_entropy_with_logits_v2(
+    #         labels=y_true, logits=y_pred, axis=axis)
+
+    # if (not isinstance(y_pred, (ops.EagerTensor, variables_module.Variable)) and
+    #     y_pred.op.type == 'Softmax') and not hasattr(y_pred, '_keras_history'):
+    #     # When softmax activation function is used for output operation, we
+    #     # use logits from the softmax function directly to compute loss in order
+    #     # to prevent collapsing zero when training.
+    #     # See b/117284466
+    #     assert len(y_pred.op.inputs) == 1
+    #     y_pred = y_pred.op.inputs[0]
+    #     return nn.softmax_cross_entropy_with_logits_v2(
+    #         labels=y_true, logits=y_pred, axis=axis)
+
+    SDM = tf.py_function(func=calc_dist_map_batch,
+                         inp=[y_true],
+                         Tout=tf.float32)
+
+    gamma = 8
+    sigma = 10
+    # Exponential transformation of the Distance transform
+    DWM = 1 + gamma * tf.math.exp(tf.math.negative(SDM)/sigma)
+
+    # scale preds so that the class probas of each sample sum to 1
+    y_pred = y_pred / math_ops.reduce_sum(y_pred, axis, True)
+    # Compute cross entropy from probabilities.
+    epsilon_ = _constant_to_tensor(epsilon(), y_pred.dtype.base_dtype)
+    y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
+    return -math_ops.reduce_sum(DWM * y_true * math_ops.log(y_pred))/tot_voxels
