@@ -168,9 +168,10 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha, dims, batchSize):
         """ Pass 3D label volumes to calc_dist_map and return the batch distance map to loss function """
         y_true_numpy = y_true.numpy()
         dist_batch = np.zeros_like(y_true_numpy)
-        for i in range(batchSize):
-            for c in range(numClasses):
-                dist_batch[c,i] = calc_dist_map(y_true_numpy[c,i])
+        for c in range(numClasses):
+            temp_y = y_true_numpy[c]
+            for i,y in enumerate(temp_y):
+                dist_batch[c,i] = calc_dist_map(y[c,i])
         return np.array(dist_batch).astype(np.float32)
 
     # def surface_loss_keras(y_true, y_pred):
