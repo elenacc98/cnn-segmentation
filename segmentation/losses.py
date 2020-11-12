@@ -152,7 +152,7 @@ class MeanDiceLoss(MeanDice):
 
 
 
-def Weighted_DiceBoundary_Loss(numClasses, alpha):
+def Weighted_DiceBoundary_Loss(numClasses, alpha, dims, batchSize):
 
     def calc_dist_map(seg):
         """ Computes distance map using scipy function"""
@@ -168,10 +168,9 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha):
         """ Pass 3D label volumes to calc_dist_map and return the batch distance map to loss function """
         y_true_numpy = y_true.numpy()
         dist_batch = np.zeros_like(y_true_numpy)
-        for i, y in enumerate(y_true_numpy):
-            for c in range(y_true_numpy.shape[-1]):
-                result = calc_dist_map(y[:, :, :, c])
-                dist_batch[i, :, :, :, c] = result
+        for i in range(batchSize):
+            for c in range(numClasses):
+                dist_batch[c,i] = calc_dist_map(y_true_numpy[c,i])
         return np.array(dist_batch).astype(np.float32)
 
     # def surface_loss_keras(y_true, y_pred):
@@ -188,6 +187,7 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha):
     #     return N_ROWS * N_COLUMNS * N_SLICES * batch_size
 
     # defining weights for loss function:
+    
     def count_class_voxels(labels, nVoxels):
         """
         Counts total number of voxels for each class in the batch size.
@@ -196,7 +196,7 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha):
         out = [0] * numClasses
         out[0] = 0
         for c in range(1, numClasses):
-            out[c] = tf.math.count_nonzero(labels[:, :, :, :, c])
+            out[c] = tf.math.count_nonzero(labels[c])
         first_term = tf.cast(nVoxels, 'int64')
         second_term = tf.reduce_sum(out)
         out[0] = tf.subtract(first_term, second_term)
@@ -216,20 +216,35 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha):
         """
         Compute 3D multiclass class weighted dice loss function.
         """
+        # global axisSum
 
-        nVoxels = 1
-        for i in range(len(y_pred.shape) - 1):
-            nVoxels = tf.multiply(nVoxels * y_pred.shape[i])
+        if len(dims) == 2:
+            axisSum = (2, 3)
+            y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
+            y_true = tf.transpose(y_true, [3, 0, 1, 2])
+        elif len(dims) == 3:
+            axisSum = (2, 3, 4)
+            y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
+            y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
+        else:
+            print("Could not handle input dimensions.")
+            return
+
+        # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
+
+        nVoxels = batchSize
+        for i in range(len(dims)):
+            nVoxels = nVoxels * dims[i]
 
         mean_over_classes = tf.zeros((1,))
         # Get loss weights
         loss_weights = get_loss_weights(y_true, nVoxels)
         # Loop over each class
-        for c in range(0, numClasses):
-            y_true_c = y_true[:, :, :, :, c]
-            y_pred_c = y_pred[:, :, :, :, c]
-            numerator = tf.scalar_mul(2.0, tf.reduce_sum(tf.multiply(y_true_c, y_pred_c), axis = (1, 2, 3)))
-            denominator = tf.add(tf.reduce_sum(y_true_c, axis = (1, 2, 3)), tf.reduce_sum(y_pred_c, axis = (1, 2, 3)))
+        for c in range(numClasses):
+            y_true_c = y_true[c]
+            y_pred_c = y_pred[c]
+            numerator = tf.scalar_mul(2.0, tf.reduce_sum(tf.multiply(y_true_c, y_pred_c), axis = axisSum))
+            denominator = tf.add(tf.reduce_sum(y_true_c, axis = axisSum), tf.reduce_sum(y_pred_c, axis = axisSum))
             class_loss_weight = loss_weights[c]
 
             mean_over_classes = tf.add(mean_over_classes,
