@@ -258,13 +258,14 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha, dims, batchSize):
     return multiclass_3D_class_weighted_dice_boundary_loss
 
 
-def Weighted_CatCross_Loss(numClasses):
+def Weighted_CatCross_Loss(y_true, y_pred, numClasses):
     """Categorical crossentropy between an y_pred tensor and a target tensor.
     Arguments:
         y_true: A tensor of the same shape as `y_pred`.
         y_pred: A tensor resulting from a softmax
             (unless `from_logits` is True, in which
             case `y_pred` is expected to be the logits).
+        numClasses: number of classes
         from_logits: Boolean, whether `y_pred` is the
             result of a softmax, or is a tensor of logits.
         axis: Int specifying the channels axis. `axis=-1` corresponds to data
