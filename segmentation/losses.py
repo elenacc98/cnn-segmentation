@@ -219,7 +219,7 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha):
 
         nVoxels = 1
         for i in range(len(y_pred.shape) - 1):
-            nVoxels = nVoxels * y_pred.shape[i]
+            nVoxels = tf.multiply(nVoxels * y_pred.shape[i])
 
         mean_over_classes = tf.zeros((1,))
         # Get loss weights
