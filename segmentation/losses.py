@@ -187,7 +187,7 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha, dims, batchSize):
     #     return N_ROWS * N_COLUMNS * N_SLICES * batch_size
 
     # defining weights for loss function:
-    
+
     def count_class_voxels(labels, nVoxels):
         """
         Counts total number of voxels for each class in the batch size.
@@ -219,11 +219,11 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha, dims, batchSize):
         # global axisSum
 
         if len(dims) == 2:
-            axisSum = (2, 3)
+            axisSum = (1, 2)
             y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
             y_true = tf.transpose(y_true, [3, 0, 1, 2])
         elif len(dims) == 3:
-            axisSum = (2, 3, 4)
+            axisSum = (1, 2, 3)
             y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
             y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
         else:
