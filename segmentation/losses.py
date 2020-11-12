@@ -157,8 +157,25 @@ class MeanDiceLoss(MeanDice):
 
 def Weighted_DiceBoundary_Loss(numClasses, alpha, dims, batchSize):
 
-    c
+    def calc_dist_map(seg):
+        """ Computes distance map using scipy function"""
+        res = np.zeros_like(seg)
+        posmask = seg.astype(np.bool)
 
+        if posmask.any():
+            negmask = ~posmask
+            res = distance(negmask) * negmask + (distance(posmask) - 1) * posmask
+        return res
+
+    def calc_dist_map_batch(y_true):
+        """ Pass 3D label volumes to calc_dist_map and return the batch distance map to loss function """
+        y_true_numpy = y_true.numpy()
+        dist_batch = np.zeros_like(y_true_numpy)
+        for c in range(numClasses):
+            temp_y = y_true_numpy[c]
+            for i, y in enumerate(temp_y):
+                dist_batch[c, i] = calc_dist_map(y)
+        return np.array(dist_batch).astype(np.float32)
 
     # def count_total_voxels(batch_size):
     #     """
@@ -241,7 +258,7 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha, dims, batchSize):
     return multiclass_3D_class_weighted_dice_boundary_loss
 
 
-def Weighted_CatCross_Loss(y_true, y_pred, numClasses, batchSize):
+def Weighted_CatCross_Loss(numClasses):
     """Categorical crossentropy between an y_pred tensor and a target tensor.
     Arguments:
         y_true: A tensor of the same shape as `y_pred`.
