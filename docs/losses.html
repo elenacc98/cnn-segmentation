@@ -38,20 +38,11 @@ in segmentation tasks.</p>
 <span>def <span class="ident">Weighted_CatCross_Loss</span></span>(<span>numClasses)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Categorical crossentropy between an y_pred tensor and a target tensor.</p>
+<div class="desc"><p>Categorical crossentropy wrapper function between y_pred tensor and a target tensor.</p>
 <h2 id="arguments">Arguments</h2>
-<p>y_true: A tensor of the same shape as <code>y_pred</code>.
-y_pred: A tensor resulting from a softmax
-(unless <code>from_logits</code> is True, in which
-case <code>y_pred</code> is expected to be the logits).
-numClasses: number of classes
-from_logits: Boolean, whether <code>y_pred</code> is the
-result of a softmax, or is a tensor of logits.
-axis: Int specifying the channels axis. <code>axis=-1</code> corresponds to data
-format <code>channels_last', and</code>axis=1` corresponds to data format
-<code>channels_first</code>.</p>
+<p>numClasses: number of classes</p>
 <h2 id="returns">Returns</h2>
-<p>Output tensor.</p>
+<p>categorical_cross_entropy function</p>
 <h2 id="raises">Raises</h2>
 <dl>
 <dt><code>ValueError</code></dt>

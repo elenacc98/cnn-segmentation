@@ -342,7 +342,7 @@ def Weighted_CatCross_Loss(numClasses):
 
     def categorical_cross_entropy(y_true, y_pred):
         """
-        Computes categorical cross entropy weighted by distance weighted map. 
+        Computes categorical cross entropy weighted by distance weighted map.
         Args:
             y_true: A tensor of the same shape as `y_pred`.
             y_pred: A tensor resulting from a softmax
