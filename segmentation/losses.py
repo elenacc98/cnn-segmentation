@@ -264,16 +264,7 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha, dims, batchSize):
 def Weighted_CatCross_Loss(numClasses):
     """Categorical crossentropy between an y_pred tensor and a target tensor.
     Arguments:
-        y_true: A tensor of the same shape as `y_pred`.
-        y_pred: A tensor resulting from a softmax
-            (unless `from_logits` is True, in which
-            case `y_pred` is expected to be the logits).
         numClasses: number of classes
-        from_logits: Boolean, whether `y_pred` is the
-            result of a softmax, or is a tensor of logits.
-        axis: Int specifying the channels axis. `axis=-1` corresponds to data
-            format `channels_last', and `axis=1` corresponds to data format
-            `channels_first`.
     Returns:
         Output tensor.
     Raises:
@@ -301,6 +292,14 @@ def Weighted_CatCross_Loss(numClasses):
 
 
     def categorical_cross_entropy(y_true, y_pred):
+        """
+        Args:
+            y_true: A tensor of the same shape as `y_pred`.
+            y_pred: A tensor resulting from a softmax
+        Returns:
+            categorical crossentropy value
+
+        """
 
         y_true = ops.convert_to_tensor_v2(y_true)
         y_pred = ops.convert_to_tensor_v2(y_pred)
@@ -333,7 +332,7 @@ def Weighted_CatCross_Loss(numClasses):
         # Exponential transformation of the Distance transform
         DWM = 1 + gamma * tf.math.exp(tf.math.negative(SDM)/sigma)
         # scale preds so that the class probas of each sample sum to 1
-        y_pred = y_pred / math_ops.reduce_sum(y_pred, axis, True)
+        y_pred = y_pred / math_ops.reduce_sum(y_pred, axis=-1, keepdims=True)
         # Compute cross entropy from probabilities.
         epsilon_ = constant_op.constant(epsilon(), y_pred.dtype.base_dtype)
         y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
