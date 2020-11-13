@@ -1,5 +1,5 @@
 """
-Preprocessing functions to apply.
+Main preprocessing functions.
 Starting from many dicom files for each patient (many slices composing a 3D volume),
 this functions apply cropping, reshaping, create labels from stl files and merge labels.
 They also create corresponding Nifti files of cropped, reshaped, labeled and merged volumes.
