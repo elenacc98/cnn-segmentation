@@ -10,7 +10,10 @@ import tensorflow as tf
 from scipy.ndimage import distance_transform_edt as distance
 from tensorflow.keras.losses import Loss
 from tensorflow.python.framework import ops
-
+from tensorflow.python.ops import math_ops
+from tensorflow.python.ops import clip_ops
+from tensorflow.python.framework import constant_op
+from tensorflow.python.keras import backend_config
 
 
 
@@ -324,6 +327,7 @@ def Weighted_CatCross_Loss(numClasses):
                              inp=[y_true],
                              Tout=tf.float32)
 
+        epsilon = backend_config.epsilon
         gamma = 8
         sigma = 10
         # Exponential transformation of the Distance transform
@@ -331,8 +335,9 @@ def Weighted_CatCross_Loss(numClasses):
         # scale preds so that the class probas of each sample sum to 1
         y_pred = y_pred / math_ops.reduce_sum(y_pred, axis, True)
         # Compute cross entropy from probabilities.
-        epsilon_ = _constant_to_tensor(epsilon(), y_pred.dtype.base_dtype)
+        epsilon_ = constant_op.constant(epsilon(), y_pred.dtype.base_dtype)
         y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
+
         return -math_ops.reduce_sum(DWM * y_true * math_ops.log(y_pred))/tot_voxels
 
     return categorical_cross_entropy
