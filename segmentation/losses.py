@@ -258,7 +258,7 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha, dims, batchSize):
     return multiclass_3D_class_weighted_dice_boundary_loss
 
 
-def Weighted_CatCross_Loss(y_true, y_pred, numClasses):
+def Weighted_CatCross_Loss(numClasses):
     """Categorical crossentropy between an y_pred tensor and a target tensor.
     Arguments:
         y_true: A tensor of the same shape as `y_pred`.
@@ -296,39 +296,43 @@ def Weighted_CatCross_Loss(y_true, y_pred, numClasses):
                 dist_batch[i,:,:,:,c] = calc_dist_map(y[:,:,:,c])
         return np.array(dist_batch).astype(np.float32)
 
-    y_true = ops.convert_to_tensor_v2(y_true)
-    y_pred = ops.convert_to_tensor_v2(y_pred)
 
-    tot_voxels = tf.size(y_true)
+    def categorical_cross_entropy(y_true, y_pred):
 
-    y_true.shape.assert_is_compatible_with(y_pred.shape)
-    # if from_logits:
-    #     return nn.softmax_cross_entropy_with_logits_v2(
-    #         labels=y_true, logits=y_pred, axis=axis)
+        y_true = ops.convert_to_tensor_v2(y_true)
+        y_pred = ops.convert_to_tensor_v2(y_pred)
 
-    # if (not isinstance(y_pred, (ops.EagerTensor, variables_module.Variable)) and
-    #     y_pred.op.type == 'Softmax') and not hasattr(y_pred, '_keras_history'):
-    #     # When softmax activation function is used for output operation, we
-    #     # use logits from the softmax function directly to compute loss in order
-    #     # to prevent collapsing zero when training.
-    #     # See b/117284466
-    #     assert len(y_pred.op.inputs) == 1
-    #     y_pred = y_pred.op.inputs[0]
-    #     return nn.softmax_cross_entropy_with_logits_v2(
-    #         labels=y_true, logits=y_pred, axis=axis)
+        tot_voxels = tf.size(y_true)
 
-    SDM = tf.py_function(func=calc_dist_map_batch,
-                         inp=[y_true],
-                         Tout=tf.float32)
+        y_true.shape.assert_is_compatible_with(y_pred.shape)
+        # if from_logits:
+        #     return nn.softmax_cross_entropy_with_logits_v2(
+        #         labels=y_true, logits=y_pred, axis=axis)
 
-    gamma = 8
-    sigma = 10
-    # Exponential transformation of the Distance transform
-    DWM = 1 + gamma * tf.math.exp(tf.math.negative(SDM)/sigma)
+        # if (not isinstance(y_pred, (ops.EagerTensor, variables_module.Variable)) and
+        #     y_pred.op.type == 'Softmax') and not hasattr(y_pred, '_keras_history'):
+        #     # When softmax activation function is used for output operation, we
+        #     # use logits from the softmax function directly to compute loss in order
+        #     # to prevent collapsing zero when training.
+        #     # See b/117284466
+        #     assert len(y_pred.op.inputs) == 1
+        #     y_pred = y_pred.op.inputs[0]
+        #     return nn.softmax_cross_entropy_with_logits_v2(
+        #         labels=y_true, logits=y_pred, axis=axis)
 
-    # scale preds so that the class probas of each sample sum to 1
-    y_pred = y_pred / math_ops.reduce_sum(y_pred, axis, True)
-    # Compute cross entropy from probabilities.
-    epsilon_ = _constant_to_tensor(epsilon(), y_pred.dtype.base_dtype)
-    y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
-    return -math_ops.reduce_sum(DWM * y_true * math_ops.log(y_pred))/tot_voxels
+        SDM = tf.py_function(func=calc_dist_map_batch,
+                             inp=[y_true],
+                             Tout=tf.float32)
+
+        gamma = 8
+        sigma = 10
+        # Exponential transformation of the Distance transform
+        DWM = 1 + gamma * tf.math.exp(tf.math.negative(SDM)/sigma)
+        # scale preds so that the class probas of each sample sum to 1
+        y_pred = y_pred / math_ops.reduce_sum(y_pred, axis, True)
+        # Compute cross entropy from probabilities.
+        epsilon_ = _constant_to_tensor(epsilon(), y_pred.dtype.base_dtype)
+        y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
+        return -math_ops.reduce_sum(DWM * y_true * math_ops.log(y_pred))/tot_voxels
+
+    return categorical_cross_entropy
