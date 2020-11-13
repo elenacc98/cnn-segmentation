@@ -4,8 +4,7 @@ labeling and merging across all files of the directory.
 """
 
 import os
-import timeit
-from preprocess.main_preprocess import Merge_Labels, Volume_Crop, Volume_Reshape, Volume_Label
+from segmentation.preprocess.main_preprocess import Merge_Labels, Volume_Crop, Volume_Reshape, Volume_Label
 
 
 def Cycle_Volume_Crop():

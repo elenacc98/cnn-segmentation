@@ -7,21 +7,13 @@ They also create corresponding Nifti files of cropped, reshaped, labeled and mer
 """
 
 from __future__ import print_function
-import os
-import numpy as np
 import trimesh
 from stl import mesh
-import matplotlib.pyplot as plt
-import pandas
 import xlrd
-from scipy.io import loadmat
-import pydicom
 import nibabel as nib
-import plotly.graph_objects as go
 from scipy.ndimage.morphology import binary_fill_holes, binary_closing, binary_erosion, binary_dilation
-from skimage.transform import resize
-from skimage.morphology.selem import square, disk
-from preprocess.utils import *
+from skimage.morphology.selem import disk
+from segmentation.preprocess.utils import *
 
 
 def Volume_Crop():
