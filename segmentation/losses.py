@@ -263,10 +263,6 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha, dims, batchSize):
 
         # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
 
-        # nVoxels = batchSize
-        # for i in range(len(dims)):
-        #     nVoxels = nVoxels * dims[i]
-
         nVoxels = tf.size(y_true) / numClasses
 
         mean_over_classes = tf.zeros((1,))
@@ -357,20 +353,6 @@ def Weighted_CatCross_Loss(numClasses):
         tot_voxels = tf.size(y_true)/numClasses
 
         y_true.shape.assert_is_compatible_with(y_pred.shape)
-        # if from_logits:
-        #     return nn.softmax_cross_entropy_with_logits_v2(
-        #         labels=y_true, logits=y_pred, axis=axis)
-
-        # if (not isinstance(y_pred, (ops.EagerTensor, variables_module.Variable)) and
-        #     y_pred.op.type == 'Softmax') and not hasattr(y_pred, '_keras_history'):
-        #     # When softmax activation function is used for output operation, we
-        #     # use logits from the softmax function directly to compute loss in order
-        #     # to prevent collapsing zero when training.
-        #     # See b/117284466
-        #     assert len(y_pred.op.inputs) == 1
-        #     y_pred = y_pred.op.inputs[0]
-        #     return nn.softmax_cross_entropy_with_logits_v2(
-        #         labels=y_true, logits=y_pred, axis=axis)
 
         SDM = tf.py_function(func=calc_dist_map_batch,
                              inp=[y_true],
@@ -379,6 +361,7 @@ def Weighted_CatCross_Loss(numClasses):
         epsilon = backend_config.epsilon
         gamma = 8
         sigma = 10
+
         # Exponential transformation of the Distance transform
         DWM = 1 + gamma * tf.math.exp(tf.math.negative(SDM)/sigma)
         # scale preds so that the class probas of each sample sum to 1
@@ -387,6 +370,6 @@ def Weighted_CatCross_Loss(numClasses):
         epsilon_ = constant_op.constant(epsilon(), y_pred.dtype.base_dtype)
         y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
 
-        return -math_ops.reduce_sum(DWM * y_true * math_ops.log(y_pred))/tot_voxels
+        return -math_ops.reduce_sum(DWM * y_true * math_ops.log(y_pred))/tf.cast(tot_voxels, tf.float32)
 
     return categorical_cross_entropy
