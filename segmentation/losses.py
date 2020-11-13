@@ -161,7 +161,14 @@ class MeanDiceLoss(MeanDice):
 def Weighted_DiceBoundary_Loss(numClasses, alpha, dims, batchSize):
 
     def calc_dist_map(seg):
-        """ Computes distance map using scipy function"""
+        """
+        Computes distance map using scipy function
+        Args:
+            seg: 2D or 3D binary array to compute the distance map
+        Returns:
+            res: distance map
+        """
+
         res = np.zeros_like(seg)
         posmask = seg.astype(np.bool)
 
@@ -171,7 +178,15 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha, dims, batchSize):
         return res
 
     def calc_dist_map_batch(y_true):
-        """ Pass 3D label volumes to calc_dist_map and return the batch distance map to loss function """
+        """
+        Pass 5D or 4D label volumes to calc_dist_map and return the corresponding numpy array distance map to loss
+        function.
+        Args:
+            y_true: ground truth tensor of dimensions (class, batch_size, rows, columns, slices) or
+            (class, batch_size, rows, columns)
+        Returns:
+            array of distance map of the same dimension of input tensor
+        """
         y_true_numpy = y_true.numpy()
         dist_batch = np.zeros_like(y_true_numpy)
         for c in range(numClasses):
@@ -191,7 +206,14 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha, dims, batchSize):
     def count_class_voxels(labels, nVoxels):
         """
         Counts total number of voxels for each class in the batch size.
-        input is supposed to be 5-dimensional: (batch, x, y, z, softmax probabilities)
+        input is supposed to be 4 or 5-dimensional: (class, batch, rows, columns) or
+        (class, batch, rows, columns, slices).
+        Args:
+            labels: ground truth tensor of dimensions (class, batch_size, rows, columns, slices) or
+            (class, batch_size, rows, columns)
+            nVoxels: total number of voxels.
+        Returns:
+            out: list with number of voxel per class
         """
         out = [0] * numClasses
         out[0] = 0
@@ -205,6 +227,12 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha, dims, batchSize):
     def get_loss_weights(labels, nVoxels):
         """
         Compute loss weights for each class.
+        Args:
+            labels: ground truth tensor of dimensions (class, batch_size, rows, columns, slices) or
+            (class, batch_size, rows, columns)
+            nVoxels: total number of voxels.
+        Returns:
+            1D tf.tensor of len = numClasses containing weights for each class
         """
 
         numerator_1 = count_class_voxels(labels, nVoxels)
@@ -215,8 +243,11 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha, dims, batchSize):
     def multiclass_3D_class_weighted_dice_boundary_loss(y_true, y_pred):
         """
         Compute 3D multiclass class weighted dice loss function.
+        Args:
+            y_true: ground truth tensor of dimensions (class, batch_size, rows, columns, slices) or
+            (class, batch_size, rows, columns)
+            y_pred: softmax probabilities predicting classes. Shape must be the same as y_true.
         """
-        # global axisSum
 
         if len(dims) == 2:
             axisSum = (1, 2)
@@ -232,9 +263,11 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha, dims, batchSize):
 
         # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
 
-        nVoxels = batchSize
-        for i in range(len(dims)):
-            nVoxels = nVoxels * dims[i]
+        # nVoxels = batchSize
+        # for i in range(len(dims)):
+        #     nVoxels = nVoxels * dims[i]
+
+        nVoxels = tf.size(y_true) / numClasses
 
         mean_over_classes = tf.zeros((1,))
         # Get loss weights
@@ -262,17 +295,24 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha, dims, batchSize):
 
 
 def Weighted_CatCross_Loss(numClasses):
-    """Categorical crossentropy between an y_pred tensor and a target tensor.
+    """
+    Categorical crossentropy wrapper function between y_pred tensor and a target tensor.
     Arguments:
         numClasses: number of classes
     Returns:
-        Output tensor.
+        categorical_cross_entropy function
     Raises:
         ValueError: if `axis` is neither -1 nor one of the axes of `output`.
     """
 
     def calc_dist_map(seg):
-        """ Computes distance map using scipy function"""
+        """ Computes distance map using scipy function.
+        Args:
+            seg: 2D or 3D binary array to compute the distance map
+        Returns:
+            res: distance map
+        """
+
         res = np.zeros_like(seg)
         posmask = seg.astype(np.bool)
 
@@ -282,7 +322,16 @@ def Weighted_CatCross_Loss(numClasses):
         return res
 
     def calc_dist_map_batch(y_true):
-        """ Pass 3D label volumes to calc_dist_map and return the batch distance map to loss function """
+        """
+        Pass 5D or 4D label volumes to calc_dist_map and return the corresponding numpy array distance map to loss
+        function.
+        Args:
+            y_true: ground truth tensor of dimensions (class, batch_size, rows, columns, slices) or
+            (class, batch_size, rows, columns)
+        Returns:
+            array of distance map of the same dimension of input tensor
+        """
+
         y_true_numpy = y_true.numpy()
         dist_batch = np.zeros_like(y_true_numpy)
         for i,y in enumerate(y_true_numpy):
@@ -293,6 +342,7 @@ def Weighted_CatCross_Loss(numClasses):
 
     def categorical_cross_entropy(y_true, y_pred):
         """
+        Computes categorical cross entropy weighted by distance weighted map. 
         Args:
             y_true: A tensor of the same shape as `y_pred`.
             y_pred: A tensor resulting from a softmax
@@ -304,7 +354,7 @@ def Weighted_CatCross_Loss(numClasses):
         y_true = ops.convert_to_tensor_v2(y_true)
         y_pred = ops.convert_to_tensor_v2(y_pred)
 
-        tot_voxels = tf.size(y_true)
+        tot_voxels = tf.size(y_true)/numClasses
 
         y_true.shape.assert_is_compatible_with(y_pred.shape)
         # if from_logits:
