@@ -16,6 +16,11 @@ from skimage.transform import resize
 from skimage.morphology.selem import square, disk
 
 def Volume_Crop():
+    """
+    Crop slices in x,y,z direction to minimize the amount of background voxels, to optimize memory.
+    It saves at "filenameCT" .nii cropped files
+    Returns:
+    """
     # Set directories
     setDirVariables()
 

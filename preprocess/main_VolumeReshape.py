@@ -16,6 +16,12 @@ from skimage.transform import resize
 from skimage.morphology.selem import square, disk
 
 def Volume_Reshape():
+    """
+    Reshapes all .nii cropped files to the same dimensions along x,y and z.
+    It saves at "filenameCT"" the resampled .nii volumes.
+    Returns:
+
+    """
 
     setDirVariables()
 

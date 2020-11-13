@@ -16,6 +16,13 @@ from skimage.transform import resize
 from skimage.morphology.selem import square, disk
 
 def Volume_Label():
+    """
+    Creates binary labels from .stl files, that are sliced at height locations
+    given by the position of the slices in the corresponding volume.nii file.
+    It Saves at "filenamelabel" the binary labels of the selected anatomy.
+    Returns:
+
+    """
     setDirVariables()
 
     ## Options

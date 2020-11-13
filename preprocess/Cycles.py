@@ -1,9 +1,20 @@
+"""
+Cycles function that call the main_ functions to perform cropping, reshaping,
+labeling and merging across all files of the directory.
+"""
+
 import os
 import timeit
+from preprocess.main_preprocess import Merge_Labels, Volume_Crop, Volume_Reshape, Volume_Label
 
-ik = 0
+
 def Cycle_Volume_Crop():
-    global ik
+    """
+    It calls cropping function for each patient volume to crop.
+    Specify in range(_) the correct number of patient volumes (e.g. number of nii files) to preprocess.
+    Returns:
+
+    """
 
     for ik in range(5):
         os.chdir(mainInputDataDirectoryNAS)
@@ -16,7 +27,12 @@ def Cycle_Volume_Crop():
 
 
 def Cycle_Volume_Reshape():
-    global ik
+    """
+    It calls reshaping function for each patient volume to reshape.
+    Specify in range(_) the correct number of patient volumes (e.g. number of nii files) to preprocess.
+    Returns:
+
+    """
 
     for ik in range(5):
         os.chdir(mainInputDataDirectoryLoc)
@@ -29,7 +45,12 @@ def Cycle_Volume_Reshape():
 
 
 def Cycle_Volume_Label():
-    global ik
+    """
+    It calls labeling function for each patient volume to be labeled.
+    Specify in range(_) the correct number of patient volumes (e.g. number of nii files) to preprocess.
+    Returns:
+
+    """
 
     for ik in range(5):
         os.chdir(mainInputDataDirectoryLoc)
@@ -42,7 +63,12 @@ def Cycle_Volume_Label():
 
 
 def Cycle_Merge_Labels():
-    global ik
+    """
+    It calls merging function for each patient to which merge labels.
+    Specify in range(_) the correct number of patient volumes (e.g. number of nii files) to preprocess.
+    Returns:
+
+    """
 
     for ik in range(5):
         os.chdir(mainInputDataDirectoryLoc)
