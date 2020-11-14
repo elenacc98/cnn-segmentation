@@ -254,7 +254,8 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha):
             return
 
         # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
-
+        y_true = tf.cast(y_true, tf.float32)
+        y_pred = tf.cast(y_pred, tf.float32)
         nVoxels = tf.size(y_true) / numClasses
         nVoxels = tf.cast(nVoxels, tf.float32)
 
@@ -342,8 +343,11 @@ def Weighted_CatCross_Loss(numClasses):
 
         y_true = ops.convert_to_tensor_v2(y_true)
         y_pred = ops.convert_to_tensor_v2(y_pred)
+        y_true = tf.cast(y_true, tf.float32)
+        y_pred = tf.cast(y_pred, tf.float32)
 
         tot_voxels = tf.size(y_true)/numClasses
+        tot_voxels = tf.cast(tot_voxels, tf.float32)
 
         y_true.shape.assert_is_compatible_with(y_pred.shape)
 
