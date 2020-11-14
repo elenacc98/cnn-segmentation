@@ -158,7 +158,7 @@ class MeanDiceLoss(MeanDice):
 
 
 
-def Weighted_DiceBoundary_Loss(numClasses, alpha, dims, batchSize):
+def Weighted_DiceBoundary_Loss(numClasses, alpha, dims):
 
     def calc_dist_map(seg):
         """
