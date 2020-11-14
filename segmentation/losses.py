@@ -356,7 +356,7 @@ def Weighted_CatCross_Loss(numClasses):
 
         SDM = tf.py_function(func=calc_dist_map_batch,
                              inp=[y_true],
-                             Tout=tf.float64)
+                             Tout=tf.float32)
 
         epsilon = backend_config.epsilon
         gamma = 8
