@@ -158,7 +158,7 @@ class MeanDiceLoss(MeanDice):
 
 
 
-def Weighted_DiceBoundary_Loss(numClasses, alpha, dims):
+def Weighted_DiceBoundary_Loss(numClasses, alpha):
 
     def calc_dist_map(seg):
         """
@@ -194,14 +194,6 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha, dims):
             for i, y in enumerate(temp_y):
                 dist_batch[c, i] = calc_dist_map(y)
         return np.array(dist_batch).astype(np.float32)
-
-    # def count_total_voxels(batch_size):
-    #     """
-    #     Counts total number of voxels for the given batch size.
-    #     """
-    #     return N_ROWS * N_COLUMNS * N_SLICES * batch_size
-
-    # defining weights for loss function:
 
     def count_class_voxels(labels, nVoxels):
         """
@@ -249,11 +241,11 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha, dims):
             y_pred: softmax probabilities predicting classes. Shape must be the same as y_true.
         """
 
-        if len(dims) == 2:
+        if len(y_true.shape) == 4:
             axisSum = (1, 2)
             y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
             y_true = tf.transpose(y_true, [3, 0, 1, 2])
-        elif len(dims) == 3:
+        elif len(y_true.shape) == 5:
             axisSum = (1, 2, 3)
             y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
             y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
@@ -264,6 +256,7 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha, dims):
         # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
 
         nVoxels = tf.size(y_true) / numClasses
+        nVoxels = tf.cast(nVoxels, tf.float32)
 
         mean_over_classes = tf.zeros((1,))
         # Get loss weights
