@@ -162,7 +162,7 @@ class MeanDiceLoss(MeanDice):
 
 def Weighted_DiceBoundary_Loss_3D(numClasses, alpha):
 
-    def multiclass_3D_class_weighted_dice_boundary_loss(y_true, y_pred):
+    def multiclass_3D_weighted_dice_boundary_loss(y_true, y_pred):
         """
         Compute 3D multiclass class weighted dice loss function.
         Args:
@@ -211,7 +211,7 @@ def Weighted_DiceBoundary_Loss_3D(numClasses, alpha):
 
         return alpha * tf.subtract(1.0, mean_over_classes) + (1-alpha) * boundary_loss
 
-    return multiclass_3D_class_weighted_dice_boundary_loss
+    return multiclass_3D_weighted_dice_boundary_loss
 
 
 def Weighted_DiceBoundary_Loss_2D(numClasses, alpha):
