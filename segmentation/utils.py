@@ -7,9 +7,9 @@ import numpy as np
 import tensorflow as tf
 
 
-def calc_dist_map(seg):
+def calc_dist_map_2D(seg):
     """
-    Computes distance map using scipy function
+    Computes distance map of input ground truth image using scipy function
     Args:
         seg: 2D or 3D binary array to compute the distance map
     Returns:
@@ -21,17 +21,18 @@ def calc_dist_map(seg):
 
     if posmask.any():
         negmask = ~posmask
-        res = distance(negmask) * negmask + (distance(posmask) - 1) * posmask
+        res = distance(negmask) * negmask - (distance(posmask) - 1) * posmask
     return res
 
 
-def calc_dist_map_2D(seg):
+def calc_dist_map_3D(seg):
     """
-    Computes 2D distance map of all slices using scipy function
+    Computes separately 2D distance maps of all single slices of
+    input ground truth volume, using scipy function
     Args:
-        seg: 2D or 3D binary array to compute the distance map
+        seg: 3D binary array to compute the distance map
     Returns:
-        res: distance map
+        res: distance maps computed singularly from 2D slices of input
     """
 
     res = np.zeros_like(seg)
@@ -41,36 +42,15 @@ def calc_dist_map_2D(seg):
         pos = posmask[:, :, i]
         if pos.any():
             neg = ~pos
-            res[:, :, i] = distance(neg) * neg + (distance(pos) - 1) * pos
+            res[:, :, i] = distance(neg) * neg - (distance(pos) - 1) * pos
     return res
-
-
-def calc_dist_map_batch(y_true):
-    """
-    Pass 5D or 4D label volumes to calc_dist_map and return the corresponding numpy array distance map to loss
-    function.
-    Args:
-        y_true: ground truth tensor of dimensions (class, batch_size, rows, columns, slices) or
-        (class, batch_size, rows, columns)
-    Returns:
-        array of distance map of the same dimension of input tensor
-    """
-    y_true_numpy = y_true.numpy()
-    dist_batch = np.zeros_like(y_true_numpy)
-    for c in range(numClasses):
-        temp_y = y_true_numpy[c]
-        for i, y in enumerate(temp_y):
-            dist_batch[c, i] = calc_dist_map(y)
-    return np.array(dist_batch).astype(np.float32)
 
 
 def calc_dist_map_batch_2D(y_true):
     """
-    Pass 5D or 4D label volumes to calc_dist_map and return the corresponding numpy array distance map to loss
-    function.
+    Prepares the input for distance maps computation, and pass it to calc_dist_map
     Args:
-        y_true: ground truth tensor of dimensions (class, batch_size, rows, columns, slices) or
-        (class, batch_size, rows, columns)
+        y_true: ground truth tensor of dimensions [class, batch_size, rows, columns, slices]
     Returns:
         array of distance map of the same dimension of input tensor
     """
@@ -80,6 +60,23 @@ def calc_dist_map_batch_2D(y_true):
         temp_y = y_true_numpy[c]
         for i, y in enumerate(temp_y):
             dist_batch[c, i] = calc_dist_map_2D(y)
+    return np.array(dist_batch).astype(np.float32)
+
+
+def calc_dist_map_batch_3D(y_true):
+    """
+    Prepares the input for distance maps computation, and pass it to calc_dist_map
+    Args:
+        y_true: ground truth tensor of dimensions [class, batch_size, rows, columns]
+    Returns:
+        array of distance map of the same dimension of input tensor
+    """
+    y_true_numpy = y_true.numpy()
+    dist_batch = np.zeros_like(y_true_numpy)
+    for c in range(numClasses):
+        temp_y = y_true_numpy[c]
+        for i, y in enumerate(temp_y):
+            dist_batch[c, i] = calc_dist_map_3D(y)
     return np.array(dist_batch).astype(np.float32)
 
 
