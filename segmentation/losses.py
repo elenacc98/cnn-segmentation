@@ -337,7 +337,7 @@ def Weighted_DiceCatCross_Loss_2D(numClasses, alpha):
         epsilon_ = constant_op.constant(epsilon(), y_pred.dtype.base_dtype)
         y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
 
-        wcc_loss = -math_ops.reduce_sum(DWM * y_true * math_ops.log(y_pred))/tf.cast(tot_voxels, tf.float32)
+        wcc_loss = -math_ops.reduce_sum(DWM * y_true * math_ops.log(y_pred))/tf.cast(nVoxels, tf.float32)
 
         return alpha * tf.subtract(1.0, mean_over_classes) + (1-alpha) * wcc_loss
 
@@ -412,7 +412,7 @@ def Weighted_DiceCatCross_Loss_3D(numClasses, alpha):
         epsilon_ = constant_op.constant(epsilon(), y_pred.dtype.base_dtype)
         y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
 
-        wcc_loss = -math_ops.reduce_sum(DWM * y_true * math_ops.log(y_pred)) / tf.cast(tot_voxels, tf.float32)
+        wcc_loss = -math_ops.reduce_sum(DWM * y_true * math_ops.log(y_pred)) / tf.cast(nVoxels, tf.float32)
 
         return alpha * tf.subtract(1.0, mean_over_classes) + (1 - alpha) * wcc_loss
 
