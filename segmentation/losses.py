@@ -297,8 +297,8 @@ def Weighted_DiceCatCross_Loss_2D(numClasses, alpha):
         y_true = tf.cast(y_true, tf.float32)
         y_pred = tf.cast(y_pred, tf.float32)
 
-        tot_voxels = tf.size(y_true)/numClasses
-        tot_voxels = tf.cast(tot_voxels, tf.float32)
+        nVoxels = tf.size(y_true)/numClasses
+        nVoxels = tf.cast(nVoxels, tf.float32)
 
         axisSum = (1, 2)
         y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
@@ -372,8 +372,8 @@ def Weighted_DiceCatCross_Loss_3D(numClasses, alpha):
         y_true = tf.cast(y_true, tf.float32)
         y_pred = tf.cast(y_pred, tf.float32)
 
-        tot_voxels = tf.size(y_true)/numClasses
-        tot_voxels = tf.cast(tot_voxels, tf.float32)
+        nVoxels = tf.size(y_true)/numClasses
+        nVoxels = tf.cast(nVoxels, tf.float32)
 
         axisSum = (1, 2, 3)
         y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
