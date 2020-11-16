@@ -80,7 +80,7 @@ def calc_dist_map_batch_3D(y_true):
     return np.array(dist_batch).astype(np.float32)
 
 
-def count_class_voxels(labels, nVoxels):
+def count_class_voxels(labels, nVoxels, numClasses):
     """
     Counts total number of voxels for each class in the batch size.
     input is supposed to be 4 or 5-dimensional: (class, batch, rows, columns) or
@@ -88,7 +88,8 @@ def count_class_voxels(labels, nVoxels):
     Args:
         labels: ground truth tensor of dimensions (class, batch_size, rows, columns, slices) or
         (class, batch_size, rows, columns)
-        nVoxels: total number of voxels.
+        nVoxels: total number of voxels
+        numClasses: number of classes
     Returns:
         out: list with number of voxel per class
     """
@@ -102,18 +103,19 @@ def count_class_voxels(labels, nVoxels):
     return out
 
 
-def get_loss_weights(labels, nVoxels):
+def get_loss_weights(labels, nVoxels, numClasses):
     """
     Compute loss weights for each class.
     Args:
         labels: ground truth tensor of dimensions (class, batch_size, rows, columns, slices) or
         (class, batch_size, rows, columns)
-        nVoxels: total number of voxels.
+        nVoxels: total number of voxels
+        numClasses: number of classes
     Returns:
         1D tf.tensor of len = numClasses containing weights for each class
     """
 
-    numerator_1 = count_class_voxels(labels, nVoxels)
+    numerator_1 = count_class_voxels(labels, nVoxels, numClasses)
     numerator = tf.multiply(1.0 / nVoxels, numerator_1)
     subtract_term = tf.subtract(1.0, numerator)
     return tf.multiply(1.0 / (numClasses - 1), subtract_term)

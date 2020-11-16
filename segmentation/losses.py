@@ -308,7 +308,7 @@ def Weighted_DiceCatCross_Loss_2D(numClasses, alpha):
 
         mean_over_classes = tf.zeros((1,))
         # Get loss weights
-        loss_weights = get_loss_weights(y_true, nVoxels)
+        loss_weights = get_loss_weights(y_true, nVoxels, numClasses)
         # Loop over each class to compute dice coefficient
         for c in range(numClasses):
             y_true_c = y_true[c]
