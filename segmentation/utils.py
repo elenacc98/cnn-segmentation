@@ -46,11 +46,12 @@ def calc_dist_map_3D(seg):
     return res
 
 
-def calc_dist_map_batch_2D(y_true):
+def calc_dist_map_batch_2D(y_true, numClasses):
     """
     Prepares the input for distance maps computation, and pass it to calc_dist_map
     Args:
         y_true: ground truth tensor of dimensions [class, batch_size, rows, columns, slices]
+        numClasses: number of classes
     Returns:
         array of distance map of the same dimension of input tensor
     """
@@ -63,11 +64,12 @@ def calc_dist_map_batch_2D(y_true):
     return np.array(dist_batch).astype(np.float32)
 
 
-def calc_dist_map_batch_3D(y_true):
+def calc_dist_map_batch_3D(y_true, numClasses):
     """
     Prepares the input for distance maps computation, and pass it to calc_dist_map
     Args:
         y_true: ground truth tensor of dimensions [class, batch_size, rows, columns]
+        numClasses: number of classes
     Returns:
         array of distance map of the same dimension of input tensor
     """

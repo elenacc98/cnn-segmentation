@@ -322,7 +322,7 @@ def Weighted_DiceCatCross_Loss_2D(numClasses, alpha):
                                                    tf.divide(numerator, denominator)))
 
         SDM = tf.py_function(func=calc_dist_map_batch_2D,
-                             inp=[y_true],
+                             inp=[y_true, numClasses],
                              Tout=tf.float32)
 
         epsilon = backend_config.epsilon
@@ -397,7 +397,7 @@ def Weighted_DiceCatCross_Loss_3D(numClasses, alpha):
                                                    tf.divide(numerator, denominator)))
 
         SDM = tf.py_function(func=calc_dist_map_batch_3D,
-                             inp=[y_true],
+                             inp=[y_true, numClasses],
                              Tout=tf.float32)
 
         epsilon = backend_config.epsilon
