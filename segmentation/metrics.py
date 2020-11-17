@@ -404,7 +404,7 @@ class IoUPerClass(Metric):
         self.fn = 0
         self.fp = 0
 
-    def update_state(self, y_true, y_pred):
+    def update_state(self, y_true, y_pred, sample_weight=None):
         class_IoU_list = []
         y_true = tf.cast(y_true, 'bool')
         y_pred = tf.argmax(y_pred, axis=-1, output_type='int64')  #choose which class the model predicts for each voxel
