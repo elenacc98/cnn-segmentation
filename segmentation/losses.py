@@ -4,7 +4,7 @@ in segmentation tasks.
 """
 
 from segmentation.metrics import MeanDice
-from segmentation.utils import calc_dist_map_batch_2D, calc_dist_map_batch_3D, calc_dist_map_2D, calc_dist_map_3D
+from segmentation.utils import calc_SDM_batch, calc_DM_batch, calc_SDM, calc_DM
 from segmentation.utils import count_class_voxels, get_loss_weights
 from keras import backend as K
 import numpy as np
@@ -159,8 +159,7 @@ class MeanDiceLoss(MeanDice):
 #         return self.alpha * tf.subtract(1.0, mean_over_classes) + (1 - self.alpha) * boundary_loss
 
 
-
-def Weighted_DiceBoundary_Loss_3D(numClasses, alpha):
+def Weighted_DiceBoundary_Loss(numClasses, alpha):
     """
     DiceBoundary wrapper function.
     Args:
@@ -170,17 +169,25 @@ def Weighted_DiceBoundary_Loss_3D(numClasses, alpha):
     Returns: multiclass_3D_weighted_dice_boundary_loss
     """
 
-    def multiclass_3D_weighted_dice_boundary_loss(y_true, y_pred):
+    def multiclass_weighted_dice_boundary_loss(y_true, y_pred):
         """
-        Compute 3D multiclass class weighted dice loss function.
+        Compute multiclass class weighted dice loss function.
         Args:
-            y_true: ground truth tensor of dimensions [class, batch_size, rows, columns, slices]
+            y_true: ground truth tensor [batch, rows, columns, slices, classes], or [batch, rows, columns, classes]
             y_pred: softmax probabilities predicting classes. Shape must be the same as y_true.
         """
 
-        axisSum = (1, 2, 3)
-        y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
-        y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
+        if len(y_true.shape) == 5:
+            axisSum = (1, 2, 3)
+            y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
+            y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
+        elif len(y_true.shaoe) == 4:
+            axisSum = (1, 2)
+            y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
+            y_true = tf.transpose(y_true, [3, 0, 1, 2])
+        else:
+            print("Could not recognise input dimensions")
+            return
 
         # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
         y_true = tf.cast(y_true, tf.float32)
@@ -190,7 +197,7 @@ def Weighted_DiceBoundary_Loss_3D(numClasses, alpha):
 
         mean_over_classes = tf.zeros((1,))
         # Get loss weights
-        loss_weights = get_loss_weights(y_true, nVoxels)
+        loss_weights = get_loss_weights(y_true, nVoxels, numClasses)
         # Loop over each class
         for c in range(numClasses):
             y_true_c = y_true[c]
@@ -203,72 +210,18 @@ def Weighted_DiceBoundary_Loss_3D(numClasses, alpha):
                                        tf.multiply(class_loss_weight,
                                        tf.divide(numerator, denominator)))
 
-        SDM = tf.py_function(func=calc_dist_map_batch_3D,
-                             inp=[y_true],
+        SDM = tf.py_function(func=calc_SDM_batch,
+                             inp=[y_true, numClasses],
                              Tout=tf.float32)
 
         boundary_loss = tf.multiply(tf.reduce_sum(tf.multiply(SDM, y_pred)), 1.0/nVoxels)
 
         return alpha * tf.subtract(1.0, mean_over_classes) + (1-alpha) * boundary_loss
 
-    return multiclass_3D_weighted_dice_boundary_loss
+    return multiclass_weighted_dice_boundary_loss
 
 
-def Weighted_DiceBoundary_Loss_2D(numClasses, alpha):
-    """
-    DiceBoundary wrapper function.
-    Args:
-        numClasses: number of classes
-        alpha: parameter to weight contribution of dice and boundary loss
-
-    Returns: multiclass_2D_weighted_dice_boundary_loss
-
-    """
-
-    def multiclass_2D_weighted_dice_boundary_loss(y_true, y_pred):
-        """
-        Compute 2D multiclass weighted dice + boundary with distance map loss function.
-        Args:
-            y_true: ground truth tensor of dimensions [class, batch_size, rows, columns]
-            y_pred: softmax probabilities predicting classes. Shape must be the same as y_true.
-        """
-
-        axisSum = (1, 2)
-        y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
-        y_true = tf.transpose(y_true, [3, 0, 1, 2])
-
-        # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
-        y_true = tf.cast(y_true, tf.float32)
-        y_pred = tf.cast(y_pred, tf.float32)
-        nVoxels = tf.size(y_true) / numClasses
-        nVoxels = tf.cast(nVoxels, tf.float32)
-
-        mean_over_classes = tf.zeros((1,))
-        # Get loss weights
-        loss_weights = get_loss_weights(y_true, nVoxels)
-        # Loop over each class
-        for c in range(numClasses):
-            y_true_c = y_true[c]
-            y_pred_c = y_pred[c]
-            numerator = tf.scalar_mul(2.0, tf.reduce_sum(tf.multiply(y_true_c, y_pred_c), axis = axisSum))
-            denominator = tf.add(tf.reduce_sum(y_true_c, axis = axisSum), tf.reduce_sum(y_pred_c, axis = axisSum))
-            class_loss_weight = loss_weights[c]
-
-            mean_over_classes = tf.add(mean_over_classes,
-                                       tf.multiply(class_loss_weight,
-                                       tf.divide(numerator, denominator)))
-
-        SDM = tf.py_function(func=calc_dist_map_batch_2D,
-                             inp=[y_true],
-                             Tout=tf.float32)
-        boundary_loss = tf.multiply(tf.reduce_sum(tf.multiply(SDM, y_pred)), 1.0/nVoxels)
-
-        return alpha * tf.subtract(1.0, mean_over_classes) + (1-alpha) * boundary_loss
-
-    return multiclass_2D_weighted_dice_boundary_loss
-
-
-def Weighted_DiceCatCross_Loss_2D(numClasses, alpha):
+def Weighted_DiceCatCross_Loss_v1(numClasses, alpha):
     """
     Categorical crossentropy wrapper function between y_pred tensor and a target tensor.
     Arguments:
@@ -281,8 +234,7 @@ def Weighted_DiceCatCross_Loss_2D(numClasses, alpha):
         ValueError: if `axis` is neither -1 nor one of the axes of `output`.
     """
 
-
-    def dice_categorical_cross_entropy_2D(y_true, y_pred):
+    def dice_categorical_cross_entropy(y_true, y_pred):
         """
         Computes categorical cross entropy weighted by distance weighted map.
         Args:
@@ -292,6 +244,18 @@ def Weighted_DiceCatCross_Loss_2D(numClasses, alpha):
             categorical crossentropy value
         """
 
+        if len(y_true.shape) == 5:
+            axisSum = (1, 2, 3)
+            y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
+            y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
+        elif len(y_true.shaoe) == 4:
+            axisSum = (1, 2)
+            y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
+            y_true = tf.transpose(y_true, [3, 0, 1, 2])
+        else:
+            print("Could not recognise input dimensions")
+            return
+
         y_true = ops.convert_to_tensor_v2(y_true)
         y_pred = ops.convert_to_tensor_v2(y_pred)
         y_true = tf.cast(y_true, tf.float32)
@@ -299,10 +263,6 @@ def Weighted_DiceCatCross_Loss_2D(numClasses, alpha):
 
         nVoxels = tf.size(y_true)/numClasses
         nVoxels = tf.cast(nVoxels, tf.float32)
-
-        axisSum = (1, 2)
-        y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
-        y_true = tf.transpose(y_true, [3, 0, 1, 2])
 
         y_true.shape.assert_is_compatible_with(y_pred.shape)
 
@@ -321,7 +281,7 @@ def Weighted_DiceCatCross_Loss_2D(numClasses, alpha):
                                        tf.multiply(class_loss_weight,
                                                    tf.divide(numerator, denominator)))
 
-        SDM = tf.py_function(func=calc_dist_map_batch_2D,
+        SDM = tf.py_function(func=calc_DM_batch,
                              inp=[y_true, numClasses],
                              Tout=tf.float32)
 
@@ -341,79 +301,134 @@ def Weighted_DiceCatCross_Loss_2D(numClasses, alpha):
 
         return alpha * tf.subtract(1.0, mean_over_classes) + (1-alpha) * wcc_loss
 
-    return dice_categorical_cross_entropy_2D
+    return dice_categorical_cross_entropy
 
 
-def Weighted_DiceCatCross_Loss_3D(numClasses, alpha):
-    """
-    Categorical crossentropy wrapper function between y_pred tensor and a target tensor.
-    Arguments:
-        numClasses: number of classes
-        alpha: parameter to weight contribution of dice and distance-weighted categorical crossentropy loss
-    Returns:
-        categorical_cross_entropy function
-    Raises:
-        ValueError: if `axis` is neither -1 nor one of the axes of `output`.
-    """
+# def Weighted_DiceBoundary_Loss_2D(numClasses, alpha):
+#     """
+#     DiceBoundary wrapper function.
+#     Args:
+#         numClasses: number of classes
+#         alpha: parameter to weight contribution of dice and boundary loss
+#
+#     Returns: multiclass_2D_weighted_dice_boundary_loss
+#
+#     """
+#
+#     def multiclass_2D_weighted_dice_boundary_loss(y_true, y_pred):
+#         """
+#         Compute 2D multiclass weighted dice + boundary with distance map loss function.
+#         Args:
+#             y_true: ground truth tensor of dimensions [class, batch_size, rows, columns]
+#             y_pred: softmax probabilities predicting classes. Shape must be the same as y_true.
+#         """
+#
+#         axisSum = (1, 2)
+#         y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
+#         y_true = tf.transpose(y_true, [3, 0, 1, 2])
+#
+#         # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
+#         y_true = tf.cast(y_true, tf.float32)
+#         y_pred = tf.cast(y_pred, tf.float32)
+#         nVoxels = tf.size(y_true) / numClasses
+#         nVoxels = tf.cast(nVoxels, tf.float32)
+#
+#         mean_over_classes = tf.zeros((1,))
+#         # Get loss weights
+#         loss_weights = get_loss_weights(y_true, nVoxels, numClasses)
+#         # Loop over each class
+#         for c in range(numClasses):
+#             y_true_c = y_true[c]
+#             y_pred_c = y_pred[c]
+#             numerator = tf.scalar_mul(2.0, tf.reduce_sum(tf.multiply(y_true_c, y_pred_c), axis = axisSum))
+#             denominator = tf.add(tf.reduce_sum(y_true_c, axis = axisSum), tf.reduce_sum(y_pred_c, axis = axisSum))
+#             class_loss_weight = loss_weights[c]
+#
+#             mean_over_classes = tf.add(mean_over_classes,
+#                                        tf.multiply(class_loss_weight,
+#                                        tf.divide(numerator, denominator)))
+#
+#         SDM = tf.py_function(func=calc_SDM_batch,
+#                              inp=[y_true, numClasses],
+#                              Tout=tf.float32)
+#         boundary_loss = tf.multiply(tf.reduce_sum(tf.multiply(SDM, y_pred)), 1.0/nVoxels)
+#
+#         return alpha * tf.subtract(1.0, mean_over_classes) + (1-alpha) * boundary_loss
+#
+#     return multiclass_2D_weighted_dice_boundary_loss
 
 
-    def dice_categorical_cross_entropy_3D(y_true, y_pred):
-        """
-        Computes categorical cross entropy weighted by distance weighted map.
-        Args:
-            y_true: ground truth tensor of dimensions [class, batch_size, rows, columns, slices]
-            y_pred: A tensor resulting from a softmax of the same shape as y_true
-        Returns:
-            categorical crossentropy value
-        """
 
-        y_true = ops.convert_to_tensor_v2(y_true)
-        y_pred = ops.convert_to_tensor_v2(y_pred)
-        y_true = tf.cast(y_true, tf.float32)
-        y_pred = tf.cast(y_pred, tf.float32)
-
-        nVoxels = tf.size(y_true)/numClasses
-        nVoxels = tf.cast(nVoxels, tf.float32)
-
-        axisSum = (1, 2, 3)
-        y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
-        y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
-
-        y_true.shape.assert_is_compatible_with(y_pred.shape)
-
-        mean_over_classes = tf.zeros((1,))
-        # Get loss weights
-        loss_weights = get_loss_weights(y_true, nVoxels)
-        # Loop over each class to compute dice coefficient
-        for c in range(numClasses):
-            y_true_c = y_true[c]
-            y_pred_c = y_pred[c]
-            numerator = tf.scalar_mul(2.0, tf.reduce_sum(tf.multiply(y_true_c, y_pred_c), axis=axisSum))
-            denominator = tf.add(tf.reduce_sum(y_true_c, axis=axisSum), tf.reduce_sum(y_pred_c, axis=axisSum))
-            class_loss_weight = loss_weights[c]
-
-            mean_over_classes = tf.add(mean_over_classes,
-                                       tf.multiply(class_loss_weight,
-                                                   tf.divide(numerator, denominator)))
-
-        SDM = tf.py_function(func=calc_dist_map_batch_3D,
-                             inp=[y_true, numClasses],
-                             Tout=tf.float32)
-
-        epsilon = backend_config.epsilon
-        gamma = 8
-        sigma = 10
-
-        # Exponential transformation of the Distance transform
-        DWM = 1 + gamma * tf.math.exp(tf.math.negative(SDM)/sigma)
-        # scale preds so that the class probas of each sample sum to 1
-        y_pred = y_pred / math_ops.reduce_sum(y_pred, axis=-1, keepdims=True)
-        # Compute cross entropy from probabilities.
-        epsilon_ = constant_op.constant(epsilon(), y_pred.dtype.base_dtype)
-        y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
-
-        wcc_loss = -math_ops.reduce_sum(DWM * y_true * math_ops.log(y_pred)) / tf.cast(nVoxels, tf.float32)
-
-        return alpha * tf.subtract(1.0, mean_over_classes) + (1 - alpha) * wcc_loss
-
-    return dice_categorical_cross_entropy_3D
+# def Weighted_DiceCatCross_Loss_3D(numClasses, alpha):
+#     """
+#     Categorical crossentropy wrapper function between y_pred tensor and a target tensor.
+#     Arguments:
+#         numClasses: number of classes
+#         alpha: parameter to weight contribution of dice and distance-weighted categorical crossentropy loss
+#     Returns:
+#         categorical_cross_entropy function
+#     Raises:
+#         ValueError: if `axis` is neither -1 nor one of the axes of `output`.
+#     """
+#
+#
+#     def dice_categorical_cross_entropy_3D(y_true, y_pred):
+#         """
+#         Computes categorical cross entropy weighted by distance weighted map.
+#         Args:
+#             y_true: ground truth tensor of dimensions [class, batch_size, rows, columns, slices]
+#             y_pred: A tensor resulting from a softmax of the same shape as y_true
+#         Returns:
+#             categorical crossentropy value
+#         """
+#
+#         y_true = ops.convert_to_tensor_v2(y_true)
+#         y_pred = ops.convert_to_tensor_v2(y_pred)
+#         y_true = tf.cast(y_true, tf.float32)
+#         y_pred = tf.cast(y_pred, tf.float32)
+#
+#         nVoxels = tf.size(y_true)/numClasses
+#         nVoxels = tf.cast(nVoxels, tf.float32)
+#
+#         axisSum = (1, 2, 3)
+#         y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
+#         y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
+#
+#         y_true.shape.assert_is_compatible_with(y_pred.shape)
+#
+#         mean_over_classes = tf.zeros((1,))
+#         # Get loss weights
+#         loss_weights = get_loss_weights(y_true, nVoxels)
+#         # Loop over each class to compute dice coefficient
+#         for c in range(numClasses):
+#             y_true_c = y_true[c]
+#             y_pred_c = y_pred[c]
+#             numerator = tf.scalar_mul(2.0, tf.reduce_sum(tf.multiply(y_true_c, y_pred_c), axis=axisSum))
+#             denominator = tf.add(tf.reduce_sum(y_true_c, axis=axisSum), tf.reduce_sum(y_pred_c, axis=axisSum))
+#             class_loss_weight = loss_weights[c]
+#
+#             mean_over_classes = tf.add(mean_over_classes,
+#                                        tf.multiply(class_loss_weight,
+#                                                    tf.divide(numerator, denominator)))
+#
+#         SDM = tf.py_function(func=calc_SDM_batch_3D,
+#                              inp=[y_true, numClasses],
+#                              Tout=tf.float32)
+#
+#         epsilon = backend_config.epsilon
+#         gamma = 8
+#         sigma = 10
+#
+#         # Exponential transformation of the Distance transform
+#         DWM = 1 + gamma * tf.math.exp(tf.math.negative(SDM)/sigma)
+#         # scale preds so that the class probas of each sample sum to 1
+#         y_pred = y_pred / math_ops.reduce_sum(y_pred, axis=-1, keepdims=True)
+#         # Compute cross entropy from probabilities.
+#         epsilon_ = constant_op.constant(epsilon(), y_pred.dtype.base_dtype)
+#         y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
+#
+#         wcc_loss = -math_ops.reduce_sum(DWM * y_true * math_ops.log(y_pred)) / tf.cast(nVoxels, tf.float32)
+#
+#         return alpha * tf.subtract(1.0, mean_over_classes) + (1 - alpha) * wcc_loss
+#
+#     return dice_categorical_cross_entropy_3D
