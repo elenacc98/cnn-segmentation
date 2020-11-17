@@ -41,19 +41,15 @@ of the network.</p>
 <span>(</span><span>alpha, update_fn)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Abstract base class used to build new callbacks.</p>
-<h2 id="attributes">Attributes</h2>
+<div class="desc"><p>Stores and update alpha parameter to weight the 2 contribution of Weighted_DiceBoundary_Loss,
+or any other function with weighted contribution.</p>
+<h2 id="args">Args</h2>
 <dl>
-<dt><strong><code>params</code></strong></dt>
-<dd>Dict. Training parameters
-(eg. verbosity, batch size, number of epochs&hellip;).</dd>
-<dt><strong><code>model</code></strong></dt>
-<dd>Instance of <code>keras.models.Model</code>.
-Reference of the model being trained.</dd>
-</dl>
-<p>The <code>logs</code> dictionary that callback methods
-take as argument will contain keys for quantities relevant to
-the current batch or epoch (see method-specific docstrings).</p></div>
+<dt><strong><code>alpha</code></strong></dt>
+<dd>parameter to weight functions. Must be in [0,1]</dd>
+<dt><strong><code>update_fn</code></strong></dt>
+<dd>function that updates alpha every time "on_epoch_end" calls it.</dd>
+</dl></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>tensorflow.python.keras.callbacks.Callback</li>

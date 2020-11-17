@@ -9,7 +9,8 @@ import tensorflow as tf
 
 def calc_SDM(seg):
     """
-    Computes distance map of input ground truth image or volume using scipy function
+    Computes Signed Distance Map of input ground truth image or volume using scipy function.
+    In case seg is 3D volume, it separately computes 2D SDM fo each single slice.
     Args:
         seg: 2D or 3D binary array to compute the distance map
     Returns:
@@ -39,7 +40,7 @@ def calc_SDM_batch(y_true, numClasses):
     """
     Prepares the input for distance maps computation, and pass it to calc_dist_map
     Args:
-        y_true: ground truth tensor of dimensions [class, batch_size, rows, columns, slices]
+        y_true: ground truth tensor [class, batch, rows, columns, slices] or [class, batch, rows, columns]
         numClasses: number of classes
     Returns:
         array of distance map of the same dimension of input tensor
@@ -55,7 +56,8 @@ def calc_SDM_batch(y_true, numClasses):
 
 def calc_DM(seg):
     """
-    Computes distance map of input ground truth image or volume using scipy function
+    Computes Non-Signed Distance Map of input ground truth image or volume using scipy function.
+    In case seg is 3D volume, it separately computes 2D DM fo each single slice.
     Args:
         seg: 2D or 3D binary array to compute the distance map
     Returns:
@@ -85,7 +87,7 @@ def calc_DM_batch(y_true, numClasses):
     """
     Prepares the input for distance maps computation, and pass it to calc_dist_map
     Args:
-        y_true: ground truth tensor of dimensions [class, batch_size, rows, columns, slices]
+        y_true: ground truth tensor [class, batch, rows, columns, slices] or [class, batch, rows, columns]
         numClasses: number of classes
     Returns:
         array of distance map of the same dimension of input tensor
