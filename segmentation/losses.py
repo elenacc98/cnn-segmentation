@@ -251,3 +251,78 @@ def Weighted_DiceCatCross_Loss_v2(numClasses, alpha):
 
     return dice_categorical_cross_entropy
 
+
+def Weighted_DiceFocal_Loss(numClasses, alpha):
+    """
+    Dice + Focal loss wrapper function between y_pred tensor and a target tensor.
+    Arguments:
+        numClasses: number of classes
+        alpha: parameter to weight contribution of dice and distance-weighted categorical crossentropy loss
+
+    Returns:
+        categorical_cross_entropy function
+    Raises:
+        ValueError: if `axis` is neither -1 nor one of the axes of `output`.
+    """
+
+    def dice_focal(y_true, y_pred):
+        """
+        Computes categorical cross entropy weighted with focal method.
+        Voxel classified with less confidence weight more in the function.
+        Args:
+            y_true: ground truth tensor of dimensions [class, batch_size, rows, columns]
+            y_pred: A tensor resulting from a softmax of the same shape as y_true
+        Returns:
+            dice + weighted categorical crossentropy value
+        """
+
+        if len(y_true.shape) == 5:
+            axisSum = (1, 2, 3)
+            y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
+            y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
+        elif len(y_true.shape) == 4:
+            axisSum = (1, 2)
+            y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
+            y_true = tf.transpose(y_true, [3, 0, 1, 2])
+        else:
+            print("Could not recognise input dimensions")
+            return
+
+        # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
+        y_true = ops.convert_to_tensor_v2(y_true)
+        y_pred = ops.convert_to_tensor_v2(y_pred)
+        y_true = tf.cast(y_true, tf.float32)
+        y_pred = tf.cast(y_pred, tf.float32)
+
+        nVoxels = tf.size(y_true)/numClasses
+        nVoxels = tf.cast(nVoxels, tf.float32)
+
+        y_true.shape.assert_is_compatible_with(y_pred.shape)
+
+        mean_over_classes = tf.zeros((1,))
+        # Get loss weights
+        loss_weights = get_loss_weights(y_true, nVoxels, numClasses)
+        # Loop over each class to compute dice coefficient
+        for c in range(numClasses):
+            y_true_c = y_true[c]
+            y_pred_c = y_pred[c]
+            numerator = tf.scalar_mul(2.0, tf.reduce_sum(tf.multiply(y_true_c, y_pred_c), axis=axisSum))
+            denominator = tf.add(tf.reduce_sum(y_true_c, axis=axisSum), tf.reduce_sum(y_pred_c, axis=axisSum))
+            class_loss_weight = loss_weights[c]
+
+            mean_over_classes = tf.add(mean_over_classes,
+                                       tf.multiply(class_loss_weight,
+                                                   tf.divide(numerator, denominator)))
+
+        # scale preds so that the class probas of each sample sum to 1
+        y_pred = y_pred / math_ops.reduce_sum(y_pred, axis=-1, keepdims=True)
+        # Compute cross entropy from probabilities.
+        epsilon_ = constant_op.constant(epsilon(), y_pred.dtype.base_dtype)
+        y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
+
+        focal_loss = -math_ops.reduce_sum(tf.math.square(1 - y_pred) * y_true * math_ops.log(y_pred))/tf.cast(nVoxels, tf.float32)
+
+        return alpha * tf.subtract(1.0, mean_over_classes) + (1-alpha) * focal_loss
+
+    return dice_focal
+
