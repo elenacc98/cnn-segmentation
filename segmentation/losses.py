@@ -314,6 +314,8 @@ def Weighted_DiceFocal_Loss(numClasses, alpha):
                                        tf.multiply(class_loss_weight,
                                                    tf.divide(numerator, denominator)))
 
+
+        epsilon = backend_config.epsilon
         # scale preds so that the class probas of each sample sum to 1
         y_pred = y_pred / math_ops.reduce_sum(y_pred, axis=-1, keepdims=True)
         # Compute cross entropy from probabilities.
