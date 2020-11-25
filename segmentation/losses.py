@@ -108,7 +108,7 @@ def Weighted_DiceCatCross_Loss_v1(numClasses, alpha):
             axisSum = (1, 2, 3)
             y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
             y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
-        elif len(y_true.shaoe) == 4:
+        elif len(y_true.shape) == 4:
             axisSum = (1, 2)
             y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
             y_true = tf.transpose(y_true, [3, 0, 1, 2])
@@ -192,7 +192,7 @@ def Weighted_DiceCatCross_Loss_v2(numClasses, alpha):
             axisSum = (1, 2, 3)
             y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
             y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
-        elif len(y_true.shaoe) == 4:
+        elif len(y_true.shape) == 4:
             axisSum = (1, 2)
             y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
             y_true = tf.transpose(y_true, [3, 0, 1, 2])
