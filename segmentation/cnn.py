@@ -6,6 +6,13 @@ from tensorflow.keras import layers
 from tensorflow.keras import regularizers
 from tensorflow.keras import Model
 
+from keras.layers.core import Dense, Dropout, Activation
+from keras.layers.convolutional import Conv1D, Conv2D, Conv3D, Conv3DTranspose
+from keras.layers.pooling import AveragePooling2D, AveragePooling3D, GlobalAveragePooling3D, MaxPool3D
+from keras.layers import Input, Concatenate, Lambda, Dropout, Concatenate, Multiply, Softmax
+from keras.layers.normalization import BatchNormalization
+from keras.regularizers import l2
+
 class UNet(object):
     """
     This class provides a simple interface to create
@@ -183,6 +190,7 @@ class UNet(object):
         '''
         print(self.model.summary())
 
+
 class VNet(object):
     '''
     This class provides a simple interface to create a 
@@ -190,3 +198,266 @@ class VNet(object):
     '''
     def __init__(self, input_size=(128,128,128)):
         pass
+
+
+# class ConvBlock(Model):
+#     def __init__(self, growth_rate, kernel_size=(3,3,3)):
+#         super(ConvBlock, self).__init__()
+#
+#         self.conv_1 = tf.keras.layers.Conv3D(4 * growth_rate, (1,1,1))
+#         self.conv_2 = tf.keras.layers.Conv3D(growth_rate, kernel_size, padding='same')
+#         self.bn1 = tf.keras.layers.BatchNormalization()
+#         self.bn2 = tf.keras.layers.BatchNormalization()
+#         self.act = tf.keras.layers.Activation('relu')
+#
+#     def call(self, input_tensor):
+#         x = self.bn1(input_tensor)
+#         x = self.act(x)
+#         x = self.conv_1(x)
+#         x = self.bn2(x)
+#         x = self.act(x)
+#         x = self.conv_2(x)
+#         return x
+#
+#
+# class DenseBlock(Model):
+#     def __init__(self, repetitions, growth_rate, kernel_size=(3,3,3)):
+#         super(DenseBlock, self).__init__()
+#
+#         self.repetitions = repetitions
+#         self.convblock = ConvBlock(growth_rate, kernel_size)
+#         self.concat = tf.keras.layers.concatenate()
+#
+#     def call(self, input_tensor):
+#         for _ in range(self.repetitions):
+#             x = self.convblock(input_tensor)
+#             input_tensor = self.concat([x, input_tensor], axis=-1)
+#
+#         return input_tensor
+
+
+def conv_factory(x, concat_axis, nb_filter,
+                 dropout_rate=None, weight_decay=1E-4):
+    """Apply BatchNorm, Relu 3x3Conv2D, optional dropout
+    :param x: Input keras network
+    :param concat_axis: int -- index of contatenate axis
+    :param nb_filter: int -- number of filters
+    :param dropout_rate: int -- dropout rate
+    :param weight_decay: int -- weight decay factor
+    :returns: keras network with b_norm, relu and Conv2D added
+    :rtype: keras network
+    """
+
+    x = BatchNormalization(axis=concat_axis,
+                           gamma_regularizer=l2(weight_decay),
+                           beta_regularizer=l2(weight_decay))(x)
+    x = Activation('relu')(x)
+    x = Conv3D(4*nb_filter, (1, 1, 1),
+               kernel_initializer="he_uniform",
+               padding="same",
+               # use_bias=False,
+               kernel_regularizer=l2(weight_decay))(x)
+    x = Conv3D(nb_filter, (3, 3, 3),
+               kernel_initializer="he_uniform",
+               padding="same",
+               # use_bias=False,
+               kernel_regularizer=l2(weight_decay))(x)
+    if dropout_rate:
+        x = Dropout(dropout_rate)(x)
+
+    return x
+
+
+def transition(x, concat_axis, nb_filter, theta,
+               dropout_rate=None, weight_decay=1E-4):
+    """Apply BatchNorm, Relu 1x1Conv2D, optional dropout and Maxpooling2D
+    :param x: keras model
+    :param concat_axis: int -- index of contatenate axis
+    :param nb_filter: int -- number of filters
+    :param dropout_rate: int -- dropout rate
+    :param weight_decay: int -- weight decay factor
+    :returns: model
+    :rtype: keras model, after applying batch_norm, relu-conv, dropout, maxpool
+    """
+
+    x = BatchNormalization(axis=concat_axis,
+                           gamma_regularizer=l2(weight_decay),
+                           beta_regularizer=l2(weight_decay))(x)
+    x = Activation('relu')(x)
+    x = Conv3D(nb_filter * theta, (1, 1, 1),
+               kernel_initializer="he_uniform",
+               padding="same",
+               # use_bias=False,
+               kernel_regularizer=l2(weight_decay))(x)
+    if dropout_rate:
+        x = Dropout(dropout_rate)(x)
+    x = AveragePooling3D((2, 2, 2), strides=(2, 2, 2))(x)
+
+    return x, nb_filter * theta
+
+
+def denseblock(x, concat_axis, nb_layers, nb_filter, growth_rate,
+               dropout_rate=None, weight_decay=1E-4):
+    """Build a denseblock where the output of each
+       conv_factory is fed to subsequent ones
+    :param x: keras model
+    :param concat_axis: int -- index of contatenate axis
+    :param nb_layers: int -- the number of layers of conv_
+                      factory to append to the model.
+    :param nb_filter: int -- number of filters
+    :param dropout_rate: int -- dropout rate
+    :param weight_decay: int -- weight decay factor
+    :returns: keras model with nb_layers of conv_factory appended
+    :rtype: keras model
+    """
+
+    list_feat = [x]
+
+    for i in range(nb_layers):
+        x = conv_factory(x, concat_axis, growth_rate,
+                         dropout_rate, weight_decay)
+        list_feat.append(x)
+        x = Concatenate(axis=concat_axis)(list_feat)
+        nb_filter += growth_rate
+
+    return x, nb_filter
+
+
+def channelModule(input_tensor, nb_filter):
+
+    scale_tensor = tf.ones_like(input_tensor)
+
+    x = GlobalAveragePooling3D(data_format='channels_last')(input_tensor)
+    x = Conv1D(nb_filter/2, 1,
+               kernel_initializer="he_uniform")(x)
+    x = Activation('relu')(x)
+    x = Conv1D(nb_filter, 1,
+               kernel_initializer="he_uniform")(x)
+    x = Activation('sigmoid')(x)
+
+    x = Lambda(lambda y: y * scale_tensor)(x)
+    output_tensor = Multiply()([x, input_tensor])
+    return output_tensor
+
+
+def spatialModule(input_tensor, nb_filter):
+
+    scale_tensor = tf.ones_like(input_tensor)
+
+    x = Conv3D(nb_filter/2, (1, 1, 1),
+               kernel_initializer="he_uniform")(Input_tensor)
+    x = Activation('relu')(x)
+    x = Conv3D(1, (1, 1, 1),
+               kernel_initializer="he_uniform")(x)
+    x = Activation('sigmoid')(x)
+
+    x = Lambda(lambda y: y * scale_tensor)(x)
+    output_tensor = Multiply()([x, input_tensor])
+    return output_tensor
+
+
+def denseUnit(input_tensor, dense_filters=48, weight_decay=1E-4):
+
+    x = BatchNormalization(gamma_regularizer=l2(weight_decay),
+                           beta_regularizer=l2(weight_decay))(input_tensor)
+    x = Activation('relu')(x)
+    x = Conv3D(dense_filters, (3, 3, 3), padding='same')(x)
+    x = Dropout(0.2)(x)
+
+    x = spatialModule(x, dense_filters)
+    x = channelModule(x, dense_filters)
+
+    x = Concatenate([x, input_tensor])
+    return x
+
+
+def compressionUnit(input_tensor, nb_filter):
+
+    x = Conv3D(nb_filter, (3, 3, 3), padding='same')(input_tensor)
+
+    x = spatialModule(x, nb_filter)
+    x = channelModule(x, nb_filter)
+    return x
+
+
+def upsamplingUnit(encoding_input, decoding_input, filter_enc, filter_dec):
+
+    x = Conv3D(filter_enc, (3, 3, 3), padding='same')(encoding_input)
+    y = Conv3DTranspose(filter_dec, (2, 2, 2))(decoding_input)
+    return Concatenate([x, y])
+
+
+def createCDUnet(input_shape, NumClasses, weight_decay=1E-4, growth_rate=12, n_layers=6, theta=0.5):
+
+    input_layer = layers.Input(shape=input_shape)
+
+    n_filters_1 = growth_rate
+    n_filters_2 = 2 * growth_rate
+
+    # Convolutional layer 1
+    x = Conv3D(n_filters_1, (3, 3, 3), padding='same')(input_layer)
+    x = BatchNormalization(gamma_regularizer=l2(weight_decay),
+                           beta_regularizer=l2(weight_decay))(x)
+    encoding_1 = Activation('relu', name='encoding_1')(x)  # 192x192x192x12
+
+    # MaxPooling layer 1
+    x = MaxPool3D((2, 2, 2))(encoding_1)  # 96x96x96x12
+    x = Conv3D(n_filters_2, (3, 3, 3), padding='same')(x)
+    x = BatchNormalization(gamma_regularizer=l2(weight_decay),
+                           beta_regularizer=l2(weight_decay))(x)
+    encoding_2 = Activation('relu', name='encoding_2')(x)  # 96x96x96x24
+
+    # Dense Block 3
+    x, n_block_3 = denseblock(encoding_2, concat_axis=-1, nb_layers=n_layers, nb_filter=n_filters_2,
+                                growth_rate=growth_rate)  # 96x96x96x96
+    encoding_3, n_filters_3 = transition(x, concat_axis=-1, nb_filter=n_block_3, theta=theta)  # 48x48x48x48 (theta=0.5)
+
+
+    # Dense Block 4
+    x, n_block_4 = denseblock(encoding_3, concat_axis=-1, nb_layers=2*n_layers, nb_filter=n_filters_3,
+                                growth_rate=growth_rate)  # 48x48x48x192
+    encoding_4, n_filters_4 = transition(x, concat_axis=-1, nb_filter=n_block_4, theta=theta)  # 24x24x24x96 (theta=0.5)
+
+    # Dense Block 5
+    x, n_block_5 = denseblock(encoding_4, concat_axis=-1, nb_layers=4*n_layers, nb_filter=n_filters_4,
+                                growth_rate=growth_rate)  # 24x24x24x348
+    encoding_5, n_filters_5 = transition(x, concat_axis=-1, nb_filter=n_block_5, theta=theta)  # 12x12x12x192
+
+    decoding_5 = compressionUnit(encoding_5, n_filters_4)  # 12x12x12x96
+
+    # First concatenation
+    x = upsamplingUnit(encoding_4, decoding_5, n_filters_4, n_filters_4)
+    x = denseUnit(x)
+    x = denseUnit(x)
+    decoding_4 = compressionUnit(x, n_filters_3)  # 24x24x24x48
+
+    # Second concatenation
+    x = upsamplingUnit(encoding_3, decoding_4, n_filters_3, n_filters_3)  # 48x48x48x96
+    x = denseUnit(x)
+    x = denseUnit(x)
+    decoding_3 = compressionUnit(x, n_filters_2)  # 48x48x48x24
+
+    # Third concatenation
+    x = upsamplingUnit(encoding_2, decoding_3, n_filters_2, n_filters_2)  # 96x96x96x48
+    x = denseUnit(x)
+    x = denseUnit(x)
+    decoding_2 = compressionUnit(x, n_filters_1)  # 96x96x96x12
+
+    # Last concatenation
+    x = upsamplingUnit(encoding_1, decoding_2, n_filters_1, n_filters_1)  # 192x192x192x24
+    x = Conv3D(n_filters_1, (3, 3, 3,), padding='same', kernel_initializer="he_uniform")(x)  # 192x192x192x12
+    x = BatchNormalization(gamma_regularizer=l2(weight_decay),
+                           beta_regularizer=l2(weight_decay))(x)
+    x = Activation('relu')(x)
+
+    x = Conv3D(NumClasses, (3,3,3), padding='same', kernel_initializer='he_uniform')(x)
+    output_layer = Softmax(axis=-1)(x)
+
+    model = Model(inputs=[input_layer], outputs=[output_layer])
+
+    return model
+
+
+
+
+
