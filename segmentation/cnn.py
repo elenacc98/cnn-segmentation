@@ -238,14 +238,16 @@ class VNet(object):
 
 def conv_factory(x, concat_axis, nb_filter,
                  dropout_rate=None, weight_decay=1E-4):
-    """Apply BatchNorm, Relu 3x3Conv2D, optional dropout
-    :param x: Input keras network
-    :param concat_axis: int -- index of contatenate axis
-    :param nb_filter: int -- number of filters
-    :param dropout_rate: int -- dropout rate
-    :param weight_decay: int -- weight decay factor
-    :returns: keras network with b_norm, relu and Conv2D added
-    :rtype: keras network
+    """
+    This function defines the convolution operation to perform in each layer of a dense block
+    Args:
+        x: Input tensor
+        concat_axis: axis of concatenation
+        nb_filter: number of features of input tensor
+        dropout_rate: probability of dropout layers
+        weight_decay: weight decay parameter
+
+    Returns: Tensor to pass to the next layer
     """
 
     x = BatchNormalization(axis=concat_axis,
@@ -270,14 +272,19 @@ def conv_factory(x, concat_axis, nb_filter,
 
 def transition(x, concat_axis, nb_filter, theta,
                dropout_rate=None, weight_decay=1E-4):
-    """Apply BatchNorm, Relu 1x1Conv2D, optional dropout and Maxpooling2D
-    :param x: keras model
-    :param concat_axis: int -- index of contatenate axis
-    :param nb_filter: int -- number of filters
-    :param dropout_rate: int -- dropout rate
-    :param weight_decay: int -- weight decay factor
-    :returns: model
-    :rtype: keras model, after applying batch_norm, relu-conv, dropout, maxpool
+    """
+    Transition layer after each dense block.
+    It reduces tensor dimension and number of features.
+    Args:
+        x: Input tensor
+        concat_axis: axis of concatenation
+        nb_filter: number of features of input tensor
+        theta: parameter in (0,1] to specify number of features in output.
+            features_out = theta * features_in
+        dropout_rate: probability of dropout layers
+        weight_decay: weight decay parameter
+
+    Returns: returns resized tensor in order to reduce dimensionality
     """
 
     x = BatchNormalization(axis=concat_axis,
@@ -298,17 +305,20 @@ def transition(x, concat_axis, nb_filter, theta,
 
 def denseblock(x, concat_axis, nb_layers, nb_filter, growth_rate,
                dropout_rate=None, weight_decay=1E-4):
-    """Build a denseblock where the output of each
-       conv_factory is fed to subsequent ones
-    :param x: keras model
-    :param concat_axis: int -- index of contatenate axis
-    :param nb_layers: int -- the number of layers of conv_
-                      factory to append to the model.
-    :param nb_filter: int -- number of filters
-    :param dropout_rate: int -- dropout rate
-    :param weight_decay: int -- weight decay factor
-    :returns: keras model with nb_layers of conv_factory appended
-    :rtype: keras model
+    """
+    Create a dense connected block of depth nb_layers,
+    where each output is fed into all subsequent layers.
+    Args:
+        x: tensor in input
+        concat_axis: axis of concatenation
+        nb_layers: number of layers of the dense block
+        nb_filter: number of filters of input tensor
+        growth_rate: number of output features for each layer in the block
+        dropout_rate: probability of dropout layers
+        weight_decay: weight decay parameter
+
+    Returns: Output tensor with same shape and number of features
+    equal to: nb_filter + nb_layers * growth_rate
     """
 
     list_feat = [x]
@@ -324,7 +334,15 @@ def denseblock(x, concat_axis, nb_layers, nb_filter, growth_rate,
 
 
 def channelModule(input_tensor, nb_filter):
-    # print(input_tensor.shape)
+    """
+    Channel contextual model to enhance channel information flow.
+    Args:
+        input_tensor: input tensor
+        nb_filter: number of features of the input tensor
+    Returns: tensor of the same shape of input where relevant channel have been enhanced
+        in contrast to less relevant ones.
+    """
+
     scale_tensor = tf.ones_like(input_tensor)
 
     x = GlobalAveragePooling3D()(input_tensor)
@@ -340,11 +358,20 @@ def channelModule(input_tensor, nb_filter):
 
     x = tf.multiply(x, scale_tensor)  # Lambda(lambda y: tf.multiply(y, scale_tensor))(x)
     output_tensor = Multiply()([x, input_tensor])
-    # print(output_tensor.shape)
+
     return output_tensor
 
 
 def spatialModule(input_tensor, nb_filter):
+    """
+    Spatial contextual model to enhance spatial information across features.
+    Args:
+        input_tensor: input tensor
+        nb_filter: number of features in the input tensor.
+    Returns: tensor of the same shape of input where relevant patches inside the
+        volume are enhanced in contrast to less relebant ones.
+
+    """
 
     scale_tensor = tf.ones_like(input_tensor)
 
@@ -361,6 +388,15 @@ def spatialModule(input_tensor, nb_filter):
 
 
 def denseUnit(input_tensor, dense_filters=48, weight_decay=1E-4):
+    """
+    Dense unit that comprehends a convolution with a fixed number of filters and the two
+        spatial and channel contextual modules.
+    Args:
+        input_tensor: input tensor
+        dense_filters: number of filters for the first convolution
+        weight_decay: weight decay parameter
+    Returns: tensor with the same shape as input
+    """
 
     x = BatchNormalization(gamma_regularizer=l2(weight_decay),
                            beta_regularizer=l2(weight_decay))(input_tensor)
@@ -376,6 +412,15 @@ def denseUnit(input_tensor, dense_filters=48, weight_decay=1E-4):
 
 
 def compressionUnit(input_tensor, nb_filter):
+    """
+    Compression unit to reduce the linear increase of feature numbers in the dense units.
+    Args:
+        input_tensor: input tensor
+        nb_filter: number fo filters for the convolution
+
+    Returns: a tensor with number of features specified in nb_filter
+
+    """
 
     x = Conv3D(nb_filter, (3, 3, 3), padding='same')(input_tensor)
 
@@ -385,6 +430,17 @@ def compressionUnit(input_tensor, nb_filter):
 
 
 def upsamplingUnit(encoding_input, decoding_input, filter_enc, filter_dec):
+    """
+    Upsampling unit that upsamples from decoding path and concatenates with encoding path to
+        maintain fine spatial information and produce dense predictions.
+    Args:
+        encoding_input: input tensor coming from encoding path
+        decoding_input: input tensor coming from decoding path
+        filter_enc: number fo filter for the convolution of the encoding path
+        filter_dec: number fo filter for the transposed convolution of the decoding path
+
+    Returns: concatenation of the two tensors in input after convolutions
+    """
 
     x = Conv3D(filter_enc, (3, 3, 3), padding='same')(encoding_input)
     y = Conv3DTranspose(filter_dec, (2, 2, 2), strides=(2, 2, 2), padding='same')(decoding_input)
@@ -392,6 +448,21 @@ def upsamplingUnit(encoding_input, decoding_input, filter_enc, filter_dec):
 
 
 def createCDUnet(input_shape, NumClasses, weight_decay=1E-4, growth_rate=12, n_layers=6, theta=0.5):
+    """
+    Function to create a contextual deconvolution segmentation model with spatial and
+        channels modules in the decoding path. 
+    Args:
+        input_shape: shape of input tensor
+        NumClasses: number of classes to segment
+        weight_decay: weight decay parameter
+        growth_rate: number of feature maps produced by each layer in the dense blocks
+        n_layers: number of layers in the first dense block. Layers in the subsequent blocks are defined
+            according to this parameter.
+        theta: fraction to reduce number of features in the transition blocks after each dense block.
+
+    Returns: softmax probability maps of segmentation masks for the numClasses number of classes specified in input.
+
+    """
 
     input_layer = layers.Input(shape=input_shape)
 
