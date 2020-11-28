@@ -324,10 +324,13 @@ def denseblock(x, concat_axis, nb_layers, nb_filter, growth_rate,
 
 
 def channelModule(input_tensor, nb_filter):
-
+    # print(input_tensor.shape)
     scale_tensor = tf.ones_like(input_tensor)
 
-    x = GlobalAveragePooling3D(data_format='channels_last')(input_tensor)
+    x = GlobalAveragePooling3D()(input_tensor)
+    x = tf.expand_dims(x, axis=1)
+    x = tf.expand_dims(x, axis=1)
+    x = tf.expand_dims(x, axis=1)
     x = Conv1D(nb_filter/2, 1,
                kernel_initializer="he_uniform")(x)
     x = Activation('relu')(x)
@@ -335,8 +338,9 @@ def channelModule(input_tensor, nb_filter):
                kernel_initializer="he_uniform")(x)
     x = Activation('sigmoid')(x)
 
-    x = Lambda(lambda y: y * scale_tensor)(x)
+    x = tf.multiply(x, scale_tensor)  # Lambda(lambda y: tf.multiply(y, scale_tensor))(x)
     output_tensor = Multiply()([x, input_tensor])
+    # print(output_tensor.shape)
     return output_tensor
 
 
@@ -345,13 +349,13 @@ def spatialModule(input_tensor, nb_filter):
     scale_tensor = tf.ones_like(input_tensor)
 
     x = Conv3D(nb_filter/2, (1, 1, 1),
-               kernel_initializer="he_uniform")(Input_tensor)
+               kernel_initializer="he_uniform")(input_tensor)
     x = Activation('relu')(x)
     x = Conv3D(1, (1, 1, 1),
                kernel_initializer="he_uniform")(x)
     x = Activation('sigmoid')(x)
 
-    x = Lambda(lambda y: y * scale_tensor)(x)
+    x = tf.multiply(x, scale_tensor) # Lambda(lambda y: tf.multiply(y, scale_tensor))(x)
     output_tensor = Multiply()([x, input_tensor])
     return output_tensor
 
@@ -367,7 +371,7 @@ def denseUnit(input_tensor, dense_filters=48, weight_decay=1E-4):
     x = spatialModule(x, dense_filters)
     x = channelModule(x, dense_filters)
 
-    x = Concatenate([x, input_tensor])
+    x = Concatenate()([x, input_tensor])
     return x
 
 
@@ -383,80 +387,92 @@ def compressionUnit(input_tensor, nb_filter):
 def upsamplingUnit(encoding_input, decoding_input, filter_enc, filter_dec):
 
     x = Conv3D(filter_enc, (3, 3, 3), padding='same')(encoding_input)
-    y = Conv3DTranspose(filter_dec, (2, 2, 2))(decoding_input)
-    return Concatenate([x, y])
+    y = Conv3DTranspose(filter_dec, (2, 2, 2), strides=(2, 2, 2), padding='same')(decoding_input)
+    return Concatenate()([x, y])
 
 
 def createCDUnet(input_shape, NumClasses, weight_decay=1E-4, growth_rate=12, n_layers=6, theta=0.5):
 
     input_layer = layers.Input(shape=input_shape)
 
+    n_filters_0 = growth_rate/2
     n_filters_1 = growth_rate
     n_filters_2 = 2 * growth_rate
 
-    # Convolutional layer 1
-    x = Conv3D(n_filters_1, (3, 3, 3), padding='same')(input_layer)
+    # Convolutional layer 0
+    x = Conv3D(n_filters_0, (3, 3, 3), padding='same')(input_layer)
     x = BatchNormalization(gamma_regularizer=l2(weight_decay),
                            beta_regularizer=l2(weight_decay))(x)
-    encoding_1 = Activation('relu', name='encoding_1')(x)  # 192x192x192x12
+    encoding_0 = Activation('relu', name='encoding_0')(x)  # 192x192x192x6
 
-    # MaxPooling layer 1
-    x = MaxPool3D((2, 2, 2))(encoding_1)  # 96x96x96x12
+    # MaxPooling + Conv layer 1
+    x = MaxPool3D((2, 2, 2))(encoding_0)  # 96x96x96x6
+    x = Conv3D(n_filters_1, (3, 3, 3), padding='same')(x)
+    x = BatchNormalization(gamma_regularizer=l2(weight_decay),
+                           beta_regularizer=l2(weight_decay))(x)
+    encoding_1 = Activation('relu', name='encoding_1')(x)  # 96x96x96x12
+
+    # MaxPooling + Conv layer 2
+    x = MaxPool3D((2, 2, 2))(encoding_1)  # 48x48x48x12
     x = Conv3D(n_filters_2, (3, 3, 3), padding='same')(x)
     x = BatchNormalization(gamma_regularizer=l2(weight_decay),
                            beta_regularizer=l2(weight_decay))(x)
-    encoding_2 = Activation('relu', name='encoding_2')(x)  # 96x96x96x24
+    encoding_2 = Activation('relu', name='encoding_2')(x)  # 48x48x48x24
 
     # Dense Block 3
     x, n_block_3 = denseblock(encoding_2, concat_axis=-1, nb_layers=n_layers, nb_filter=n_filters_2,
-                                growth_rate=growth_rate)  # 96x96x96x96
-    encoding_3, n_filters_3 = transition(x, concat_axis=-1, nb_filter=n_block_3, theta=theta)  # 48x48x48x48 (theta=0.5)
+                                growth_rate=growth_rate)  # 48x48x48x96
+    encoding_3, n_filters_3 = transition(x, concat_axis=-1, nb_filter=n_block_3, theta=theta)  # 24x24x24x48 (theta=0.5)
 
 
     # Dense Block 4
     x, n_block_4 = denseblock(encoding_3, concat_axis=-1, nb_layers=2*n_layers, nb_filter=n_filters_3,
-                                growth_rate=growth_rate)  # 48x48x48x192
-    encoding_4, n_filters_4 = transition(x, concat_axis=-1, nb_filter=n_block_4, theta=theta)  # 24x24x24x96 (theta=0.5)
+                                growth_rate=growth_rate)  # 24x24x24x192
+    encoding_4, n_filters_4 = transition(x, concat_axis=-1, nb_filter=n_block_4, theta=theta)  # 12x12x12x96 (theta=0.5)
 
     # Dense Block 5
     x, n_block_5 = denseblock(encoding_4, concat_axis=-1, nb_layers=4*n_layers, nb_filter=n_filters_4,
-                                growth_rate=growth_rate)  # 24x24x24x348
-    encoding_5, n_filters_5 = transition(x, concat_axis=-1, nb_filter=n_block_5, theta=theta)  # 12x12x12x192
+                                growth_rate=growth_rate)  # 12x12x12x348
+    encoding_5, n_filters_5 = transition(x, concat_axis=-1, nb_filter=n_block_5, theta=theta)  # 6x6x6x192
 
-    decoding_5 = compressionUnit(encoding_5, n_filters_4)  # 12x12x12x96
+    decoding_5 = compressionUnit(encoding_5, n_filters_4)  # 6x6x6x96
 
     # First concatenation
     x = upsamplingUnit(encoding_4, decoding_5, n_filters_4, n_filters_4)
     x = denseUnit(x)
     x = denseUnit(x)
-    decoding_4 = compressionUnit(x, n_filters_3)  # 24x24x24x48
+    decoding_4 = compressionUnit(x, n_filters_3)  # 12x12x12x48
 
     # Second concatenation
-    x = upsamplingUnit(encoding_3, decoding_4, n_filters_3, n_filters_3)  # 48x48x48x96
+    x = upsamplingUnit(encoding_3, decoding_4, n_filters_3, n_filters_3)  # 24x24x24x96
     x = denseUnit(x)
     x = denseUnit(x)
-    decoding_3 = compressionUnit(x, n_filters_2)  # 48x48x48x24
+    decoding_3 = compressionUnit(x, n_filters_2)  # 24x24x24x24
 
     # Third concatenation
-    x = upsamplingUnit(encoding_2, decoding_3, n_filters_2, n_filters_2)  # 96x96x96x48
+    x = upsamplingUnit(encoding_2, decoding_3, n_filters_2, n_filters_2)  # 48x48x48x48
     x = denseUnit(x)
     x = denseUnit(x)
-    decoding_2 = compressionUnit(x, n_filters_1)  # 96x96x96x12
+    decoding_2 = compressionUnit(x, n_filters_1)  # 48x48x48x12
 
-    # Last concatenation
-    x = upsamplingUnit(encoding_1, decoding_2, n_filters_1, n_filters_1)  # 192x192x192x24
-    x = Conv3D(n_filters_1, (3, 3, 3,), padding='same', kernel_initializer="he_uniform")(x)  # 192x192x192x12
+    # Fourth concatenation
+    x = upsamplingUnit(encoding_1, decoding_2, n_filters_1, n_filters_1)  # 96x96x96x24
+    x = denseUnit(x)
+    x = denseUnit(x)
+    decoding_1 = compressionUnit(x, n_filters_1)  # 96x96x96x6
+
+    # Last concatenatiokn
+    x = upsamplingUnit(encoding_0, decoding_1, n_filters_0, n_filters_0)  # 192x192x192x12
+
     x = BatchNormalization(gamma_regularizer=l2(weight_decay),
                            beta_regularizer=l2(weight_decay))(x)
     x = Activation('relu')(x)
-
-    x = Conv3D(NumClasses, (3,3,3), padding='same', kernel_initializer='he_uniform')(x)
+    x = Conv3D(NumClasses, (1, 1, 1), padding='same', kernel_initializer='he_uniform')(x)
     output_layer = Softmax(axis=-1)(x)
 
     model = Model(inputs=[input_layer], outputs=[output_layer])
 
     return model
-
 
 
 
