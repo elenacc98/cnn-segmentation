@@ -368,9 +368,9 @@ def spatialModule(input_tensor, nb_filter):
     Args:
         input_tensor: input tensor
         nb_filter: number of features in the input tensor.
+
     Returns: tensor of the same shape of input where relevant patches inside the
         volume are enhanced in contrast to less relebant ones.
-
     """
 
     scale_tensor = tf.ones_like(input_tensor)
@@ -395,6 +395,7 @@ def denseUnit(input_tensor, dense_filters=48, weight_decay=1E-4):
         input_tensor: input tensor
         dense_filters: number of filters for the first convolution
         weight_decay: weight decay parameter
+
     Returns: tensor with the same shape as input
     """
 
@@ -419,7 +420,6 @@ def compressionUnit(input_tensor, nb_filter):
         nb_filter: number fo filters for the convolution
 
     Returns: a tensor with number of features specified in nb_filter
-
     """
 
     x = Conv3D(nb_filter, (3, 3, 3), padding='same')(input_tensor)
@@ -431,12 +431,12 @@ def compressionUnit(input_tensor, nb_filter):
 
 def upsamplingUnit(encoding_input, decoding_input, filter_enc, filter_dec):
     """
-    Upsampling unit that upsamples from decoding path and concatenates with encoding path to
-        maintain fine spatial information and produce dense predictions.
+    Upsampling unit that upsamples from decoding path and concatenates with encoding path to 
+        maintain fine spatial information and produce dense predictions. 
     Args:
         encoding_input: input tensor coming from encoding path
         decoding_input: input tensor coming from decoding path
-        filter_enc: number fo filter for the convolution of the encoding path
+        filter_enc: number fo filter for the convolution of the encoding path 
         filter_dec: number fo filter for the transposed convolution of the decoding path
 
     Returns: concatenation of the two tensors in input after convolutions
@@ -456,12 +456,11 @@ def createCDUnet(input_shape, NumClasses, weight_decay=1E-4, growth_rate=12, n_l
         NumClasses: number of classes to segment
         weight_decay: weight decay parameter
         growth_rate: number of feature maps produced by each layer in the dense blocks
-        n_layers: number of layers in the first dense block. Layers in the subsequent blocks are defined
+        n_layers: number of layers in the first dense block. Layers in the subsequent blocks are defined 
             according to this parameter.
-        theta: fraction to reduce number of features in the transition blocks after each dense block.
+        theta: fraction to reduce number of features in the transition blocks after each dense block. 
 
     Returns: softmax probability maps of segmentation masks for the numClasses number of classes specified in input.
-
     """
 
     input_layer = layers.Input(shape=input_shape)
