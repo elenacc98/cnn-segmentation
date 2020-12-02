@@ -18,6 +18,64 @@ from tensorflow.python.framework import constant_op
 from tensorflow.python.keras import backend_config
 
 
+def MeanDice_Loss(numClasses):
+    """
+
+    Args:
+        numClasses:
+
+    Returns:
+
+    """
+    def mean_dice(y_true, y_pred):
+        """
+
+        Args:
+            y_true:
+            y_pred:
+
+        Returns:
+
+        """
+
+        if len(y_true.shape) == 5:
+            axisSum = (1, 2, 3)
+            y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
+            y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
+        elif len(y_true.shape) == 4:
+            axisSum = (1, 2)
+            y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
+            y_true = tf.transpose(y_true, [3, 0, 1, 2])
+        else:
+            print("Could not recognise input dimensions")
+            return
+
+        # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
+        y_true = tf.cast(y_true, tf.float32)
+        y_pred = tf.cast(y_pred, tf.float32)
+        nVoxels = tf.size(y_true) / numClasses
+        nVoxels = tf.cast(nVoxels, tf.float32)
+
+        mean_over_classes = tf.zeros((1,))
+        # Get loss weights
+        loss_weights = get_loss_weights(y_true, nVoxels, numClasses)
+        # Loop over each class
+        for c in range(numClasses):
+            y_true_c = y_true[c]
+            y_pred_c = y_pred[c]
+            numerator = tf.scalar_mul(2.0, tf.reduce_sum(tf.multiply(y_true_c, y_pred_c), axis = axisSum))
+            denominator = tf.add(tf.reduce_sum(y_true_c, axis = axisSum), tf.reduce_sum(y_pred_c, axis = axisSum))
+            class_loss_weight = loss_weights[c]
+
+            mean_over_classes = tf.add(mean_over_classes,
+                                       tf.multiply(class_loss_weight,
+                                       tf.divide(numerator, denominator)))
+
+        return tf.subtract(1.0, mean_over_classes)
+
+    return mean_dice
+
+
 
 def Weighted_DiceBoundary_Loss(numClasses, alpha):
     """
@@ -233,11 +291,11 @@ def Weighted_DiceCatCross_Loss_v2(numClasses, alpha):
         epsilon = backend_config.epsilon
         gamma = 10
         sigma = 5
-        DWM = tf.zeros_like(SDM)
+        DWM = np.ones_like(SDM)
 
         # Exponential transformation of the Distance transform
-        for index, sdm, l_w in enumerate(zip(SDM,loss_weights)):
-            DWM[index] = l_w + gamma * tf.math.exp(-(tf.math.square(sdm))/2*sigma*sigma)
+        for index, sdm in enumerate(SDM):
+            DWM[index] = loss_weights[index] + gamma * tf.math.exp(-(tf.math.square(sdm))/2*sigma*sigma)
 
         # scale preds so that the class probas of each sample sum to 1
         y_pred = y_pred / math_ops.reduce_sum(y_pred, axis=-1, keepdims=True)
