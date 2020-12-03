@@ -294,7 +294,7 @@ def Weighted_DiceCatCross_Loss_v2(numClasses, alpha):
             epsilon = backend_config.epsilon
             gamma = 10
             sigma = 5
-            DWM = np.ones_like(SDM)
+            DWM = tf.ones_like(SDM)
 
             # Exponential transformation of the Distance transform
             for index, sdm in enumerate(SDM):
