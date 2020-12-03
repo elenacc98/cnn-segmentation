@@ -127,12 +127,13 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha):
             mean_over_classes = tf.add(mean_over_classes,
                                        tf.multiply(class_loss_weight,
                                        tf.divide(numerator, denominator)))
+        boundary_loss = 0
+        if alpha < 1:
+            SDM = tf.py_function(func=calc_SDM_batch,
+                                 inp=[y_true, numClasses],
+                                 Tout=tf.float32)
 
-        SDM = tf.py_function(func=calc_SDM_batch,
-                             inp=[y_true, numClasses],
-                             Tout=tf.float32)
-
-        boundary_loss = tf.multiply(tf.reduce_sum(tf.multiply(SDM, y_pred)), 1.0/nVoxels)
+            boundary_loss = tf.multiply(tf.reduce_sum(tf.multiply(SDM, y_pred)), 1.0/nVoxels)
 
         return alpha * tf.subtract(1.0, mean_over_classes) + (1-alpha) * boundary_loss
 
@@ -199,24 +200,25 @@ def Weighted_DiceCatCross_Loss_v1(numClasses, alpha):
             mean_over_classes = tf.add(mean_over_classes,
                                        tf.multiply(class_loss_weight,
                                                    tf.divide(numerator, denominator)))
+        wcc_loss = 0
+        if alpha < 1:
+            SDM = tf.py_function(func=calc_DM_batch,
+                                 inp=[y_true, numClasses],
+                                 Tout=tf.float32)
 
-        SDM = tf.py_function(func=calc_DM_batch,
-                             inp=[y_true, numClasses],
-                             Tout=tf.float32)
+            epsilon = backend_config.epsilon
+            gamma = 8
+            sigma = 10
 
-        epsilon = backend_config.epsilon
-        gamma = 8
-        sigma = 10
+            # Exponential transformation of the Distance transform
+            DWM = 1 + gamma * tf.math.exp(tf.math.negative(SDM)/sigma)
+            # scale preds so that the class probas of each sample sum to 1
+            y_pred = y_pred / math_ops.reduce_sum(y_pred, axis=-1, keepdims=True)
+            # Compute cross entropy from probabilities.
+            epsilon_ = constant_op.constant(epsilon(), y_pred.dtype.base_dtype)
+            y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
 
-        # Exponential transformation of the Distance transform
-        DWM = 1 + gamma * tf.math.exp(tf.math.negative(SDM)/sigma)
-        # scale preds so that the class probas of each sample sum to 1
-        y_pred = y_pred / math_ops.reduce_sum(y_pred, axis=-1, keepdims=True)
-        # Compute cross entropy from probabilities.
-        epsilon_ = constant_op.constant(epsilon(), y_pred.dtype.base_dtype)
-        y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
-
-        wcc_loss = -math_ops.reduce_sum(DWM * y_true * math_ops.log(y_pred))/tf.cast(nVoxels, tf.float32)
+            wcc_loss = -math_ops.reduce_sum(DWM * y_true * math_ops.log(y_pred))/tf.cast(nVoxels, tf.float32)
 
         return alpha * tf.subtract(1.0, mean_over_classes) + (1-alpha) * wcc_loss
 
@@ -283,27 +285,28 @@ def Weighted_DiceCatCross_Loss_v2(numClasses, alpha):
             mean_over_classes = tf.add(mean_over_classes,
                                        tf.multiply(class_loss_weight,
                                                    tf.divide(numerator, denominator)))
+        wcc_loss = 0
+        if alpha < 1:
+            SDM = tf.py_function(func=calc_DM_batch,
+                                 inp=[y_true, numClasses],
+                                 Tout=tf.float32)
 
-        SDM = tf.py_function(func=calc_DM_batch,
-                             inp=[y_true, numClasses],
-                             Tout=tf.float32)
+            epsilon = backend_config.epsilon
+            gamma = 10
+            sigma = 5
+            DWM = np.ones_like(SDM)
 
-        epsilon = backend_config.epsilon
-        gamma = 10
-        sigma = 5
-        DWM = np.ones_like(SDM)
+            # Exponential transformation of the Distance transform
+            for index, sdm in enumerate(SDM):
+                DWM[index] = loss_weights[index] + gamma * tf.math.exp(-(tf.math.square(sdm))/(2*sigma*sigma))
 
-        # Exponential transformation of the Distance transform
-        for index, sdm in enumerate(SDM):
-            DWM[index] = loss_weights[index] + gamma * tf.math.exp(-(tf.math.square(sdm))/(2*sigma*sigma))
+            # scale preds so that the class probas of each sample sum to 1
+            y_pred = y_pred / math_ops.reduce_sum(y_pred, axis=-1, keepdims=True)
+            # Compute cross entropy from probabilities.
+            epsilon_ = constant_op.constant(epsilon(), y_pred.dtype.base_dtype)
+            y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
 
-        # scale preds so that the class probas of each sample sum to 1
-        y_pred = y_pred / math_ops.reduce_sum(y_pred, axis=-1, keepdims=True)
-        # Compute cross entropy from probabilities.
-        epsilon_ = constant_op.constant(epsilon(), y_pred.dtype.base_dtype)
-        y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
-
-        wcc_loss = -math_ops.reduce_sum(DWM * y_true * math_ops.log(y_pred))/tf.cast(nVoxels, tf.float32)
+            wcc_loss = -math_ops.reduce_sum(DWM * y_true * math_ops.log(y_pred))/tf.cast(nVoxels, tf.float32)
 
         return alpha * tf.subtract(1.0, mean_over_classes) + (1-alpha) * wcc_loss
 
