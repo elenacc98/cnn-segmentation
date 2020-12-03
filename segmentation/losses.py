@@ -294,11 +294,14 @@ def Weighted_DiceCatCross_Loss_v2(numClasses, alpha):
             epsilon = backend_config.epsilon
             gamma = 10
             sigma = 5
-            DWM = tf.ones_like(SDM)
+            DWM_list = []
 
             # Exponential transformation of the Distance transform
-            for index, sdm in enumerate(SDM):
-                DWM[index] = loss_weights[index] + gamma * tf.math.exp(-(tf.math.square(sdm))/(2*sigma*sigma))
+            for index in range(numClasses):
+                DWM_list.append(
+                    loss_weights[index] + gamma * tf.math.exp(-(tf.math.square(SDM[index])) / (2 * sigma * sigma)))
+            DWM = tf.stack(DWM_list)
+
 
             # scale preds so that the class probas of each sample sum to 1
             y_pred = y_pred / math_ops.reduce_sum(y_pred, axis=-1, keepdims=True)
