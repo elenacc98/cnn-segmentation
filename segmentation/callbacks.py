@@ -141,12 +141,19 @@ class AlphaScheduler(Callback):
         alpha: parameter to weight functions. Must be in [0,1]
         update_fn: function that updates alpha every time "on_epoch_end" calls it.
     """
-    def __init__(self, alpha, update_fn, epoch_start):
+    def __init__(self, alpha, update_fn, epoch_start, progressive=True, step_epoch=40):
         self.alpha = alpha
         self.update_fn = update_fn
         self.epoch_start = epoch_start
+        self.progressive = progressive
+        self.step_epoch = step_epoch
 
     def on_epoch_end(self, epoch, logs=None):
-        if epoch > self.epoch_start:
-            updated_alpha = self.update_fn(K.get_value(self.alpha))
-            K.set_value(self.alpha, updated_alpha)
+        if self.progressive:
+            if epoch > self.epoch_start:
+                updated_alpha = self.update_fn(K.get_value(self.alpha))
+                K.set_value(self.alpha, updated_alpha)
+        else:
+            if epoch % self.step_epoch == 0:
+                updated_alpha = self.update_fn(K.get_value(self.alpha))
+                K.set_value(self.alpha, updated_alpha)
