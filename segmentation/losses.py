@@ -286,7 +286,7 @@ def Weighted_DiceCatCross_Loss_v2(numClasses, alpha):
                                        tf.multiply(class_loss_weight,
                                                    tf.divide(numerator, denominator)))
 
-        wcc_loss = tf.Tensor(0, dtype=tf.float32)  
+        wcc_loss = tf.Tensor(0, dtype=tf.float32)
         if alpha < 1:
             SDM = tf.py_function(func=calc_DM_batch,
                                  inp=[y_true, numClasses],

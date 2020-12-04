@@ -12,6 +12,9 @@ from keras.layers.pooling import AveragePooling2D, AveragePooling3D, GlobalAvera
 from keras.layers import Input, Concatenate, Lambda, Dropout, Concatenate, Multiply, Softmax
 from keras.layers.normalization import BatchNormalization
 from keras.regularizers import l2
+from segmentation.utils import conv_factory, transition, denseblock, channelModule, \
+    spatialModule, denseUnit, compressionUnit, upsamplingUnit
+
 
 class UNet(object):
     """
@@ -192,264 +195,381 @@ class UNet(object):
 
 
 class VNet(object):
-    '''
+    """
     This class provides a simple interface to create a 
     VNet network with custom parameters.
-    '''
+    """
     def __init__(self, input_size=(128,128,128)):
         pass
 
 
-# class ConvBlock(Model):
-#     def __init__(self, growth_rate, kernel_size=(3,3,3)):
-#         super(ConvBlock, self).__init__()
-#
-#         self.conv_1 = tf.keras.layers.Conv3D(4 * growth_rate, (1,1,1))
-#         self.conv_2 = tf.keras.layers.Conv3D(growth_rate, kernel_size, padding='same')
-#         self.bn1 = tf.keras.layers.BatchNormalization()
-#         self.bn2 = tf.keras.layers.BatchNormalization()
-#         self.act = tf.keras.layers.Activation('relu')
-#
-#     def call(self, input_tensor):
-#         x = self.bn1(input_tensor)
-#         x = self.act(x)
-#         x = self.conv_1(x)
-#         x = self.bn2(x)
-#         x = self.act(x)
-#         x = self.conv_2(x)
-#         return x
-#
-#
-# class DenseBlock(Model):
-#     def __init__(self, repetitions, growth_rate, kernel_size=(3,3,3)):
-#         super(DenseBlock, self).__init__()
-#
-#         self.repetitions = repetitions
-#         self.convblock = ConvBlock(growth_rate, kernel_size)
-#         self.concat = tf.keras.layers.concatenate()
-#
-#     def call(self, input_tensor):
-#         for _ in range(self.repetitions):
-#             x = self.convblock(input_tensor)
-#             input_tensor = self.concat([x, input_tensor], axis=-1)
-#
-#         return input_tensor
-
-
-def conv_factory(x, concat_axis, nb_filter,
-                 dropout_rate=None, weight_decay=1E-4):
+class CDDUnet(object):
     """
-    This function defines the convolution operation to perform in each layer of a dense block
+    This class provides a simple interface to create
+    a Contextual Deconvolutional Dense Net network with custom parameters.
     Args:
-        x: Input tensor
-        concat_axis: axis of concatenation
-        nb_filter: number of features of input tensor
-        dropout_rate: probability of dropout layers
+        input_size: input size for the network
+        num_classes: number of classes in labels
         weight_decay: weight decay parameter
-
-    Returns: Tensor to pass to the next layer
+        growth_rate: number of feature maps produced by each layer in the dense blocks
+        n_layers: number of layers in the first dense block. Layers in the subsequent blocks are defined
+            according to this parameter.
+        theta: fraction to reduce number of features in the transition blocks after each dense block.
+        activation: activation function used in the U-Net layers
+        kernel_size: size of the kernel to be used in the convolutional layers of the U-Net
+        strides: stride shape to be used in the convolutional layers of the U-Net
+        deconv_strides: stride shape to be used in the deconvolutional layers of the U-Net
+        deconv_kernel_size: kernel size shape to be used in the deconvolutional layers of the U-Net
+        pool_size: size of the pool size to be used in MaxPooling layers
+        pool_strides: size of the strides to be used in MaxPooling layers
     """
 
-    x = BatchNormalization(axis=concat_axis,
-                           gamma_regularizer=l2(weight_decay),
-                           beta_regularizer=l2(weight_decay))(x)
-    x = Activation('relu')(x)
-    x = Conv3D(4*nb_filter, (1, 1, 1),
-               kernel_initializer="he_uniform",
-               padding="same",
-               # use_bias=False,
-               kernel_regularizer=l2(weight_decay))(x)
-    x = Conv3D(nb_filter, (3, 3, 3),
-               kernel_initializer="he_uniform",
-               padding="same",
-               # use_bias=False,
-               kernel_regularizer=l2(weight_decay))(x)
-    if dropout_rate:
-        x = Dropout(dropout_rate)(x)
+    def __init__(self, input_size,
+                 num_classes,
+                 weight_decay=1E-4,
+                 growth_rate=12,
+                 n_layers=6,
+                 theta=0.5,
+                 activation = 'relu',
+                 kernel_size=(3, 3, 3),
+                 strides=(1, 1, 1),
+                 deconv_kernel_size=(2, 2, 2),
+                 deconv_strides=(2, 2, 2),
+                 pool_size=(2, 2, 2),
+                 pool_strides=(2, 2, 2),
+                 ):
 
-    return x
+        self.input_size = input_size
+        self.num_classes = num_classes
+        self.weight_decay = weight_decay
+        self.growth_rate = growth_rate
+        self.n_layers = n_layers
+        self.theta = theta
+        self.activation = activation
+        self.kernel_size = kernel_size
+        self.strides = strides
+        self.deconv_kernel_size = deconv_kernel_size
+        self.deconv_strides = deconv_strides
+        self.pool_size = pool_size
+        self.pool_strides = pool_strides
+
+        self.n_filters_0 = self.growth_rate/2
+        self.n_filters_1 = self.growth_rate
+        self.n_filters_2 = self.growth_rate * 2
 
 
-def transition(x, concat_axis, nb_filter, theta,
-               dropout_rate=None, weight_decay=1E-4):
+    def create_model(self):
+
+        input_layer = layers.Input(shape=self.input_size)
+
+        # Convolutional layer 0
+        x = Conv3D(self.n_filters_0, self.kernel_size, padding='same')(input_layer)
+        x = BatchNormalization(gamma_regularizer=l2(self.weight_decay),
+                               beta_regularizer=l2(self.weight_decay))(x)
+        encoding_0 = Activation(self.activation, name='encoding_0')(x)  # 192x192x192x6
+
+        # MaxPooling + Conv layer 1
+        x = MaxPool3D(self.pool_size)(encoding_0)  # 96x96x96x6
+        x = Conv3D(self.n_filters_1, self.kernel_size, padding='same')(x)
+        x = BatchNormalization(gamma_regularizer=l2(self.weight_decay),
+                               beta_regularizer=l2(self.weight_decay))(x)
+        encoding_1 = Activation(self.activation, name='encoding_1')(x)  # 96x96x96x12
+
+        # MaxPooling + Conv layer 2
+        x = MaxPool3D(self.pool_size)(encoding_1)  # 48x48x48x12
+        x = Conv3D(self.n_filters_2, self.kernel_size, padding='same')(x)
+        x = BatchNormalization(gamma_regularizer=l2(self.weight_decay),
+                               beta_regularizer=l2(self.weight_decay))(x)
+        encoding_2 = Activation(self.activation, name='encoding_2')(x)  # 48x48x48x24
+
+        # Dense Block 3
+        x, n_block_3 = denseblock(encoding_2, concat_axis=-1, nb_layers=self.n_layers, nb_filter=self.n_filters_2,
+                                  growth_rate=self.growth_rate)  # 48x48x48x96
+        encoding_3, n_filters_3 = transition(x, concat_axis=-1, nb_filter=n_block_3,
+                                             theta=self.theta)  # 24x24x24x48 (theta=0.5)
+
+        # Dense Block 4
+        x, n_block_4 = denseblock(encoding_3, concat_axis=-1, nb_layers=2 * self.n_layers, nb_filter=n_filters_3,
+                                  growth_rate=self.growth_rate)  # 24x24x24x192
+        encoding_4, n_filters_4 = transition(x, concat_axis=-1, nb_filter=n_block_4,
+                                             theta=self.theta)  # 12x12x12x96 (theta=0.5)
+
+        # Dense Block 5
+        x, n_block_5 = denseblock(encoding_4, concat_axis=-1, nb_layers=4 * self.n_layers, nb_filter=n_filters_4,
+                                  growth_rate=self.growth_rate)  # 12x12x12x348
+        encoding_5, n_filters_5 = transition(x, concat_axis=-1, nb_filter=n_block_5, theta=self.theta)  # 6x6x6x192
+
+        decoding_5 = compressionUnit(encoding_5, n_filters_4, kernel_size=self.kernel_size)  # 6x6x6x96
+
+        # First concatenation
+        x = upsamplingUnit(encoding_4, decoding_5, n_filters_4, n_filters_4, kernel_size=self.kernel_size,
+                           deconv_kernel_size=self.deconv_kernel_size, deconv_strides=self.deconv_strides)
+        x = denseUnit(x, kernel_size=self.kernel_size)
+        x = denseUnit(x, kernel_size=self.kernel_size)
+        decoding_4 = compressionUnit(x, n_filters_3, kernel_size=self.kernel_size)  # 12x12x12x48
+
+        # Second concatenation
+        x = upsamplingUnit(encoding_3, decoding_4, n_filters_3, n_filters_3, kernel_size=self.kernel_size,
+                           deconv_kernel_size=self.deconv_kernel_size, deconv_strides=self.deconv_strides)  # 24x24x24x96
+        x = denseUnit(x, kernel_size=self.kernel_size)
+        x = denseUnit(x, kernel_size=self.kernel_size)
+        decoding_3 = compressionUnit(x, self.n_filters_2, kernel_size=self.kernel_size)  # 24x24x24x24
+
+        # Third concatenation
+        x = upsamplingUnit(encoding_2, decoding_3, self.n_filters_2, self.n_filters_2, kernel_size=self.kernel_size,
+                           deconv_kernel_size=self.deconv_kernel_size, deconv_strides=self.deconv_strides)  # 48x48x48x48
+        x = denseUnit(x, kernel_size=self.kernel_size)
+        x = denseUnit(x, kernel_size=self.kernel_size)
+        decoding_2 = compressionUnit(x, self.n_filters_1)  # 48x48x48x12
+
+        # Fourth concatenation
+        x = upsamplingUnit(encoding_1, decoding_2, self.n_filters_1, self.n_filters_1, kernel_size=self.kernel_size,
+                           deconv_kernel_size=self.deconv_kernel_size, deconv_strides=self.deconv_strides)  # 96x96x96x24
+        x = denseUnit(x, kernel_size=self.kernel_size)
+        x = denseUnit(x, kernel_size=self.kernel_size)
+        decoding_1 = compressionUnit(x, self.n_filters_0)  # 96x96x96x6
+
+        # Last concatenation
+        x = upsamplingUnit(encoding_0, decoding_1, self.n_filters_0, self.n_filters_0, kernel_size=self.kernel_size,
+                           deconv_kernel_size=self.deconv_kernel_size, deconv_strides=self.deconv_strides)  # 192x192x192x12
+
+        x = BatchNormalization(gamma_regularizer=l2(self.weight_decay),
+                               beta_regularizer=l2(self.weight_decay))(x)
+        x = Activation(self.activation)(x)
+        x = Conv3D(self.num_classes, (1, 1, 1), padding='same', kernel_initializer='he_uniform')(x)
+        output_layer = Softmax(axis=-1)(x)
+
+        self.model = Model(inputs=[input_layer], outputs=[output_layer])
+
+    def set_initial_weights(self, weights):
+        """
+        Set the initial weights of the U-Net, in case
+        training was stopped and then resumed. An exception
+        is raised in case the model currently configured
+        has different properties than the one whose weights
+        were stored.
+        """
+        try:
+            self.model.load_weights(weights)
+        except:
+            raise
+
+    def get_n_parameters(self):
+        """
+        Get the total number of parameters of the model
+        """
+        return self.model.count_params()
+
+    def summary(self):
+        """
+        Print out summary of the model.
+        """
+        print(self.model.summary())
+
+
+class CDUnet(object):
     """
-    Transition layer after each dense block.
-    It reduces tensor dimension and number of features.
+    This class provides a simple interface to create
+    a Contextual Deconvolutional Dense Net network with custom parameters.
     Args:
-        x: Input tensor
-        concat_axis: axis of concatenation
-        nb_filter: number of features of input tensor
-        theta: parameter in (0,1] to specify number of features in output.
-            features_out = theta * features_in
-        dropout_rate: probability of dropout layers
+        input_size: input size for the network
+        num_classes: number of classes in labels
         weight_decay: weight decay parameter
-
-    Returns: returns resized tensor in order to reduce dimensionality
+        initial_filters: number of initial filters that defines subsequent number of features for convolutions
+        activation: activation function used in the U-Net layers
+        kernel_size: size of the kernel to be used in the convolutional layers of the U-Net
+        strides: stride shape to be used in the convolutional layers of the U-Net
+        deconv_strides: stride shape to be used in the deconvolutional layers of the U-Net
+        deconv_kernel_size: kernel size shape to be used in the deconvolutional layers of the U-Net
+        pool_size: size of the pool size to be used in MaxPooling layers
+        pool_strides: size of the strides to be used in MaxPooling layers
     """
 
-    x = BatchNormalization(axis=concat_axis,
-                           gamma_regularizer=l2(weight_decay),
-                           beta_regularizer=l2(weight_decay))(x)
-    x = Activation('relu')(x)
-    x = Conv3D(nb_filter * theta, (1, 1, 1),
-               kernel_initializer="he_uniform",
-               padding="same",
-               # use_bias=False,
-               kernel_regularizer=l2(weight_decay))(x)
-    if dropout_rate:
-        x = Dropout(dropout_rate)(x)
-    x = AveragePooling3D((2, 2, 2), strides=(2, 2, 2))(x)
+    def __init__(self, input_size,
+                 num_classes,
+                 weight_decay=1E-4,
+                 initial_filters = 6,
+                 activation = 'relu',
+                 kernel_size=(3, 3, 3),
+                 strides=(1, 1, 1),
+                 deconv_kernel_size=(2, 2, 2),
+                 deconv_strides=(2, 2, 2),
+                 pool_size=(2, 2, 2),
+                 pool_strides=(2, 2, 2),
+                 ):
 
-    return x, nb_filter * theta
+        self.input_size = input_size
+        self.num_classes = num_classes
+        self.weight_decay = weight_decay
+        self.initial_filters = initial_filters
+        self.activation = activation
+        self.kernel_size = kernel_size
+        self.strides = strides
+        self.deconv_kernel_size = deconv_kernel_size
+        self.deconv_strides = deconv_strides
+        self.pool_size = pool_size
+        self.pool_strides = pool_strides
+
+        self.n_filters_0 = self.initial_filters
+        self.n_filters_1 = self.initial_filters * 2
+        self.n_filters_2 = self.initial_filters * 4
+        self.n_filters_3 = self.initial_filters * 8
+        self.n_filters_4 = self.initial_filters * 16
+        self.n_filters_5 = self.initial_filters * 32
 
 
-def denseblock(x, concat_axis, nb_layers, nb_filter, growth_rate,
-               dropout_rate=None, weight_decay=1E-4):
+    def create_model(self):
+
+        input_layer = layers.Input(shape=self.input_size)
+
+        # Conv layer 0
+        x = Conv3D(self.n_filters_0, self.kernel_size, padding='same')(input_layer)
+        x = BatchNormalization(gamma_regularizer=l2(self.weight_decay),
+                               beta_regularizer=l2(self.weight_decay))(x)
+        x = Activation(self.activation)(x)
+        x = Conv3D(self.n_filters_0, self.kernel_size, padding='same')(x)
+        x = BatchNormalization(gamma_regularizer=l2(self.weight_decay),
+                               beta_regularizer=l2(self.weight_decay))(x)
+        encoding_0 = Activation(self.activation, name='encoding_0')(x)  # 192x192x192x6
+
+        # MaxPooling_0
+        max_pool_0 = MaxPool3D(self.pool_size)(encoding_0)  # 96x96x96x6
+
+        # Conv layer 1
+        x = Conv3D(self.n_filters_1, self.kernel_size, padding='same')(max_pool_0)
+        x = BatchNormalization(gamma_regularizer=l2(self.weight_decay),
+                               beta_regularizer=l2(self.weight_decay))(x)
+        x = Activation(self.activation)(x)
+        x = Conv3D(self.n_filters_1, self.kernel_size, padding='same')(x)
+        x = BatchNormalization(gamma_regularizer=l2(self.weight_decay),
+                               beta_regularizer=l2(self.weight_decay))(x)
+        encoding_1 = Activation(self.activation, name='encoding_1')(x)  # 96x96x96x12
+
+        # Maxpooling_1
+        max_pool_1 = MaxPool3D(self.pool_size)(encoding_1)  # 48x48x48x12
+
+        # Conv layer 2
+        x = Conv3D(self.n_filters_2, self.kernel_size, padding='same')(max_pool_1)
+        x = BatchNormalization(gamma_regularizer=l2(self.weight_decay),
+                               beta_regularizer=l2(self.weight_decay))(x)
+        x = Activation(self.activation)(x)
+        x = Conv3D(self.n_filters_2, self.kernel_size, padding='same')(x)
+        x = BatchNormalization(gamma_regularizer=l2(self.weight_decay),
+                               beta_regularizer=l2(self.weight_decay))(x)
+        encoding_2 = Activation(self.activation, name='encoding_2')(x)  # 48x48x48x24
+
+        # Maxpooling_2
+        max_pool_2 = MaxPool3D(self.pool_size)(encoding_2)  # 24x24x24x24
+
+        # Conv layer 3
+        x = Conv3D(self.n_filters_3, self.kernel_size, padding='same')(max_pool_2)
+        x = BatchNormalization(gamma_regularizer=l2(self.weight_decay),
+                               beta_regularizer=l2(self.weight_decay))(x)
+        x = Activation(self.activation)(x)
+        x = Conv3D(self.n_filters_3, self.kernel_size, padding='same')(x)
+        x = BatchNormalization(gamma_regularizer=l2(self.weight_decay),
+                               beta_regularizer=l2(self.weight_decay))(x)
+        encoding_3 = Activation(self.activation, name='encoding_3')(x)  # 24x24x24x48
+
+        # Maxpooling_3
+        max_pool_3 = MaxPool3D(self.pool_size)(encoding_3)  # 12x12x12x48
+
+        # Conv layer 3
+        x = Conv3D(self.n_filters_4, self.kernel_size, padding='same')(max_pool_3)
+        x = BatchNormalization(gamma_regularizer=l2(self.weight_decay),
+                               beta_regularizer=l2(self.weight_decay))(x)
+        x = Activation(self.activation)(x)
+        x = Conv3D(self.n_filters_4, self.kernel_size, padding='same')(x)
+        x = BatchNormalization(gamma_regularizer=l2(self.weight_decay),
+                               beta_regularizer=l2(self.weight_decay))(x)
+        encoding_4 = Activation(self.activation, name='encoding_4')(x)  # 12x12x12x96
+
+        # Maxpooling_4
+        max_pool_4 = MaxPool3D(self.pool_size)(encoding_4)  # 6x6x6x96
+
+        # Conv layer 4
+        x = Conv3D(self.n_filters_5, self.kernel_size, padding='same')(max_pool_4)
+        x = BatchNormalization(gamma_regularizer=l2(self.weight_decay),
+                               beta_regularizer=l2(self.weight_decay))(x)
+        x = Activation(self.activation)(x)
+        x = Conv3D(self.n_filters_5, self.kernel_size, padding='same')(x)
+        x = BatchNormalization(gamma_regularizer=l2(self.weight_decay),
+                               beta_regularizer=l2(self.weight_decay))(x)
+        encoding_5 = Activation(self.activation, name='encoding_5')(x)  # 6x6x6x192  # BOTTLENECK
+
+        decoding_5 = compressionUnit(encoding_5, self.n_filters_4, kernel_size=self.kernel_size)  # 6x6x6x96
+
+        # First concatenation
+        x = upsamplingUnit(encoding_4, decoding_5, self.n_filters_4, self.n_filters_4, kernel_size=self.kernel_size,
+                           deconv_kernel_size=self.deconv_kernel_size, deconv_strides=self.deconv_strides)
+        x = denseUnit(x, kernel_size=self.kernel_size)
+        x = denseUnit(x, kernel_size=self.kernel_size)
+        decoding_4 = compressionUnit(x, self.n_filters_3, kernel_size=self.kernel_size)
+
+        # Second concatenation
+        x = upsamplingUnit(encoding_3, decoding_4, self.n_filters_3, self.n_filters_3, kernel_size=self.kernel_size,
+                           deconv_kernel_size=self.deconv_kernel_size, deconv_strides=self.deconv_strides)  # 24x24x24x96
+        x = denseUnit(x, kernel_size=self.kernel_size)
+        x = denseUnit(x, kernel_size=self.kernel_size)
+        decoding_3 = compressionUnit(x, self.n_filters_2, kernel_size=self.kernel_size)  # 24x24x24x24
+
+        # Third concatenation
+        x = upsamplingUnit(encoding_2, decoding_3, self.n_filters_2, self.n_filters_2, kernel_size=self.kernel_size,
+                           deconv_kernel_size=self.deconv_kernel_size, deconv_strides=self.deconv_strides)  # 48x48x48x48
+        x = denseUnit(x, kernel_size=self.kernel_size)
+        x = denseUnit(x, kernel_size=self.kernel_size)
+        decoding_2 = compressionUnit(x, self.n_filters_1, kernel_size=self.kernel_size)  # 48x48x48x12
+
+        # Fourth concatenation
+        x = upsamplingUnit(encoding_1, decoding_2, self.n_filters_1, self.n_filters_1, kernel_size=self.kernel_size,
+                           deconv_kernel_size=self.deconv_kernel_size, deconv_strides=self.deconv_strides)  # 96x96x96x24
+        x = denseUnit(x, kernel_size=self.kernel_size)
+        x = denseUnit(x, kernel_size=self.kernel_size)
+        decoding_1 = compressionUnit(x, self.n_filters_1, kernel_size=self.kernel_size)  # 96x96x96x6
+
+        # Last concatenation
+        x = upsamplingUnit(encoding_0, decoding_1, self.n_filters_0, self.n_filters_0, kernel_size=self.kernel_size,
+                           deconv_kernel_size=self.deconv_kernel_size, deconv_strides=self.deconv_strides)  # 192x192x192x12
+
+        x = BatchNormalization(gamma_regularizer=l2(self.weight_decay),
+                               beta_regularizer=l2(self.weight_decay))(x)
+        x = Activation(self.activation)(x)
+
+        x = Conv3D(self.num_classes, (1, 1, 1), padding='same', kernel_initializer='he_uniform')(x)
+        output_layer = Softmax(axis=-1)(x)
+
+        self.model = Model(inputs=[input_layer], outputs=[output_layer])
+
+    def set_initial_weights(self, weights):
+        """
+        Set the initial weights of the U-Net, in case
+        training was stopped and then resumed. An exception
+        is raised in case the model currently configured
+        has different properties than the one whose weights
+        were stored.
+        """
+        try:
+            self.model.load_weights(weights)
+        except:
+            raise
+
+    def get_n_parameters(self):
+        """
+        Get the total number of parameters of the model
+        """
+        return self.model.count_params()
+
+    def summary(self):
+        """
+        Print out summary of the model.
+        """
+        print(self.model.summary())
+
+
+
+def createCDDUnet(input_shape, NumClasses, weight_decay=1E-4, growth_rate=12, n_layers=6, theta=0.5):
     """
-    Create a dense connected block of depth nb_layers,
-    where each output is fed into all subsequent layers.
-    Args:
-        x: tensor in input
-        concat_axis: axis of concatenation
-        nb_layers: number of layers of the dense block
-        nb_filter: number of filters of input tensor
-        growth_rate: number of output features for each layer in the block
-        dropout_rate: probability of dropout layers
-        weight_decay: weight decay parameter
-
-    Returns: Output tensor with same shape and number of features
-    equal to: nb_filter + nb_layers * growth_rate
-    """
-
-    list_feat = [x]
-
-    for i in range(nb_layers):
-        x = conv_factory(x, concat_axis, growth_rate,
-                         dropout_rate, weight_decay)
-        list_feat.append(x)
-        x = Concatenate(axis=concat_axis)(list_feat)
-        nb_filter += growth_rate
-
-    return x, nb_filter
-
-
-def channelModule(input_tensor, nb_filter):
-    """
-    Channel contextual model to enhance channel information flow.
-    Args:
-        input_tensor: input tensor
-        nb_filter: number of features of the input tensor
-    Returns: tensor of the same shape of input where relevant channel have been enhanced
-        in contrast to less relevant ones.
-    """
-
-    scale_tensor = tf.ones_like(input_tensor)
-
-    x = GlobalAveragePooling3D()(input_tensor)
-    x = tf.expand_dims(x, axis=1)
-    x = tf.expand_dims(x, axis=1)
-    x = tf.expand_dims(x, axis=1)
-    x = Conv1D(nb_filter/2, 1,
-               kernel_initializer="he_uniform")(x)
-    x = Activation('relu')(x)
-    x = Conv1D(nb_filter, 1,
-               kernel_initializer="he_uniform")(x)
-    x = Activation('sigmoid')(x)
-
-    x = tf.multiply(x, scale_tensor)  # Lambda(lambda y: tf.multiply(y, scale_tensor))(x)
-    output_tensor = Multiply()([x, input_tensor])
-
-    return output_tensor
-
-
-def spatialModule(input_tensor, nb_filter):
-    """
-    Spatial contextual model to enhance spatial information across features.
-    Args:
-        input_tensor: input tensor
-        nb_filter: number of features in the input tensor.
-
-    Returns: tensor of the same shape of input where relevant patches inside the
-        volume are enhanced in contrast to less relebant ones.
-    """
-
-    scale_tensor = tf.ones_like(input_tensor)
-
-    x = Conv3D(nb_filter/2, (1, 1, 1),
-               kernel_initializer="he_uniform")(input_tensor)
-    x = Activation('relu')(x)
-    x = Conv3D(1, (1, 1, 1),
-               kernel_initializer="he_uniform")(x)
-    x = Activation('sigmoid')(x)
-
-    x = tf.multiply(x, scale_tensor) # Lambda(lambda y: tf.multiply(y, scale_tensor))(x)
-    output_tensor = Multiply()([x, input_tensor])
-    return output_tensor
-
-
-def denseUnit(input_tensor, dense_filters=48, weight_decay=1E-4):
-    """
-    Dense unit that comprehends a convolution with a fixed number of filters and the two
-        spatial and channel contextual modules.
-    Args:
-        input_tensor: input tensor
-        dense_filters: number of filters for the first convolution
-        weight_decay: weight decay parameter
-
-    Returns: tensor with the same shape as input
-    """
-
-    x = BatchNormalization(gamma_regularizer=l2(weight_decay),
-                           beta_regularizer=l2(weight_decay))(input_tensor)
-    x = Activation('relu')(x)
-    x = Conv3D(dense_filters, (3, 3, 3), padding='same')(x)
-    x = Dropout(0.2)(x)
-
-    x = spatialModule(x, dense_filters)
-    x = channelModule(x, dense_filters)
-
-    x = Concatenate()([x, input_tensor])
-    return x
-
-
-def compressionUnit(input_tensor, nb_filter):
-    """
-    Compression unit to reduce the linear increase of feature numbers in the dense units.
-    Args:
-        input_tensor: input tensor
-        nb_filter: number fo filters for the convolution
-
-    Returns: a tensor with number of features specified in nb_filter
-    """
-
-    x = Conv3D(nb_filter, (3, 3, 3), padding='same')(input_tensor)
-
-    x = spatialModule(x, nb_filter)
-    x = channelModule(x, nb_filter)
-    return x
-
-
-def upsamplingUnit(encoding_input, decoding_input, filter_enc, filter_dec):
-    """
-    Upsampling unit that upsamples from decoding path and concatenates with encoding path to 
-        maintain fine spatial information and produce dense predictions. 
-    Args:
-        encoding_input: input tensor coming from encoding path
-        decoding_input: input tensor coming from decoding path
-        filter_enc: number fo filter for the convolution of the encoding path 
-        filter_dec: number fo filter for the transposed convolution of the decoding path
-
-    Returns: concatenation of the two tensors in input after convolutions
-    """
-
-    x = Conv3D(filter_enc, (3, 3, 3), padding='same')(encoding_input)
-    y = Conv3DTranspose(filter_dec, (2, 2, 2), strides=(2, 2, 2), padding='same')(decoding_input)
-    return Concatenate()([x, y])
-
-
-def createCDUnet(input_shape, NumClasses, weight_decay=1E-4, growth_rate=12, n_layers=6, theta=0.5):
-    """
-    Function to create a contextual deconvolution segmentation model with spatial and
+    Function to create a contextual deconvolution dense segmentation model with spatial and
         channels modules in the decoding path. 
     Args:
         input_shape: shape of input tensor
@@ -544,6 +664,145 @@ def createCDUnet(input_shape, NumClasses, weight_decay=1E-4, growth_rate=12, n_l
 
     return model
 
+
+def createCDUnet(input_shape, NumClasses, weight_decay=1E-4, initial_filters=6, n_layers=6, theta=0.5):
+    """
+    Function to create a contextual deconvolution segmentation model with spatial and
+        channels modules in the decoding path.
+    Args:
+        input_shape: shape of input tensor
+        NumClasses: number of classes to segment
+        weight_decay: weight decay parameter
+        initial_filters: number of initial filters that defines subsequent number of features for convolutions
+        n_layers: number of layers in the first dense block. Layers in the subsequent blocks are defined
+            according to this parameter.
+        theta: fraction to reduce number of features in the transition blocks after each dense block.
+
+    Returns: softmax probability maps of segmentation masks for the numClasses number of classes specified in input.
+    """
+    input_layer = layers.Input(shape=input_shape)
+
+    n_filters_0 = initial_filters
+    n_filters_1 = 2 * initial_filters
+    n_filters_2 = 4 * initial_filters
+    n_filters_3 = 8 * initial_filters
+    n_filters_4 = 16 * initial_filters
+    n_filters_5 = 32 * initial_filters
+
+    # Conv layer 0
+    x = Conv3D(n_filters_0, (3, 3, 3), padding='same')(input_layer)
+    x = BatchNormalization(gamma_regularizer=l2(weight_decay),
+                           beta_regularizer=l2(weight_decay))(x)
+    x = Activation('relu')(x)
+    x = Conv3D(n_filters_0, (3, 3, 3), padding='same')(x)
+    x = BatchNormalization(gamma_regularizer=l2(weight_decay),
+                           beta_regularizer=l2(weight_decay))(x)
+    encoding_0 = Activation('relu', name='encoding_0')(x)  # 192x192x192x6
+
+    # MaxPooling_0
+    max_pool_0 = MaxPool3D((2, 2, 2))(encoding_0)  # 96x96x96x6
+
+    # Conv layer 1
+    x = Conv3D(n_filters_1, (3, 3, 3), padding='same')(max_pool_0)
+    x = BatchNormalization(gamma_regularizer=l2(weight_decay),
+                           beta_regularizer=l2(weight_decay))(x)
+    x = Activation('relu')(x)
+    x = Conv3D(n_filters_1, (3, 3, 3), padding='same')(x)
+    x = BatchNormalization(gamma_regularizer=l2(weight_decay),
+                           beta_regularizer=l2(weight_decay))(x)
+    encoding_1 = Activation('relu', name='encoding_1')(x)  # 96x96x96x12
+
+    # Maxpooling_1
+    max_pool_1 = MaxPool3D((2, 2, 2))(encoding_1)  # 48x48x48x12
+
+    # Conv layer 2
+    x = Conv3D(n_filters_2, (3, 3, 3), padding='same')(max_pool_1)
+    x = BatchNormalization(gamma_regularizer=l2(weight_decay),
+                           beta_regularizer=l2(weight_decay))(x)
+    x = Activation('relu')(x)
+    x = Conv3D(n_filters_2, (3, 3, 3), padding='same')(x)
+    x = BatchNormalization(gamma_regularizer=l2(weight_decay),
+                           beta_regularizer=l2(weight_decay))(x)
+    encoding_2 = Activation('relu', name='encoding_2')(x)  # 48x48x48x24
+
+    # Maxpooling_2
+    max_pool_2 = MaxPool3D((2, 2, 2))(encoding_2)  # 24x24x24x24
+
+    # Conv layer 3
+    x = Conv3D(n_filters_3, (3, 3, 3), padding='same')(max_pool_2)
+    x = BatchNormalization(gamma_regularizer=l2(weight_decay),
+                           beta_regularizer=l2(weight_decay))(x)
+    x = Activation('relu')(x)
+    x = Conv3D(n_filters_3, (3, 3, 3), padding='same')(x)
+    x = BatchNormalization(gamma_regularizer=l2(weight_decay),
+                           beta_regularizer=l2(weight_decay))(x)
+    encoding_3 = Activation('relu', name='encoding_3')(x)  # 24x24x24x48
+
+    # Maxpooling_3
+    max_pool_3 = MaxPool3D((2, 2, 2))(encoding_3)  # 12x12x12x48
+
+    # Conv layer 3
+    x = Conv3D(n_filters_4, (3, 3, 3), padding='same')(max_pool_3)
+    x = BatchNormalization(gamma_regularizer=l2(weight_decay),
+                           beta_regularizer=l2(weight_decay))(x)
+    x = Activation('relu')(x)
+    x = Conv3D(n_filters_4, (3, 3, 3), padding='same')(x)
+    x = BatchNormalization(gamma_regularizer=l2(weight_decay),
+                           beta_regularizer=l2(weight_decay))(x)
+    encoding_4 = Activation('relu', name='encoding_4')(x)  # 12x12x12x96
+
+    # Maxpooling_4
+    max_pool_4 = MaxPool3D((2, 2, 2))(encoding_4)  # 6x6x6x96
+
+    # Conv layer 4
+    x = Conv3D(n_filters_5, (3, 3, 3), padding='same')(max_pool_4)
+    x = BatchNormalization(gamma_regularizer=l2(weight_decay),
+                           beta_regularizer=l2(weight_decay))(x)
+    x = Activation('relu')(x)
+    x = Conv3D(n_filters_5, (3, 3, 3), padding='same')(x)
+    x = BatchNormalization(gamma_regularizer=l2(weight_decay),
+                           beta_regularizer=l2(weight_decay))(x)
+    encoding_5 = Activation('relu', name='encoding_5')(x)  # 6x6x6x192  # BOTTLENECK
+
+    decoding_5 = compressionUnit(encoding_5, n_filters_4)  # 6x6x6x96
+
+    # First concatenation
+    x = upsamplingUnit(encoding_4, decoding_5, n_filters_4, n_filters_4)
+    x = denseUnit(x)
+    x = denseUnit(x)
+    decoding_4 = compressionUnit(x, n_filters_3)
+
+    # Second concatenation
+    x = upsamplingUnit(encoding_3, decoding_4, n_filters_3, n_filters_3)  # 24x24x24x96
+    x = denseUnit(x)
+    x = denseUnit(x)
+    decoding_3 = compressionUnit(x, n_filters_2)  # 24x24x24x24
+
+    # Third concatenation
+    x = upsamplingUnit(encoding_2, decoding_3, n_filters_2, n_filters_2)  # 48x48x48x48
+    x = denseUnit(x)
+    x = denseUnit(x)
+    decoding_2 = compressionUnit(x, n_filters_1)  # 48x48x48x12
+
+    # Fourth concatenation
+    x = upsamplingUnit(encoding_1, decoding_2, n_filters_1, n_filters_1)  # 96x96x96x24
+    x = denseUnit(x)
+    x = denseUnit(x)
+    decoding_1 = compressionUnit(x, n_filters_1)  # 96x96x96x6
+
+    # Last concatenation
+    x = upsamplingUnit(encoding_0, decoding_1, n_filters_0, n_filters_0)  # 192x192x192x12
+
+    x = BatchNormalization(gamma_regularizer=l2(weight_decay),
+                           beta_regularizer=l2(weight_decay))(x)
+    x = Activation('relu')(x)
+
+    x = Conv3D(NumClasses, (1, 1, 1), padding='same', kernel_initializer='he_uniform')(x)
+    output_layer = Softmax(axis=-1)(x)
+
+    model = Model(inputs=[input_layer], outputs=[output_layer])
+
+    return model
 
 
 

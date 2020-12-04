@@ -6,6 +6,13 @@ from scipy.ndimage import distance_transform_edt as distance
 import numpy as np
 import tensorflow as tf
 
+from keras.layers.core import Dense, Dropout, Activation
+from keras.layers.convolutional import Conv1D, Conv2D, Conv3D, Conv3DTranspose
+from keras.layers.pooling import AveragePooling2D, AveragePooling3D, GlobalAveragePooling3D, MaxPool3D
+from keras.layers import Input, Concatenate, Lambda, Dropout, Concatenate, Multiply, Softmax
+from keras.layers.normalization import BatchNormalization
+from keras.regularizers import l2
+
 
 def calc_SDM(seg):
     """
@@ -101,45 +108,6 @@ def calc_DM_batch(y_true, numClasses):
     return np.array(dist_batch).astype(np.float32)
 
 
-# def calc_SDM_3D(seg):
-#     """
-#     Computes separately 2D distance maps of all single slices of
-#     input ground truth volume, using scipy function
-#     Args:
-#         seg: 3D binary array to compute the distance map
-#     Returns:
-#         res: distance maps computed singularly from 2D slices of input
-#     """
-#
-#     res = np.zeros_like(seg)
-#     posmask = seg.astype(np.bool)
-#
-#     for i in range(seg.shape[2]):
-#         pos = posmask[:, :, i]
-#         if pos.any():
-#             neg = ~pos
-#             res[:, :, i] = distance(neg) * neg - (distance(pos) - 1) * pos
-#     return res
-
-
-# def calc_SDM_batch_3D(y_true, numClasses):
-#     """
-#     Prepares the input for distance maps computation, and pass it to calc_dist_map
-#     Args:
-#         y_true: ground truth tensor of dimensions [class, batch_size, rows, columns]
-#         numClasses: number of classes
-#     Returns:
-#         array of distance map of the same dimension of input tensor
-#     """
-#     y_true_numpy = y_true.numpy()
-#     dist_batch = np.zeros_like(y_true_numpy)
-#     for c in range(numClasses):
-#         temp_y = y_true_numpy[c]
-#         for i, y in enumerate(temp_y):
-#             dist_batch[c, i] = calc_SDM_3D(y)
-#     return np.array(dist_batch).astype(np.float32)
-
-
 def count_class_voxels(labels, nVoxels, numClasses):
     """
     Counts total number of voxels for each class in the batch size.
@@ -179,3 +147,220 @@ def get_loss_weights(labels, nVoxels, numClasses):
     numerator = tf.multiply(1.0 / nVoxels, numerator_1)
     subtract_term = tf.subtract(1.0, numerator)
     return tf.multiply(1.0 / (numClasses - 1), subtract_term)
+
+
+
+def conv_factory(x, concat_axis, nb_filter, dropout_rate=None, weight_decay=1E-4, kernel_size = (3,3,3)):
+    """
+    This function defines the convolution operation to perform in each layer of a dense block
+    Args:
+        x: Input tensor
+        concat_axis: axis of concatenation
+        nb_filter: number of features of input tensor
+        dropout_rate: probability of dropout layers
+        weight_decay: weight decay parameter
+        kernel_size: kernel size used for convolution. Default (3,3,3)
+
+    Returns: Tensor to pass to the next layer
+    """
+
+    x = BatchNormalization(axis=concat_axis,
+                           gamma_regularizer=l2(weight_decay),
+                           beta_regularizer=l2(weight_decay))(x)
+    x = Activation('relu')(x)
+    x = Conv3D(4*nb_filter, (1, 1, 1),
+               kernel_initializer="he_uniform",
+               padding="same",
+               # use_bias=False,
+               kernel_regularizer=l2(weight_decay))(x)
+    x = Conv3D(nb_filter, kernel_size,
+               kernel_initializer="he_uniform",
+               padding="same",
+               # use_bias=False,
+               kernel_regularizer=l2(weight_decay))(x)
+    if dropout_rate:
+        x = Dropout(dropout_rate)(x)
+
+    return x
+
+
+def transition(x, concat_axis, nb_filter, theta, dropout_rate=None, weight_decay=1E-4):
+    """
+    Transition layer after each dense block.
+    It reduces tensor dimension and number of features.
+    Args:
+        x: Input tensor
+        concat_axis: axis of concatenation
+        nb_filter: number of features of input tensor
+        theta: parameter in (0,1] to specify number of features in output.
+            features_out = theta * features_in
+        dropout_rate: probability of dropout layers
+        weight_decay: weight decay parameter
+
+    Returns: returns resized tensor in order to reduce dimensionality
+    """
+
+    x = BatchNormalization(axis=concat_axis,
+                           gamma_regularizer=l2(weight_decay),
+                           beta_regularizer=l2(weight_decay))(x)
+    x = Activation('relu')(x)
+    x = Conv3D(nb_filter * theta, (1, 1, 1),
+               kernel_initializer="he_uniform",
+               padding="same",
+               # use_bias=False,
+               kernel_regularizer=l2(weight_decay))(x)
+    if dropout_rate:
+        x = Dropout(dropout_rate)(x)
+    x = AveragePooling3D((2, 2, 2), strides=(2, 2, 2))(x)
+
+    return x, nb_filter * theta
+
+
+def denseblock(x, concat_axis, nb_layers, nb_filter, growth_rate,
+               dropout_rate=None, weight_decay=1E-4):
+    """
+    Create a dense connected block of depth nb_layers,
+    where each output is fed into all subsequent layers.
+    Args:
+        x: tensor in input
+        concat_axis: axis of concatenation
+        nb_layers: number of layers of the dense block
+        nb_filter: number of filters of input tensor
+        growth_rate: number of output features for each layer in the block
+        dropout_rate: probability of dropout layers
+        weight_decay: weight decay parameter
+
+    Returns: Output tensor with same shape and number of features
+    equal to: nb_filter + nb_layers * growth_rate
+    """
+
+    list_feat = [x]
+
+    for i in range(nb_layers):
+        x = conv_factory(x, concat_axis, growth_rate,
+                         dropout_rate, weight_decay)
+        list_feat.append(x)
+        x = Concatenate(axis=concat_axis)(list_feat)
+        nb_filter += growth_rate
+
+    return x, nb_filter
+
+
+def channelModule(input_tensor, nb_filter):
+    """
+    Channel contextual model to enhance channel information flow.
+    Args:
+        input_tensor: input tensor
+        nb_filter: number of features of the input tensor
+    Returns: tensor of the same shape of input where relevant channel have been enhanced
+        in contrast to less relevant ones.
+    """
+
+    scale_tensor = tf.ones_like(input_tensor)
+
+    x = GlobalAveragePooling3D()(input_tensor)
+    x = tf.expand_dims(x, axis=1)
+    x = tf.expand_dims(x, axis=1)
+    x = tf.expand_dims(x, axis=1)
+    x = Conv1D(nb_filter/2, 1,
+               kernel_initializer="he_uniform")(x)
+    x = Activation('relu')(x)
+    x = Conv1D(nb_filter, 1,
+               kernel_initializer="he_uniform")(x)
+    x = Activation('sigmoid')(x)
+
+    x = tf.multiply(x, scale_tensor)  # Lambda(lambda y: tf.multiply(y, scale_tensor))(x)
+    output_tensor = Multiply()([x, input_tensor])
+
+    return output_tensor
+
+
+def spatialModule(input_tensor, nb_filter):
+    """
+    Spatial contextual model to enhance spatial information across features.
+    Args:
+        input_tensor: input tensor
+        nb_filter: number of features in the input tensor.
+
+    Returns: tensor of the same shape of input where relevant patches inside the
+        volume are enhanced in contrast to less relebant ones.
+    """
+
+    scale_tensor = tf.ones_like(input_tensor)
+
+    x = Conv3D(nb_filter/2, (1, 1, 1),
+               kernel_initializer="he_uniform")(input_tensor)
+    x = Activation('relu')(x)
+    x = Conv3D(1, (1, 1, 1),
+               kernel_initializer="he_uniform")(x)
+    x = Activation('sigmoid')(x)
+
+    x = tf.multiply(x, scale_tensor)  # Lambda(lambda y: tf.multiply(y, scale_tensor))(x)
+    output_tensor = Multiply()([x, input_tensor])
+    return output_tensor
+
+
+def denseUnit(input_tensor, dense_filters=48, weight_decay=1E-4, kernel_size = (3,3,3)):
+    """
+    Dense unit that comprehends a convolution with a fixed number of filters and the two
+        spatial and channel contextual modules.
+    Args:
+        input_tensor: input tensor
+        dense_filters: number of filters for the first convolution
+        weight_decay: weight decay parameter
+        kernel_size: kernel used for convolution
+
+    Returns: tensor with the same shape as input
+    """
+
+    x = BatchNormalization(gamma_regularizer=l2(weight_decay),
+                           beta_regularizer=l2(weight_decay))(input_tensor)
+    x = Activation('relu')(x)
+    x = Conv3D(dense_filters, kernel_size, padding='same')(x)
+    x = Dropout(0.2)(x)
+
+    x = spatialModule(x, dense_filters)
+    x = channelModule(x, dense_filters)
+
+    x = Concatenate()([x, input_tensor])
+    return x
+
+
+def compressionUnit(input_tensor, nb_filter, kernel_size=(3,3,3)):
+    """
+    Compression unit to reduce the linear increase of feature numbers in the dense units.
+    Args:
+        input_tensor: input tensor
+        nb_filter: number fo filters for the convolution
+        kernel_size: kernel size used for convolution. Default (3,3,3)
+
+    Returns: a tensor with number of features specified in nb_filter
+    """
+
+    x = Conv3D(nb_filter, kernel_size, padding='same')(input_tensor)
+
+    x = spatialModule(x, nb_filter)
+    x = channelModule(x, nb_filter)
+    return x
+
+
+def upsamplingUnit(encoding_input, decoding_input, filter_enc, filter_dec, kernel_size=(3,3,3),
+                   deconv_kernel_size=(2,2,2), deconv_strides=(2, 2, 2)):
+    """
+    Upsampling unit that upsamples from decoding path and concatenates with encoding path to
+        maintain fine spatial information and produce dense predictions.
+    Args:
+        encoding_input: input tensor coming from encoding path
+        decoding_input: input tensor coming from decoding path
+        filter_enc: number fo filter for the convolution of the encoding path
+        filter_dec: number fo filter for the transposed convolution of the decoding path
+        kernel_size: kernel size used for convolution. Default (3,3,3)
+        deconv_kernel_size: kernel size used for deconvolution. Default (2,2,2)
+        deconv_strides: strides used for deconvolution. Default (2,2,2)
+
+    Returns: concatenation of the two tensors in input after convolutions
+    """
+
+    x = Conv3D(filter_enc, kernel_size, padding='same')(encoding_input)
+    y = Conv3DTranspose(filter_dec, deconv_kernel_size, strides=deconv_strides, padding='same')(decoding_input)
+    return Concatenate()([x, y])
