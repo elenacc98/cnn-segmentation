@@ -127,7 +127,7 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha):
             mean_over_classes = tf.add(mean_over_classes,
                                        tf.multiply(class_loss_weight,
                                        tf.divide(numerator, denominator)))
-        boundary_loss = tf.constant(0, dtypr=tf.float32)
+        boundary_loss = tf.Tensor(0, dtype=tf.float32)
         if alpha < 1:
             SDM = tf.py_function(func=calc_SDM_batch,
                                  inp=[y_true, numClasses],
@@ -200,7 +200,7 @@ def Weighted_DiceCatCross_Loss_v1(numClasses, alpha):
             mean_over_classes = tf.add(mean_over_classes,
                                        tf.multiply(class_loss_weight,
                                                    tf.divide(numerator, denominator)))
-        wcc_loss = tf.constant(0, dtypr=tf.float32)
+        wcc_loss = tf.Tensor(0, dtype=tf.float32)
         if alpha < 1:
             SDM = tf.py_function(func=calc_DM_batch,
                                  inp=[y_true, numClasses],
@@ -285,7 +285,8 @@ def Weighted_DiceCatCross_Loss_v2(numClasses, alpha):
             mean_over_classes = tf.add(mean_over_classes,
                                        tf.multiply(class_loss_weight,
                                                    tf.divide(numerator, denominator)))
-        wcc_loss = tf.constant(0, dtypr=tf.float32)
+
+        wcc_loss = tf.Tensor(0, dtype=tf.float32)  
         if alpha < 1:
             SDM = tf.py_function(func=calc_DM_batch,
                                  inp=[y_true, numClasses],

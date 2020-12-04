@@ -154,6 +154,6 @@ class AlphaScheduler(Callback):
                 updated_alpha = self.update_fn(K.get_value(self.alpha))
                 K.set_value(self.alpha, updated_alpha)
         else:
-            if epoch % self.step_epoch == 0:
+            if epoch % self.step_epoch == 0 and epoch != 0:
                 updated_alpha = self.update_fn(K.get_value(self.alpha))
                 K.set_value(self.alpha, updated_alpha)
