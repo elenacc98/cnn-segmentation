@@ -127,15 +127,17 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha):
             mean_over_classes = tf.add(mean_over_classes,
                                        tf.multiply(class_loss_weight,
                                        tf.divide(numerator, denominator)))
-        boundary_loss = tf.Tensor(0, dtype=tf.float32)
-        if alpha < 1:
+
+        if K.get_value(alpha) < 1:
             SDM = tf.py_function(func=calc_SDM_batch,
                                  inp=[y_true, numClasses],
                                  Tout=tf.float32)
 
             boundary_loss = tf.multiply(tf.reduce_sum(tf.multiply(SDM, y_pred)), 1.0/nVoxels)
+            return alpha * tf.subtract(1.0, mean_over_classes) + (1-alpha) * boundary_loss
 
-        return alpha * tf.subtract(1.0, mean_over_classes) + (1-alpha) * boundary_loss
+        else:
+            return tf.subtract(1.0, mean_over_classes)
 
     return multiclass_weighted_dice_boundary_loss
 
@@ -200,8 +202,8 @@ def Weighted_DiceCatCross_Loss_v1(numClasses, alpha):
             mean_over_classes = tf.add(mean_over_classes,
                                        tf.multiply(class_loss_weight,
                                                    tf.divide(numerator, denominator)))
-        wcc_loss = tf.Tensor(0, dtype=tf.float32)
-        if alpha < 1:
+
+        if K.get_value(alpha) < 1:
             SDM = tf.py_function(func=calc_DM_batch,
                                  inp=[y_true, numClasses],
                                  Tout=tf.float32)
@@ -219,8 +221,10 @@ def Weighted_DiceCatCross_Loss_v1(numClasses, alpha):
             y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
 
             wcc_loss = -math_ops.reduce_sum(DWM * y_true * math_ops.log(y_pred))/tf.cast(nVoxels, tf.float32)
+            return alpha * tf.subtract(1.0, mean_over_classes) + (1-alpha) * wcc_loss
 
-        return alpha * tf.subtract(1.0, mean_over_classes) + (1-alpha) * wcc_loss
+        else:
+            return tf.subtract(1.0, mean_over_classes)
 
     return dice_categorical_cross_entropy
 
@@ -286,8 +290,7 @@ def Weighted_DiceCatCross_Loss_v2(numClasses, alpha):
                                        tf.multiply(class_loss_weight,
                                                    tf.divide(numerator, denominator)))
 
-        wcc_loss = tf.Tensor(0, dtype=tf.float32)
-        if alpha < 1:
+        if K.get_value(alpha) < 1:
             SDM = tf.py_function(func=calc_DM_batch,
                                  inp=[y_true, numClasses],
                                  Tout=tf.float32)
@@ -311,8 +314,10 @@ def Weighted_DiceCatCross_Loss_v2(numClasses, alpha):
             y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
 
             wcc_loss = -math_ops.reduce_sum(DWM * y_true * math_ops.log(y_pred))/tf.cast(nVoxels, tf.float32)
+            return alpha * tf.subtract(1.0, mean_over_classes) + (1-alpha) * wcc_loss
 
-        return alpha * tf.subtract(1.0, mean_over_classes) + (1-alpha) * wcc_loss
+        else:
+            return tf.subtract(1.0, mean_over_classes)
 
     return dice_categorical_cross_entropy
 
