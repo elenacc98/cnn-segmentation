@@ -13,7 +13,8 @@ from keras.layers import Input, Concatenate, Lambda, Dropout, Concatenate, Multi
 from keras.layers.normalization import BatchNormalization
 from keras.regularizers import l2
 from segmentation.utils import conv_factory, transition, denseblock, channelModule, \
-    spatialModule, denseUnit, compressionUnit, upsamplingUnit
+    spatialModule, denseUnit, compressionUnit, upsamplingUnit, squeeze_excite_block, \
+    conv_block, encoder1, encoder2, decoder1, decoder2, output_block, Upsample, ASPP
 from tensorflow.keras.applications import *
 
 class UNet(object):
@@ -805,138 +806,7 @@ def createCDUnet(input_shape, NumClasses, weight_decay=1E-4, initial_filters=6, 
     return model
 
 
-
-def squeeze_excite_block(inputs, ratio=8):
-    init = inputs
-    channel_axis = -1
-    filters = init.shape[channel_axis]
-    se_shape = (1, 1, 1, filters)
-
-    se = GlobalAveragePooling3D()(init)
-    se = Reshape(se_shape)(se)
-    se = Dense(filters // ratio, activation='relu', kernel_initializer='he_normal', use_bias=False)(se)
-    se = Dense(filters, activation='sigmoid', kernel_initializer='he_normal', use_bias=False)(se)
-
-    x = Multiply()([init, se])
-    return x
-
-
-def conv_block(inputs, filters):
-    x = inputs
-
-    x = Conv3D(filters, (3, 3, 3), padding="same")(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-
-    x = Conv3D(filters, (3, 3, 3), padding="same")(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-
-    x = squeeze_excite_block(x)
-
-    return x
-
-
-def encoder1(inputs):
-    num_filters = [16, 32, 64, 128]
-    skip_connections = []
-    x = inputs
-
-    for i, f in enumerate(num_filters):
-        x = conv_block(x, f)
-        skip_connections.append(x)
-        x = MaxPool3D((2, 2, 2))(x)
-
-    return x, skip_connections
-
-
-def decoder1(inputs, skip_connections):
-    num_filters = [128, 64, 32, 16]
-    skip_connections.reverse()
-    x = inputs
-
-    for i, f in enumerate(num_filters):
-        x = UpSampling3D((2, 2, 2), interpolation='bilinear')(x)
-        x = Concatenate()([x, skip_connections[i]])
-        x = conv_block(x, f)
-
-    return x
-
-
-def encoder2(inputs):
-    num_filters = [16, 32, 64, 128]
-    skip_connections = []
-    x = inputs
-
-    for i, f in enumerate(num_filters):
-        x = conv_block(x, f)
-        skip_connections.append(x)
-        x = MaxPool3D((2, 2, 2))(x)
-
-    return x, skip_connections
-
-
-def decoder2(inputs, skip_1, skip_2):
-    num_filters = [128, 64, 32, 16]
-    skip_2.reverse()
-    x = inputs
-
-    for i, f in enumerate(num_filters):
-        x = UpSampling3D((2, 2, 2), interpolation='bilinear')(x)
-        x = Concatenate()([x, skip_1[i], skip_2[i]])
-        x = conv_block(x, f)
-
-    return x
-
-
-def output_block(inputs):
-    x = Conv3D(8, (1, 1, 1), padding="same")(inputs)
-    x = Activation('sigmoid')(x)
-    return x
-
-
-def Upsample(tensor, size):
-    """Bilinear upsampling"""
-    def _upsample(x, size):
-        return tf.image.resize(images=x, size=size)
-    return Lambda(lambda x: _upsample(x, size), output_shape=size)(tensor)
-
-
-def ASPP(x, filter):
-    shape = x.shape
-
-    y1 = AveragePooling3D(pool_size=(shape[1], shape[2], shape[3]))(x)
-    y1 = Conv3D(filter, 1, padding="same")(y1)
-    y1 = BatchNormalization()(y1)
-    y1 = Activation("relu")(y1)
-    y1 = UpSampling3D((shape[1], shape[2], shape[3]), interpolation='bilinear')(y1)
-
-    y2 = Conv3D(filter, 1, dilation_rate=1, padding="same", use_bias=False)(x)
-    y2 = BatchNormalization()(y2)
-    y2 = Activation("relu")(y2)
-
-    y3 = Conv3D(filter, 3, dilation_rate=2, padding="same", use_bias=False)(x)
-    y3 = BatchNormalization()(y3)
-    y3 = Activation("relu")(y3)
-
-    y4 = Conv3D(filter, 3, dilation_rate=4, padding="same", use_bias=False)(x)
-    y4 = BatchNormalization()(y4)
-    y4 = Activation("relu")(y4)
-
-    y5 = Conv3D(filter, 3, dilation_rate=8, padding="same", use_bias=False)(x)
-    y5 = BatchNormalization()(y5)
-    y5 = Activation("relu")(y5)
-
-    y = Concatenate()([y1, y2, y3, y4, y5])
-
-    y = Conv3D(filter, 1, dilation_rate=1, padding="same", use_bias=False)(y)
-    y = BatchNormalization()(y)
-    y = Activation("relu")(y)
-
-    return y
-
-
-def build_model(shape, numClasses):
+def build_doubleUnet(shape, numClasses):
     inputs = Input(shape)
     x, skip_1 = encoder1(inputs)
     x = ASPP(x, 48)
