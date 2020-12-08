@@ -452,7 +452,7 @@ def conv_block(inputs, filters):
 
 
 def encoder1(inputs):
-    num_filters = [8, 16, 32, 64, 128]
+    num_filters = [8, 16, 32, 64]
     skip_connections = []
     x = inputs
 
@@ -465,7 +465,7 @@ def encoder1(inputs):
 
 
 def decoder1(inputs, skip_connections):
-    num_filters = [128, 64, 32, 16, 8]
+    num_filters = [64, 32, 16, 8]
     skip_connections.reverse()
     x = inputs
 
@@ -478,7 +478,7 @@ def decoder1(inputs, skip_connections):
 
 
 def encoder2(inputs):
-    num_filters = [8, 16, 32, 64, 128]
+    num_filters = [8, 16, 32, 64]
     skip_connections = []
     x = inputs
 
@@ -491,7 +491,7 @@ def encoder2(inputs):
 
 
 def decoder2(inputs, skip_1, skip_2):
-    num_filters = [128, 64, 32, 16, 8]
+    num_filters = [64, 32, 16, 8]
     skip_2.reverse()
     x = inputs
 
