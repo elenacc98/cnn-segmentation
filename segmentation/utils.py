@@ -149,6 +149,38 @@ def count_class_voxels(labels, nVoxels, numClasses):
 #     return tf.multiply(1.0 / (numClasses - 1), subtract_term)
 
 
+# def get_loss_weights(labels, nVoxels, numClasses):
+#     """
+#     Compute loss weights for each class.
+#     Args:
+#         labels: ground truth tensor of dimensions (class, batch_size, rows, columns, slices) or
+#         (class, batch_size, rows, columns)
+#         nVoxels: total number of voxels
+#         numClasses: number of classes
+#     Returns:
+#         1D tf.tensor of len = numClasses containing weights for each class
+#     """
+#
+#     numerator_1 = count_class_voxels(labels, nVoxels, numClasses)
+#     numerator = tf.multiply(1.0 / nVoxels, numerator_1)
+#     subtract_term = tf.subtract(1.0, numerator)
+#     out = tf.multiply(1.0 / (numClasses - 1), subtract_term)
+#
+#     numerator_2 = numerator_1[1::]
+#     numerator = tf.multiply(1.0 / (nVoxels - numerator_1[0].numpy()), numerator_2)
+#     subtract_term = tf.subtract(1.0, numerator)
+#     temp_out = tf.multiply(1.0 / (numClasses - 2), subtract_term)
+#     temp_out = tf.cast(temp_out, tf.float32)
+#
+#     lista = [out[0]]
+#     for temp in temp_out:
+#         lista.append(temp)
+#
+#     out1 = tf.stack(lista)
+#
+#     return out1/tf.reduce_sum(out1)
+
+
 def get_loss_weights(labels, nVoxels, numClasses):
     """
     Compute loss weights for each class.
@@ -162,24 +194,10 @@ def get_loss_weights(labels, nVoxels, numClasses):
     """
 
     numerator_1 = count_class_voxels(labels, nVoxels, numClasses)
-    numerator = tf.multiply(1.0 / nVoxels, numerator_1)
-    subtract_term = tf.subtract(1.0, numerator)
-    out = tf.multiply(1.0 / (numClasses - 1), subtract_term)
+    numerator_1 = tf.math.sqrt(tf.divide(1.0, numerator_1))
+    numerator_1 = tf.divide(numerator_1, tf.reduce_sum(numerator_1))
 
-    numerator_2 = numerator_1[1::]
-    numerator = tf.multiply(1.0 / (nVoxels - numerator_1[0].numpy()), numerator_2)
-    subtract_term = tf.subtract(1.0, numerator)
-    temp_out = tf.multiply(1.0 / (numClasses - 2), subtract_term)
-    temp_out = tf.cast(temp_out, tf.float32)
-
-    lista = [out[0]]
-    for temp in temp_out:
-        lista.append(temp)
-
-    out1 = tf.stack(lista)
-
-    return out1/tf.reduce_sum(out1)
-
+    return numerator_1
 
 
 def conv_factory(x, concat_axis, nb_filter, dropout_rate=None, weight_decay=1E-4, kernel_size = (3,3,3)):
