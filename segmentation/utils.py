@@ -470,7 +470,7 @@ def decoder1(inputs, skip_connections):
     x = inputs
 
     for i, f in enumerate(num_filters):
-        x = UpSampling3D((2, 2, 2), interpolation='bilinear')(x)
+        x = UpSampling3D((2, 2, 2))(x)
         x = Concatenate()([x, skip_connections[i]])
         x = conv_block(x, f)
 
@@ -496,7 +496,7 @@ def decoder2(inputs, skip_1, skip_2):
     x = inputs
 
     for i, f in enumerate(num_filters):
-        x = UpSampling3D((2, 2, 2), interpolation='bilinear')(x)
+        x = UpSampling3D((2, 2, 2))(x)
         x = Concatenate()([x, skip_1[i], skip_2[i]])
         x = conv_block(x, f)
 
@@ -523,7 +523,7 @@ def ASPP(x, filter):
     y1 = Conv3D(filter, 1, padding="same")(y1)
     y1 = BatchNormalization()(y1)
     y1 = Activation("relu")(y1)
-    y1 = UpSampling3D((shape[1], shape[2], shape[3]), interpolation='bilinear')(y1)
+    y1 = UpSampling3D((shape[1], shape[2], shape[3]))(y1)
 
     y2 = Conv3D(filter, 1, dilation_rate=1, padding="same", use_bias=False)(x)
     y2 = BatchNormalization()(y2)
