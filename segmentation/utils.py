@@ -543,7 +543,7 @@ def ASPP(x, filters):
 
     y = Concatenate()([y1, y2, y3, y4, y5])
 
-    y = Conv3D(filter, 1, dilation_rate=1, padding="same", use_bias=False)(y)
+    y = Conv3D(filters, 1, dilation_rate=1, padding="same", use_bias=False)(y)
     y = BatchNormalization()(y)
     y = Activation("relu")(y)
 
