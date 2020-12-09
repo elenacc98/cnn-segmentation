@@ -9,7 +9,8 @@ import tensorflow as tf
 from keras.layers.core import Dense, Dropout, Activation
 from keras.layers.convolutional import Conv1D, Conv2D, Conv3D, Conv3DTranspose
 from keras.layers.pooling import AveragePooling2D, AveragePooling3D, GlobalAveragePooling3D, MaxPool3D
-from keras.layers import Input, Concatenate, Lambda, Dropout, Concatenate, Multiply, Softmax, Reshape, UpSampling3D
+from keras.layers import Input, Concatenate, Lambda, Dropout, Concatenate, Multiply, Softmax, Reshape, UpSampling3D, \
+    Subtract, Add
 from keras.layers.normalization import BatchNormalization
 from keras.regularizers import l2
 
@@ -419,7 +420,6 @@ def upsamplingUnit(encoding_input, decoding_input, filter_enc, filter_dec, kerne
 
 
 # Functions for DoubleUnet
-
 def squeeze_excite_block(inputs, ratio=8):
     init = inputs
     channel_axis = -1
@@ -516,28 +516,28 @@ def Upsample(tensor, size):
     return Lambda(lambda x: _upsample(x, size), output_shape=size)(tensor)
 
 
-def ASPP(x, filter):
+def ASPP(x, filters):
     shape = x.shape
 
     y1 = AveragePooling3D(pool_size=(shape[1], shape[2], shape[3]))(x)
-    y1 = Conv3D(filter, 1, padding="same")(y1)
+    y1 = Conv3D(filters/2, 1, padding="same")(y1)
     y1 = BatchNormalization()(y1)
     y1 = Activation("relu")(y1)
     y1 = UpSampling3D((shape[1], shape[2], shape[3]))(y1)
 
-    y2 = Conv3D(filter, 1, dilation_rate=1, padding="same", use_bias=False)(x)
+    y2 = Conv3D(filters/2, 1, dilation_rate=1, padding="same", use_bias=False)(x)
     y2 = BatchNormalization()(y2)
     y2 = Activation("relu")(y2)
 
-    y3 = Conv3D(filter, 3, dilation_rate=2, padding="same", use_bias=False)(x)
+    y3 = Conv3D(filters/2, 3, dilation_rate=2, padding="same", use_bias=False)(x)
     y3 = BatchNormalization()(y3)
     y3 = Activation("relu")(y3)
 
-    y4 = Conv3D(filter, 3, dilation_rate=4, padding="same", use_bias=False)(x)
+    y4 = Conv3D(filters/2, 3, dilation_rate=4, padding="same", use_bias=False)(x)
     y4 = BatchNormalization()(y4)
     y4 = Activation("relu")(y4)
 
-    y5 = Conv3D(filter, 3, dilation_rate=8, padding="same", use_bias=False)(x)
+    y5 = Conv3D(filters/2, 3, dilation_rate=8, padding="same", use_bias=False)(x)
     y5 = BatchNormalization()(y5)
     y5 = Activation("relu")(y5)
 
@@ -548,3 +548,34 @@ def ASPP(x, filter):
     y = Activation("relu")(y)
 
     return y
+
+
+# Functions for Unet_2
+def PEE(x, filters):
+    if filters > 30:
+        pool_size_1 = (3, 3, 3)
+        pool_size_2 = (5, 5, 5)
+    else:
+        pool_size_1 = (5, 5, 5)
+        pool_size_2 = (7, 7, 7)
+
+    x = Conv3D(filters/2, (1, 1, 1), padding='same')(x)
+    x_1 = AveragePooling3D(pool_size=pool_size_1, padding='same')(x)
+    x_2 = AveragePooling3D(pool_size=pool_size_2, padding='same')(x)
+
+    x_11 = Subtract()([x, x_1])
+    x_22 = Subtract()([x, x_2])
+
+    x = Concatenate()([x, x_11, x_22])
+    x = Conv3D(filters, (1, 1, 1), padding='same')(x)
+    return x
+
+
+def RA(upsampled, high_level, filters):
+    x = Activation('sigmoid')(upsampled)
+    x = -1 * x + 1
+    x = Multiply()([x, high_level])
+
+    x = Conv3D(filters, (3, 3, 3), padding='same')(x)
+    x = Add()([x, upsampled])
+    return x
