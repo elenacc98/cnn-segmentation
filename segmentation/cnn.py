@@ -14,7 +14,7 @@ from keras.layers.normalization import BatchNormalization
 from keras.regularizers import l2
 from segmentation.utils import conv_factory, transition, denseblock, channelModule, \
     spatialModule, denseUnit, compressionUnit, upsamplingUnit, squeeze_excite_block, \
-    conv_block, encoder1, encoder2, decoder1, decoder2, output_block, Upsample, ASPP
+    conv_block, encoder1, encoder2, decoder1, decoder2, output_block, Upsample, ASPP, PEE, RA
 from tensorflow.keras.applications import *
 
 class UNet(object):
