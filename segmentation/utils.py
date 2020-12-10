@@ -579,3 +579,60 @@ def RA(upsampled, high_level, filters):
     x = Conv3D(filters, (3, 3, 3), padding='same')(x)
     x = Add()([x, upsampled])
     return x
+
+
+# class MiniMtl(tf.keras.Model):
+#    def __init__(self, input_shape, numClasses):
+#        self.input_shape = input_shape
+#        self.numClasses = numClasses
+
+def MINI_MTL(inputs, filters, numClasses, i):
+    x_edge = RA(inputs, inputs, filters)
+    x_mask = RA(inputs, inputs, filters)
+
+    x_edge = Conv3D(filters, (3, 3, 3), padding='same')(x_edge)
+    x_edge = BatchNormalization(axis=-1)(x_edge)
+    x_edge = Activation('relu')(x_edge)
+    x_mask = Conv3D(filters, (3, 3, 3), padding='same')(x_mask)
+    x_mask = BatchNormalization(axis=-1)(x_mask)
+    x_mask = Activation('relu')(x_mask)
+
+    out_edge = Conv3D(numClasses, (1, 1, 1), padding='same')(x_edge)
+    out_edge = Softmax(axis=-1, name='out_edge_{}'.format(i))(out_edge)
+    out_edge = UpSampling3D(i+1)(out_edge)
+    out_mask = Conv3D(numClasses, (1, 1, 1), padding='same')(x_mask)
+    out_mask = Softmax(axis=-1, name='out_mask_{}'.format(i))(out_mask)
+    out_mask = UpSampling3D(i + 1)(out_mask)
+
+    out_mtl = Concatenate()([x_mask, x_edge])
+    out_mtl = Conv3D(filters, (1, 1, 1), padding='same')(out_mtl)
+
+    return out_mtl, out_edge, out_mask
+
+
+def CFF(input_list, filters, i):
+    out_shape = input_list[i].shape
+
+    y = tf.zeros_like(input_list[i])
+    for j,x in enumerate(input_list):
+        if j < i:
+            down_factor = x.shape / out_shape
+            x = AveragePooling3D(down_factor)(x)
+            x = Conv3D(filters, (1, 1, 1), padding='same')(x)
+            sigm = Activation('sigmoid')(x)
+            x = Multiply()([x, sigm])
+            y = Add()([y, x])
+        if j > i:
+            up_factor = out_shape / x.shape
+            x = Conv3D(filters, (1, 1, 1), padding='same')(x)
+            x = UpSampling3D(up_factor)(x)
+            sigm = Activation('sigmoid')(x)
+            x = Multiply()([x, sigm])
+            y = Add()([y,x])
+
+    x_i = input_list[i]
+    x_i_sigm = Activation('sigmoid')(x_i)
+    x_i_sigm = -1 * x_i_sigm + 1
+    out = Multiply()([x_i_sigm, y])
+    out = Add()([out, x_i])
+    return out
