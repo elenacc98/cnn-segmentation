@@ -11,7 +11,7 @@ from keras.layers.core import Dense, Dropout, Activation
 from keras.layers.convolutional import Conv1D, Conv2D, Conv3D, Conv3DTranspose
 from keras.layers.pooling import AveragePooling2D, AveragePooling3D, GlobalAveragePooling3D, MaxPool3D
 from keras.layers import Input, Concatenate, Lambda, Dropout, Concatenate, Multiply, Softmax, Reshape, UpSampling3D, \
-    Subtract, Add
+    Subtract, Add, InputLayer
 from keras.layers.normalization import BatchNormalization
 from keras.regularizers import l2
 
@@ -612,7 +612,7 @@ def MINI_MTL(inputs, filters, numClasses, i):
 
 
 def build_MINI_MTL(input_shape, filters, numClasses, i):
-    input_layer = Input(shape=input_shape)
+    input_layer = InputLayer(shape=input_shape, batch=None)
     x_edge = RA(input_layer, input_layer, filters)
     x_mask = RA(input_layer, input_layer, filters)
 
