@@ -115,7 +115,8 @@ def CrossEntropyEdge_loss(numClasses):
         nVoxels = tf.cast(nVoxels, tf.float32)
 
         loss_weights = get_loss_weights(y_true, nVoxels, numClasses)
-        nEdgeVoxels = tf.math.count_non_zero(y_true)
+        nEdgeVoxels = tf.math.count_nonzero(y_true)
+        epsilon = backend_config.epsilon
 
         # scale preds so that the class probas of each sample sum to 1
         y_pred = y_pred / math_ops.reduce_sum(y_pred, axis=0, keepdims=True)
@@ -170,6 +171,7 @@ def CrossEntropyRegion_loss(numClasses):
         nVoxels = tf.cast(nVoxels, tf.float32)
 
         loss_weights = get_loss_weights(y_true, nVoxels, numClasses)
+        epsilon = backend_config.epsilon
 
         # scale preds so that the class probas of each sample sum to 1
         y_pred = y_pred / math_ops.reduce_sum(y_pred, axis=0, keepdims=True)
