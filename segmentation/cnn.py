@@ -486,7 +486,7 @@ class BAUNet(object):
 
         # Up sampling branch
         for i in range(self.depth):
-            out_cff = CFF(out_mtl_list, self.n_initial_filters * pow(2, (self.depth - 1) - i), (self.depth - i) - 1)
+            out_cff = CFF(out_mtl_list, self.input_size[0:3], self.n_initial_filters * pow(2, (self.depth - 1) - i), (self.depth - i) - 1)
             temp_layer = conv_transpose_layer(self.n_initial_filters * pow(2, (self.depth - 1) - i),
                                               kernel_size=self.deconv_kernel_size,
                                               strides=self.deconv_strides,

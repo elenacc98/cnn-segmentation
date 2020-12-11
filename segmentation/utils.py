@@ -638,20 +638,20 @@ def build_MINI_MTL(input_shape, filters, numClasses, i):
     return mtl_model, out_mtl
 
 
-def CFF(input_list, filters, i):
-    out_shape = input_list[i].shape
+def CFF(input_list, input_size, filters, i):
+    out_shape = input_size/pow(2,i)
 
     y = tf.zeros_like(input_list[i])
     for j,x in enumerate(input_list):
         if j < i:
-            down_factor = tf.divide(x.shape, out_shape)
+            down_factor = (input_size/pow(2,j)) / out_shape
             x = AveragePooling3D(down_factor)(x)
             x = Conv3D(filters, (1, 1, 1), padding='same')(x)
             sigm = Activation('sigmoid')(x)
             x = Multiply()([x, sigm])
             y = Add()([y, x])
         if j > i:
-            up_factor = tf.divide(out_shape, x.shape)
+            up_factor = out_shape / (input_size/pow(2,j)) 
             x = Conv3D(filters, (1, 1, 1), padding='same')(x)
             x = UpSampling3D(up_factor)(x)
             sigm = Activation('sigmoid')(x)
