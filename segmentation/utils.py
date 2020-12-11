@@ -612,7 +612,7 @@ def MINI_MTL(inputs, filters, numClasses, i):
 
 
 def build_MINI_MTL(input_shape, filters, numClasses, i):
-    input_layer = InputLayer(shape=input_shape, batch=None)
+    input_layer = InputLayer(shape=(input_shape, input_shape, input_shape, filters))
     x_edge = RA(input_layer, input_layer, filters)
     x_mask = RA(input_layer, input_layer, filters)
 
