@@ -446,9 +446,9 @@ class BAUNet(object):
 
         # Variables holding the layers so that they can be concatenated
         downsampling_layers = []
-        out_edge = []
-        out_mask = []
-        out_mtl = []
+        out_edge_list = []
+        out_mask_list = []
+        out_mtl_list = []
         upsampling_layers = []
         # Down sampling branch
         for i in range(self.depth):
@@ -470,9 +470,9 @@ class BAUNet(object):
             out_pee = PEE(temp_layer, self.n_initial_filters * pow(2, i))
             out_mtl, out_edge, out_mask = MINI_MTL(out_pee, self.n_initial_filters * pow(2, i), self.n_classes, i)
 
-            out_edge.append(out_edge)
-            out_mask.append(out_mask)
-            out_mtl.append(out_mtl)
+            out_edge_list.append(out_edge)
+            out_mask_list.append(out_mask)
+            out_mtl_list.append(out_mtl)
 
             temp_layer = max_pool_layer(pool_size=self.pool_size,
                                         strides=self.pool_strides,
@@ -483,7 +483,7 @@ class BAUNet(object):
 
         # Up sampling branch
         for i in range(self.depth):
-            out_cff = CFF(out_mtl, self.n_initial_filters * pow(2, (self.depth - 1) - i), (self.depth - i) - 1)
+            out_cff = CFF(out_mtl_list, self.n_initial_filters * pow(2, (self.depth - 1) - i), (self.depth - i) - 1)
             temp_layer = conv_transpose_layer(self.n_initial_filters * pow(2, (self.depth - 1) - i),
                                               kernel_size=self.deconv_kernel_size,
                                               strides=self.deconv_strides,
@@ -518,8 +518,8 @@ class BAUNet(object):
                                 kernel_regularizer=self.kernel_regularizer,
                                 bias_regularizer=self.bias_regularizer)(temp_layer)
 
-        output_tensor = layers.Softmax(axis=-1)(temp_layer)
-        self.model = Model(inputs=[input_tensor], outputs=[output_tensor])
+        output_tensor = layers.Softmax(axis=-1, name='out_final')(temp_layer)
+        self.model = Model(inputs=[input_tensor], outputs=[output_tensor]+out_edge_list+out_mask_list)
 
     def set_initial_weights(self, weights):
         '''

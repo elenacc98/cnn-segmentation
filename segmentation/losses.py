@@ -76,6 +76,115 @@ def MeanDice_Loss(numClasses):
     return mean_dice
 
 
+def CrossEntropyEdge_loss(numClasses):
+    """
+
+    Args:
+        numClasses:
+
+    Returns:
+
+    """
+
+    def cross_entropy_edge_loss(y_true, y_pred):
+        """
+
+        Args:
+            y_true:
+            y_pred:
+
+        Returns:
+
+        """
+        if len(y_true.shape) == 5:
+            axisSum = (1, 2, 3)
+            y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
+            y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
+        elif len(y_true.shape) == 4:
+            axisSum = (1, 2)
+            y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
+            y_true = tf.transpose(y_true, [3, 0, 1, 2])
+        else:
+            print("Could not recognise input dimensions")
+            return
+
+        # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
+        y_true = tf.cast(y_true, tf.float32)
+        y_pred = tf.cast(y_pred, tf.float32)
+        nVoxels = tf.size(y_true) / numClasses
+        nVoxels = tf.cast(nVoxels, tf.float32)
+
+        loss_weights = get_loss_weights(y_true, nVoxels, numClasses)
+        nEdgeVoxels = tf.math.count_non_zero(y_true)
+
+        # scale preds so that the class probas of each sample sum to 1
+        y_pred = y_pred / math_ops.reduce_sum(y_pred, axis=0, keepdims=True)
+        # Compute cross entropy from probabilities.
+        epsilon_ = constant_op.constant(epsilon(), y_pred.dtype.base_dtype)
+        y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
+
+        wcc_loss = -math_ops.reduce_sum(y_true * math_ops.log(y_pred), axis=(1,2,3,4)) / tf.cast(nEdgeVoxels, tf.float32)
+        wcc_loss = tf.reduce_sum(tf.multiply(loss_weights, wcc_loss))
+
+        return wcc_loss
+
+    return cross_entropy_edge_loss
+
+
+def CrossEntropyRegion_loss(numClasses):
+    """
+
+    Args:
+        numClasses:
+
+    Returns:
+
+    """
+
+    def cross_entropy_region_loss(y_true, y_pred):
+        """
+
+        Args:
+            y_true:
+            y_pred:
+
+        Returns:
+
+        """
+        if len(y_true.shape) == 5:
+            axisSum = (1, 2, 3)
+            y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
+            y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
+        elif len(y_true.shape) == 4:
+            axisSum = (1, 2)
+            y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
+            y_true = tf.transpose(y_true, [3, 0, 1, 2])
+        else:
+            print("Could not recognise input dimensions")
+            return
+
+        # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
+        y_true = tf.cast(y_true, tf.float32)
+        y_pred = tf.cast(y_pred, tf.float32)
+        nVoxels = tf.size(y_true) / numClasses
+        nVoxels = tf.cast(nVoxels, tf.float32)
+
+        loss_weights = get_loss_weights(y_true, nVoxels, numClasses)
+
+        # scale preds so that the class probas of each sample sum to 1
+        y_pred = y_pred / math_ops.reduce_sum(y_pred, axis=0, keepdims=True)
+        # Compute cross entropy from probabilities.
+        epsilon_ = constant_op.constant(epsilon(), y_pred.dtype.base_dtype)
+        y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
+
+        wcc_loss = -math_ops.reduce_sum(y_true * math_ops.log(y_pred), axis=(1, 2, 3, 4)) / tf.cast(nVoxels,
+                                                                                                    tf.float32)
+        wcc_loss = tf.reduce_sum(tf.multiply(loss_weights, wcc_loss))
+
+        return wcc_loss
+
+    return cross_entropy_region_loss
+
 
 def Weighted_DiceBoundary_Loss(numClasses, alpha):
     """
@@ -213,7 +322,7 @@ def Weighted_DiceCatCross_Loss_v1(numClasses, alpha):
         # Exponential transformation of the Distance transform
         DWM = 1 + gamma * tf.math.exp(tf.math.negative(SDM)/sigma)
         # scale preds so that the class probas of each sample sum to 1
-        y_pred = y_pred / math_ops.reduce_sum(y_pred, axis=-1, keepdims=True)
+        y_pred = y_pred / math_ops.reduce_sum(y_pred, axis=0, keepdims=True)
         # Compute cross entropy from probabilities.
         epsilon_ = constant_op.constant(epsilon(), y_pred.dtype.base_dtype)
         y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
@@ -302,7 +411,7 @@ def Weighted_DiceCatCross_Loss_v2(numClasses, alpha):
 
 
         # scale preds so that the class probas of each sample sum to 1
-        y_pred = y_pred / math_ops.reduce_sum(y_pred, axis=-1, keepdims=True)
+        y_pred = y_pred / math_ops.reduce_sum(y_pred, axis=0, keepdims=True)
         # Compute cross entropy from probabilities.
         epsilon_ = constant_op.constant(epsilon(), y_pred.dtype.base_dtype)
         y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
@@ -378,7 +487,7 @@ def Weighted_DiceFocal_Loss(numClasses, alpha):
 
         epsilon = backend_config.epsilon
         # scale preds so that the class probas of each sample sum to 1
-        y_pred = y_pred / math_ops.reduce_sum(y_pred, axis=-1, keepdims=True)
+        y_pred = y_pred / math_ops.reduce_sum(y_pred, axis=0, keepdims=True)
         # Compute cross entropy from probabilities.
         epsilon_ = constant_op.constant(epsilon(), y_pred.dtype.base_dtype)
         y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
