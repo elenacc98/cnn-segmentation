@@ -645,15 +645,15 @@ def CFF(input_list, input_size, filters, i):
     for j,x in enumerate(input_list):
         if j < i:
             down_factor = (input_size/pow(2,j)) / out_shape
-            x = AveragePooling3D(down_factor)(x)
+            x = AveragePooling3D((down_factor, down_factor, down_factor))(x)
             x = Conv3D(filters, (1, 1, 1), padding='same')(x)
             sigm = Activation('sigmoid')(x)
             x = Multiply()([x, sigm])
             y = Add()([y, x])
         if j > i:
-            up_factor = out_shape / (input_size/pow(2,j)) 
+            up_factor = out_shape / (input_size/pow(2,j))
             x = Conv3D(filters, (1, 1, 1), padding='same')(x)
-            x = UpSampling3D(up_factor)(x)
+            x = UpSampling3D((up_factor, up_factor, up_factor))(x)
             sigm = Activation('sigmoid')(x)
             x = Multiply()([x, sigm])
             y = Add()([y,x])
