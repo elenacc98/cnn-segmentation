@@ -644,14 +644,14 @@ def CFF(input_list, filters, i):
     y = tf.zeros_like(input_list[i])
     for j,x in enumerate(input_list):
         if j < i:
-            down_factor = x.shape / out_shape
+            down_factor = tf.divide(x.shape, out_shape)
             x = AveragePooling3D(down_factor)(x)
             x = Conv3D(filters, (1, 1, 1), padding='same')(x)
             sigm = Activation('sigmoid')(x)
             x = Multiply()([x, sigm])
             y = Add()([y, x])
         if j > i:
-            up_factor = out_shape / x.shape
+            up_factor = tf.divide(out_shape, x.shape)
             x = Conv3D(filters, (1, 1, 1), padding='same')(x)
             x = UpSampling3D(up_factor)(x)
             sigm = Activation('sigmoid')(x)
