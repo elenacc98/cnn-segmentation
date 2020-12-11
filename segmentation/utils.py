@@ -5,6 +5,7 @@ Utils functions.
 from scipy.ndimage import distance_transform_edt as distance
 import numpy as np
 import tensorflow as tf
+from tensorflow.keras import Model
 
 from keras.layers.core import Dense, Dropout, Activation
 from keras.layers.convolutional import Conv1D, Conv2D, Conv3D, Conv3DTranspose
@@ -608,6 +609,33 @@ def MINI_MTL(inputs, filters, numClasses, i):
     out_mtl = Conv3D(filters, (1, 1, 1), padding='same')(out_mtl)
 
     return out_mtl, out_edge, out_mask
+
+
+def build_MINI_MTL(input_shape, filters, numClasses, i):
+    input_layer = Input(shape=input_shape)
+    x_edge = RA(input_layer, input_layer, filters)
+    x_mask = RA(input_layer, input_layer, filters)
+
+    x_edge = Conv3D(filters, (3, 3, 3), padding='same')(x_edge)
+    x_edge = BatchNormalization(axis=-1)(x_edge)
+    x_edge = Activation('relu')(x_edge)
+    x_mask = Conv3D(filters, (3, 3, 3), padding='same')(x_mask)
+    x_mask = BatchNormalization(axis=-1)(x_mask)
+    x_mask = Activation('relu')(x_mask)
+
+    out_edge = Conv3D(numClasses, (1, 1, 1), padding='same')(x_edge)
+    out_edge = Softmax(axis=-1, name='out_edge_{}'.format(i))(out_edge)
+    out_edge = UpSampling3D(i+1)(out_edge)
+    out_mask = Conv3D(numClasses, (1, 1, 1), padding='same')(x_mask)
+    out_mask = Softmax(axis=-1, name='out_mask_{}'.format(i))(out_mask)
+    out_mask = UpSampling3D(i + 1)(out_mask)
+
+    out_mtl = Concatenate()([x_mask, x_edge])
+    out_mtl = Conv3D(filters, (1, 1, 1), padding='same')(out_mtl)
+
+    mtl_model = Model(inputs=[input_layer], outputs=[out_edge, out_mask])
+
+    return mtl_model, out_mtl
 
 
 def CFF(input_list, filters, i):

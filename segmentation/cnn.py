@@ -14,7 +14,7 @@ from keras.layers.normalization import BatchNormalization
 from keras.regularizers import l2
 from segmentation.utils import conv_factory, transition, denseblock, channelModule, \
     spatialModule, denseUnit, compressionUnit, upsamplingUnit, squeeze_excite_block, \
-    conv_block, encoder1, encoder2, decoder1, decoder2, output_block, Upsample, ASPP, PEE, RA, MINI_MTL, CFF
+    conv_block, encoder1, encoder2, decoder1, decoder2, output_block, Upsample, ASPP, PEE, RA, MINI_MTL, CFF, build_MINI_MTL
 from tensorflow.keras.applications import *
 
 class UNet(object):
@@ -468,7 +468,10 @@ class BAUNet(object):
             downsampling_layers.append(temp_layer)
 
             out_pee = PEE(temp_layer, self.n_initial_filters * pow(2, i))
-            out_mtl, out_edge, out_mask = MINI_MTL(out_pee, self.n_initial_filters * pow(2, i), self.n_classes, i)
+            # out_mtl, out_edge, out_mask = MINI_MTL(out_pee, self.n_initial_filters * pow(2, i), self.n_classes, i)
+
+            mtl_model, out_mtl = build_MINI_MTL(out_pee.shape, self.n_initial_filters * pow(2, i), self.n_classes, i)
+            out_edge, out_mask = mtl_model(out_pee)
 
             out_edge_list.append(out_edge)
             out_mask_list.append(out_mask)
