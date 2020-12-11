@@ -582,11 +582,6 @@ def RA(upsampled, high_level, filters):
     return x
 
 
-# class MiniMtl(tf.keras.Model):
-#    def __init__(self, input_shape, numClasses):
-#        self.input_shape = input_shape
-#        self.numClasses = numClasses
-
 def MINI_MTL(inputs, filters, numClasses, i):
     x_edge = RA(inputs, inputs, filters)
     x_mask = RA(inputs, inputs, filters)
@@ -636,6 +631,18 @@ def build_MINI_MTL(input_shape, filters, numClasses, i):
     mtl_model = Model(inputs=[input_layer], outputs=[out_edge, out_mask])
 
     return mtl_model, out_mtl
+
+
+
+# class MiniMtl(tf.keras.Model):
+#    def __init__(self, input_shape, filters, numClasses, i):
+#        self.input_shape = input_shape
+#        self.numClasses = numClasses
+#        self.filters = filters
+#        self.i = i
+#        
+#        self.conv = Conv3D(self.filters, (3, 3, 3), padding='same')
+#        self.ba = BatchNormalization(axis=-1)
 
 
 def CFF(input_list, input_size, filters, i):
