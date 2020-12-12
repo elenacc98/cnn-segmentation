@@ -5,11 +5,13 @@ Utils functions.
 from scipy.ndimage import distance_transform_edt as distance
 import numpy as np
 import tensorflow as tf
+from tensorflow.keras import Model
 
 from keras.layers.core import Dense, Dropout, Activation
 from keras.layers.convolutional import Conv1D, Conv2D, Conv3D, Conv3DTranspose
 from keras.layers.pooling import AveragePooling2D, AveragePooling3D, GlobalAveragePooling3D, MaxPool3D
-from keras.layers import Input, Concatenate, Lambda, Dropout, Concatenate, Multiply, Softmax
+from keras.layers import Input, Concatenate, Lambda, Dropout, Concatenate, Multiply, Softmax, Reshape, UpSampling3D, \
+    Subtract, Add, InputLayer
 from keras.layers.normalization import BatchNormalization
 from keras.regularizers import l2
 
@@ -131,6 +133,56 @@ def count_class_voxels(labels, nVoxels, numClasses):
     return out
 
 
+# def get_loss_weights(labels, nVoxels, numClasses):
+#     """
+#     Compute loss weights for each class.
+#     Args:
+#         labels: ground truth tensor of dimensions (class, batch_size, rows, columns, slices) or
+#         (class, batch_size, rows, columns)
+#         nVoxels: total number of voxels
+#         numClasses: number of classes
+#     Returns:
+#         1D tf.tensor of len = numClasses containing weights for each class
+#     """
+#
+#     numerator_1 = count_class_voxels(labels, nVoxels, numClasses)
+#     numerator = tf.multiply(1.0 / nVoxels, numerator_1)
+#     subtract_term = tf.subtract(1.0, numerator)
+#     return tf.multiply(1.0 / (numClasses - 1), subtract_term)
+
+
+# def get_loss_weights(labels, nVoxels, numClasses):
+#     """
+#     Compute loss weights for each class.
+#     Args:
+#         labels: ground truth tensor of dimensions (class, batch_size, rows, columns, slices) or
+#         (class, batch_size, rows, columns)
+#         nVoxels: total number of voxels
+#         numClasses: number of classes
+#     Returns:
+#         1D tf.tensor of len = numClasses containing weights for each class
+#     """
+#
+#     numerator_1 = count_class_voxels(labels, nVoxels, numClasses)
+#     numerator = tf.multiply(1.0 / nVoxels, numerator_1)
+#     subtract_term = tf.subtract(1.0, numerator)
+#     out = tf.multiply(1.0 / (numClasses - 1), subtract_term)
+#
+#     numerator_2 = numerator_1[1::]
+#     numerator = tf.multiply(1.0 / (nVoxels - numerator_1[0].numpy()), numerator_2)
+#     subtract_term = tf.subtract(1.0, numerator)
+#     temp_out = tf.multiply(1.0 / (numClasses - 2), subtract_term)
+#     temp_out = tf.cast(temp_out, tf.float32)
+#
+#     lista = [out[0]]
+#     for temp in temp_out:
+#         lista.append(temp)
+#
+#     out1 = tf.stack(lista)
+#
+#     return out1/tf.reduce_sum(out1)
+
+
 def get_loss_weights(labels, nVoxels, numClasses):
     """
     Compute loss weights for each class.
@@ -144,11 +196,13 @@ def get_loss_weights(labels, nVoxels, numClasses):
     """
 
     numerator_1 = count_class_voxels(labels, nVoxels, numClasses)
-    numerator = tf.multiply(1.0 / nVoxels, numerator_1)
-    subtract_term = tf.subtract(1.0, numerator)
-    return tf.multiply(1.0 / (numClasses - 1), subtract_term)
+    numerator_1 = tf.math.sqrt(tf.divide(1.0, numerator_1))
+    numerator_1 = tf.divide(numerator_1, tf.reduce_sum(numerator_1))
+
+    return numerator_1
 
 
+# Functions for CDDUnet and CDUnet
 
 def conv_factory(x, concat_axis, nb_filter, dropout_rate=None, weight_decay=1E-4, kernel_size = (3,3,3)):
     """
@@ -364,3 +418,255 @@ def upsamplingUnit(encoding_input, decoding_input, filter_enc, filter_dec, kerne
     x = Conv3D(filter_enc, kernel_size, padding='same')(encoding_input)
     y = Conv3DTranspose(filter_dec, deconv_kernel_size, strides=deconv_strides, padding='same')(decoding_input)
     return Concatenate()([x, y])
+
+
+# Functions for DoubleUnet
+def squeeze_excite_block(inputs, ratio=8):
+    init = inputs
+    channel_axis = -1
+    filters = init.shape[channel_axis]
+    se_shape = (1, 1, 1, filters)
+
+    se = GlobalAveragePooling3D()(init)
+    se = Reshape(se_shape)(se)
+    se = Dense(filters // ratio, activation='relu', kernel_initializer='he_normal', use_bias=False)(se)
+    se = Dense(filters, activation='sigmoid', kernel_initializer='he_normal', use_bias=False)(se)
+
+    x = Multiply()([init, se])
+    return x
+
+
+def conv_block(inputs, filters):
+    x = inputs
+
+    x = Conv3D(filters, (3, 3, 3), padding="same")(x)
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+
+    x = Conv3D(filters, (3, 3, 3), padding="same")(x)
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+
+    x = squeeze_excite_block(x)
+
+    return x
+
+
+def encoder1(inputs):
+    num_filters = [8, 16, 32, 64]
+    skip_connections = []
+    x = inputs
+
+    for i, f in enumerate(num_filters):
+        x = conv_block(x, f)
+        skip_connections.append(x)
+        x = MaxPool3D((2, 2, 2))(x)
+
+    return x, skip_connections
+
+
+def decoder1(inputs, skip_connections):
+    num_filters = [64, 32, 16, 8]
+    skip_connections.reverse()
+    x = inputs
+
+    for i, f in enumerate(num_filters):
+        x = UpSampling3D((2, 2, 2))(x)
+        x = Concatenate()([x, skip_connections[i]])
+        x = conv_block(x, f)
+
+    return x
+
+
+def encoder2(inputs):
+    num_filters = [8, 16, 32, 64]
+    skip_connections = []
+    x = inputs
+
+    for i, f in enumerate(num_filters):
+        x = conv_block(x, f)
+        skip_connections.append(x)
+        x = MaxPool3D((2, 2, 2))(x)
+
+    return x, skip_connections
+
+
+def decoder2(inputs, skip_1, skip_2):
+    num_filters = [64, 32, 16, 8]
+    skip_2.reverse()
+    x = inputs
+
+    for i, f in enumerate(num_filters):
+        x = UpSampling3D((2, 2, 2))(x)
+        x = Concatenate()([x, skip_1[i], skip_2[i]])
+        x = conv_block(x, f)
+
+    return x
+
+
+def output_block(inputs):
+    x = Conv3D(8, (1, 1, 1), padding="same")(inputs)
+    x = Activation('sigmoid')(x)
+    return x
+
+
+def Upsample(tensor, size):
+    """Bilinear upsampling"""
+    def _upsample(x, size):
+        return tf.image.resize(images=x, size=size)
+    return Lambda(lambda x: _upsample(x, size), output_shape=size)(tensor)
+
+
+def ASPP(x, filters):
+    shape = x.shape
+
+    y1 = AveragePooling3D(pool_size=(shape[1], shape[2], shape[3]))(x)
+    y1 = Conv3D(filters/2, 1, padding="same")(y1)
+    y1 = BatchNormalization()(y1)
+    y1 = Activation("relu")(y1)
+    y1 = UpSampling3D((shape[1], shape[2], shape[3]))(y1)
+
+    y2 = Conv3D(filters/2, 1, dilation_rate=1, padding="same", use_bias=False)(x)
+    y2 = BatchNormalization()(y2)
+    y2 = Activation("relu")(y2)
+
+    y3 = Conv3D(filters/2, 3, dilation_rate=2, padding="same", use_bias=False)(x)
+    y3 = BatchNormalization()(y3)
+    y3 = Activation("relu")(y3)
+
+    y4 = Conv3D(filters/2, 3, dilation_rate=4, padding="same", use_bias=False)(x)
+    y4 = BatchNormalization()(y4)
+    y4 = Activation("relu")(y4)
+
+    y5 = Conv3D(filters/2, 3, dilation_rate=8, padding="same", use_bias=False)(x)
+    y5 = BatchNormalization()(y5)
+    y5 = Activation("relu")(y5)
+
+    y = Concatenate()([y1, y2, y3, y4, y5])
+
+    y = Conv3D(filters, 1, dilation_rate=1, padding="same", use_bias=False)(y)
+    y = BatchNormalization()(y)
+    y = Activation("relu")(y)
+
+    return y
+
+
+# Functions for Unet_2
+def PEE(x, filters):
+    if filters > 30:
+        pool_size_1 = (3, 3, 3)
+        pool_size_2 = (5, 5, 5)
+    else:
+        pool_size_1 = (5, 5, 5)
+        pool_size_2 = (7, 7, 7)
+
+    x = Conv3D(filters/2, (1, 1, 1), padding='same')(x)
+    x_1 = AveragePooling3D(pool_size=pool_size_1, strides = (1, 1, 1), padding='same')(x)
+    x_2 = AveragePooling3D(pool_size=pool_size_2, strides = (1, 1, 1), padding='same')(x)
+
+    x_11 = Subtract()([x, x_1])
+    x_22 = Subtract()([x, x_2])
+
+    x = Concatenate()([x, x_11, x_22])
+    x = Conv3D(filters, (1, 1, 1), padding='same')(x)
+    return x
+
+
+def RA(upsampled, high_level, filters):
+    x = Activation('sigmoid')(upsampled)
+    x = -1 * x + 1
+    x = Multiply()([x, high_level])
+
+    x = Conv3D(filters, (3, 3, 3), padding='same')(x)
+    x = Add()([x, upsampled])
+    return x
+
+
+def MINI_MTL(inputs, filters, numClasses, i):
+    x_edge = RA(inputs, inputs, filters)
+    x_mask = RA(inputs, inputs, filters)
+
+    x_edge = Conv3D(filters, (3, 3, 3), padding='same')(x_edge)
+    x_edge = BatchNormalization(axis=-1)(x_edge)
+    x_edge = Activation('relu')(x_edge)
+    x_mask = Conv3D(filters, (3, 3, 3), padding='same')(x_mask)
+    x_mask = BatchNormalization(axis=-1)(x_mask)
+    x_mask = Activation('relu')(x_mask)
+
+    out_edge = Conv3D(numClasses, (1, 1, 1), padding='same')(x_edge)
+    out_edge = Softmax(axis=-1)(out_edge)
+    out_edge = UpSampling3D(i+1, name='out_edge_{}'.format(i))(out_edge)
+    out_mask = Conv3D(numClasses, (1, 1, 1), padding='same')(x_mask)
+    out_mask = Softmax(axis=-1)(out_mask)
+    out_mask = UpSampling3D(i+1, name='out_mask_{}'.format(i))(out_mask)
+
+    out_mtl = Concatenate()([x_mask, x_edge])
+    out_mtl = Conv3D(filters, (1, 1, 1), padding='same')(out_mtl)
+
+    return out_mtl, out_edge, out_mask
+
+
+def build_MINI_MTL(input_shape, filters, numClasses, i):
+    input_layer = Input(shape=(input_shape, input_shape, input_shape, filters))
+    x_edge = RA(input_layer, input_layer, filters)
+    x_mask = RA(input_layer, input_layer, filters)
+
+    x_edge = Conv3D(filters, (3, 3, 3), padding='same')(x_edge)
+    x_edge = BatchNormalization(axis=-1)(x_edge)
+    x_edge = Activation('relu')(x_edge)
+    x_mask = Conv3D(filters, (3, 3, 3), padding='same')(x_mask)
+    x_mask = BatchNormalization(axis=-1)(x_mask)
+    x_mask = Activation('relu')(x_mask)
+
+    out_edge = Conv3D(numClasses, (1, 1, 1), padding='same')(x_edge)
+    out_edge = Softmax(axis=-1)(out_edge)
+    out_edge = UpSampling3D(pow(2,i), name='out_edge_{}'.format(i))(out_edge)
+    out_mask = Conv3D(numClasses, (1, 1, 1), padding='same')(x_mask)
+    out_mask = Softmax(axis=-1)(out_mask)
+    out_mask = UpSampling3D(pow(2,i), name='out_mask_{}'.format(i))(out_mask)
+
+    out_mtl = Concatenate()([x_mask, x_edge])
+    out_mtl = Conv3D(filters, (1, 1, 1), padding='same')(out_mtl)
+
+    mtl_model = Model(inputs=[input_layer], outputs=[out_edge, out_mask])
+
+    return mtl_model, out_mtl
+
+
+# class MiniMtl(tf.keras.Model):
+#    def __init__(self, input_shape, filters, numClasses, i):
+#        self.input_shape = input_shape
+#        self.numClasses = numClasses
+#        self.filters = filters
+#        self.i = i
+#        
+#        self.conv = Conv3D(self.filters, (3, 3, 3), padding='same')
+#        self.ba = BatchNormalization(axis=-1)
+
+
+def CFF(input_list, input_size, filters, i):
+    out_shape = input_size/pow(2,i)
+
+    y = tf.zeros_like(input_list[i])
+    for j,x in enumerate(input_list):
+        if j < i:
+            down_factor = int((input_size/pow(2,j)) / out_shape)
+            x = AveragePooling3D((down_factor, down_factor, down_factor))(x)
+            x = Conv3D(filters, (1, 1, 1), padding='same')(x)
+            sigm = Activation('sigmoid')(x)
+            x = Multiply()([x, sigm])
+            y = Add()([y, x])
+        if j > i:
+            up_factor = int(out_shape / (input_size/pow(2,j)))
+            x = Conv3D(filters, (1, 1, 1), padding='same')(x)
+            x = UpSampling3D((up_factor, up_factor, up_factor))(x)
+            sigm = Activation('sigmoid')(x)
+            x = Multiply()([x, sigm])
+            y = Add()([y,x])
+
+    x_i = input_list[i]
+    x_i_sigm = Activation('sigmoid')(x_i)
+    x_i_sigm = -1 * x_i_sigm + 1
+    out = Multiply()([x_i_sigm, y])
+    out = Add()([out, x_i])
+    return out
