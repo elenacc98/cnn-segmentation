@@ -446,10 +446,11 @@ class BAUNet(object):
 
         # Variables holding the layers so that they can be concatenated
         downsampling_layers = []
-        # out_edge_list = []
-        # out_mask_list = []
+        out_edge_list = []
+        out_mask_list = []
         out_mtl_list = []
         upsampling_layers = []
+
         # Down sampling branch
         for i in range(self.depth):
             for j in range(2):
@@ -469,14 +470,14 @@ class BAUNet(object):
 
             out_pee = PEE(temp_layer, self.n_initial_filters * pow(2, i))
             # IF MINI_MTL is used
-            out_mtl = MINI_MTL(out_pee, self.n_initial_filters * pow(2, i), self.n_classes, i)
+            out_mtl, out_edge, out_mask = MINI_MTL(out_pee, self.n_initial_filters * pow(2, i), self.n_classes, i)
 
             # IF build_MINI_MTL is used
             # mtl_model, out_mtl = build_MINI_MTL(out_pee.shape[1], self.n_initial_filters * pow(2, i), self.n_classes, i)
             # out_edge, out_mask = mtl_model(out_pee)
 
-            # out_edge_list.append(out_edge)
-            # out_mask_list.append(out_mask)
+            out_edge_list.append(out_edge)
+            out_mask_list.append(out_mask)
             out_mtl_list.append(out_mtl)
 
             temp_layer = max_pool_layer(pool_size=self.pool_size,
@@ -488,7 +489,7 @@ class BAUNet(object):
 
         # Up sampling branch
         for i in range(self.depth):
-            out_cff = CFF(out_mtl_list, self.input_size[0], self.n_initial_filters * pow(2, (self.depth - 1) - i), (self.depth - i) - 1)
+            # out_cff = CFF(out_mtl_list, self.input_size[0], self.n_initial_filters * pow(2, (self.depth - 1) - i), (self.depth - i) - 1)
             temp_layer = conv_transpose_layer(self.n_initial_filters * pow(2, (self.depth - 1) - i),
                                               kernel_size=self.deconv_kernel_size,
                                               strides=self.deconv_strides,
@@ -500,7 +501,7 @@ class BAUNet(object):
             temp_layer = layers.Activation(self.activation)(temp_layer)
 
             # Concatenation
-            temp_layer = Concatenate()([temp_layer, out_cff])
+            temp_layer = Concatenate()([temp_layer, out_mtl_list[(self.depth-1)-i]])
 
             # convolution
             for j in range(2):
@@ -524,7 +525,7 @@ class BAUNet(object):
                                 bias_regularizer=self.bias_regularizer)(temp_layer)
 
         output_tensor = layers.Softmax(axis=-1, name='out_final')(temp_layer)
-        self.model = Model(inputs=[input_tensor], outputs=[output_tensor])  # +out_edge_list+out_mask_list)
+        self.model = Model(inputs=[input_tensor], outputs=[output_tensor]+out_edge_list+out_mask_list)
 
     def set_initial_weights(self, weights):
         '''
