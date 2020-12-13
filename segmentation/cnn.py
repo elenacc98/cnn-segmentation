@@ -16,7 +16,6 @@ from segmentation.utils import conv_factory, transition, denseblock, channelModu
     spatialModule, denseUnit, compressionUnit, upsamplingUnit, squeeze_excite_block, \
     conv_block, encoder1, encoder2, decoder1, decoder2, output_block, Upsample, ASPP, PEE, RA, MINI_MTL, CFF, build_MINI_MTL
 from tensorflow.keras.applications import *
-import math
 
 class UNet(object):
     """
@@ -476,9 +475,8 @@ class BAUNet(object):
             # mtl_model, out_mtl = build_MINI_MTL(out_pee.shape[1], self.n_initial_filters * pow(2, i), self.n_classes, i)
             # out_edge, out_mask = mtl_model(out_pee)
 
-            if i == (math.ceil(self.depth/2)):
-                out_edge_list.append(out_edge)
-                out_mask_list.append(out_mask)
+            out_edge_list.append(out_edge)
+            out_mask_list.append(out_mask)
             out_mtl_list.append(out_mtl)
 
             temp_layer = max_pool_layer(pool_size=self.pool_size,
