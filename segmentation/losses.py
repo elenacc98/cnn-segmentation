@@ -251,7 +251,7 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha):
     return multiclass_weighted_dice_boundary_loss
 
 
-def Weighted_DiceCatCross_Loss_v1(numClasses, alpha):
+def Weighted_DiceCatCross_Loss_v0(numClasses, alpha):
     """
     Categorical crossentropy wrapper function between y_pred tensor and a target tensor.
     Arguments:
@@ -334,7 +334,7 @@ def Weighted_DiceCatCross_Loss_v1(numClasses, alpha):
     return dice_categorical_cross_entropy
 
 
-def Weighted_DiceCatCross_Loss_v2(numClasses, alpha):
+def Weighted_DiceCatCross_Loss_v1(numClasses, alpha):
     """
     Categorical crossentropy wrapper function between y_pred tensor and a target tensor.
     Arguments:
@@ -409,7 +409,6 @@ def Weighted_DiceCatCross_Loss_v2(numClasses, alpha):
             DWM_list.append(
                 loss_weights[index] + gamma * tf.math.exp(-(tf.math.square(SDM[index])) / (2 * sigma * sigma)))
         DWM = tf.stack(DWM_list)
-
 
         # scale preds so that the class probas of each sample sum to 1
         y_pred = y_pred / math_ops.reduce_sum(y_pred, axis=0, keepdims=True)
