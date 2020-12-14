@@ -251,7 +251,7 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha):
     return multiclass_weighted_dice_boundary_loss
 
 
-def Weighted_DiceCatCross_Loss_v1(numClasses, alpha):
+def Weighted_DiceCatCross_Loss_v0(numClasses, alpha):
     """
     Categorical crossentropy wrapper function between y_pred tensor and a target tensor.
     Arguments:
@@ -334,7 +334,7 @@ def Weighted_DiceCatCross_Loss_v1(numClasses, alpha):
     return dice_categorical_cross_entropy
 
 
-def Weighted_DiceCatCross_Loss_v2(numClasses, alpha):
+def Weighted_DiceCatCross_Loss_v1(numClasses, alpha):
     """
     Categorical crossentropy wrapper function between y_pred tensor and a target tensor.
     Arguments:
