@@ -17,6 +17,7 @@ from segmentation.utils import conv_factory, transition, denseblock, channelModu
     conv_block, encoder1, encoder2, decoder1, decoder2, output_block, Upsample, ASPP, PEE, RA, MINI_MTL, CFF, build_MINI_MTL
 from tensorflow.keras.applications import *
 
+
 class UNet(object):
     """
     This class provides a simple interface to create
@@ -729,7 +730,9 @@ class CDDUnet(object):
 class CDUnet(object):
     """
     This class provides a simple interface to create
-    a Contextual Deconvolutional Dense Net network with custom parameters.
+    a Contextual Deconvolutional UNet network with custom parameters.
+    Same as CDDUnet only without dense connections in dowsampling path
+    to reduce memory requirements.
     Args:
         input_size: input size for the network
         num_classes: number of classes in labels
