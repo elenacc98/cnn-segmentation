@@ -562,7 +562,7 @@ def Exp_Log_Loss(numClasses, gamma):
 
             add_dice = tf.add(add_dice, tf.math.pow(-math_ops.log(tf.divide(numerator, denominator)), gamma))
 
-        dice_loss = tf.reduce_mean(add_dice)
+        dice_loss = tf.divide(add_dice, numClasses)
 
         wcc_loss = -math_ops.reduce_sum(tf.math.pow(y_true * math_ops.log(y_pred), gamma),
                                         axis=(1, 2, 3, 4)) / tf.cast(nVoxels,tf.float32)
