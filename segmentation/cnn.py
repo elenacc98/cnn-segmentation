@@ -16,6 +16,7 @@ from segmentation.utils import conv_factory, transition, denseblock, channelModu
     spatialModule, denseUnit, compressionUnit, upsamplingUnit, squeeze_excite_block, \
     conv_block, encoder1, encoder2, decoder1, decoder2, output_block, Upsample, ASPP, PEE, RA, MINI_MTL, CFF, build_MINI_MTL
 from tensorflow.keras.applications import *
+import math
 
 
 class UNet(object):
@@ -280,8 +281,15 @@ class ERANet(object):
         upsampling_layers = []
         # Down sampling branch
         for i in range(self.depth):
-            for j in range(2):
+            for j in range(2 + math.floor(i/2)):
                 # Convolution
+                if j == 0:
+                    x = conv_layer(self.n_initial_filters * pow(2, i), kernel_size=(1,1,1),
+                                   strides=self.strides,
+                                   padding=self.padding,
+                                   activation='linear',
+                                   kernel_regularizer=self.kernel_regularizer,
+                                   bias_regularizer=self.bias_regularizer)(temp_layer)
                 temp_layer = conv_layer(self.n_initial_filters * pow(2, i), kernel_size=self.kernel_size,
                                         strides=self.strides,
                                         padding=self.padding,
@@ -293,6 +301,7 @@ class ERANet(object):
                     temp_layer = layers.BatchNormalization(axis=-1)(temp_layer)
                 # activation
                 temp_layer = layers.Activation(self.activation)(temp_layer)
+            temp_layer = layers.Add()([temp_layer, x])
             downsampling_layers.append(temp_layer)
             temp_layer = max_pool_layer(pool_size=self.pool_size,
                                         strides=self.pool_strides,
@@ -317,8 +326,16 @@ class ERANet(object):
             temp_layer = RA(temp_layer, out_pee, self.n_initial_filters * pow(2, (self.depth - 1) - i))
 
             # convolution
-            for j in range(2):
+            for j in range(2 + math.floor(i/2)):
                 # Convolution
+                if j == 0:
+                    x = conv_layer(self.n_initial_filters * pow(2, (self.depth - 1) - i),
+                                   kernel_size=(1, 1, 1),
+                                   strides=self.strides,
+                                   padding=self.padding,
+                                   activation='linear',
+                                   kernel_regularizer=self.kernel_regularizer,
+                                   bias_regularizer=self.bias_regularizer)(temp_layer)
                 temp_layer = conv_layer(self.n_initial_filters * pow(2, (self.depth - 1) - i),
                                         kernel_size=self.kernel_size,
                                         strides=self.strides,
@@ -328,6 +345,8 @@ class ERANet(object):
                                         bias_regularizer=self.bias_regularizer)(temp_layer)
                 # activation
                 temp_layer = layers.Activation(self.activation)(temp_layer)
+            # addition
+            temp_layer = layers.Add()([temp_layer, x])
 
         # Convolution 1 filter sigmoidal (to make size converge to final one)
         temp_layer = conv_layer(self.n_classes, kernel_size=softmax_kernel_size,
