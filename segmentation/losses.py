@@ -499,7 +499,7 @@ def Weighted_DiceFocal_Loss(numClasses, alpha):
     return dice_focal
 
 
-def Exp_Log_Loss(numClasses, alpha, gamma):
+def Exp_Log_Loss(numClasses, gamma):
     """
     Dice + Focal loss wrapper function between y_pred tensor and a target tensor.
     Arguments:
@@ -568,6 +568,6 @@ def Exp_Log_Loss(numClasses, alpha, gamma):
                                         axis=(1, 2, 3, 4)) / tf.cast(nVoxels,tf.float32)
         wcc_loss = tf.reduce_mean(tf.multiply(loss_weights, wcc_loss))
 
-        return alpha * dice_loss + (1-alpha) * wcc_loss
+        return 0.8 * dice_loss + 0.2 * wcc_loss
 
     return exp_log
