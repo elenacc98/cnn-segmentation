@@ -552,6 +552,13 @@ def Exp_Log_Loss(numClasses, gamma):
         add_dice = tf.zeros((1,))
         # Get loss weights
         loss_weights = get_loss_weights(y_true, nVoxels, numClasses)
+
+        epsilon = backend_config.epsilon
+        # scale preds so that the class probas of each sample sum to 1
+        y_pred = y_pred / math_ops.reduce_sum(y_pred, axis=0, keepdims=True)
+        # Compute cross entropy from probabilities.
+        epsilon_ = constant_op.constant(epsilon(), y_pred.dtype.base_dtype)
+
         # Loop over each class to compute dice coefficient
         for c in range(numClasses):
             y_true_c = y_true[c]
@@ -560,14 +567,10 @@ def Exp_Log_Loss(numClasses, gamma):
             denominator = tf.add(tf.reduce_sum(y_true_c, axis=axisSum), tf.reduce_sum(y_pred_c, axis=axisSum))
             # class_loss_weight = loss_weights[c]
 
-            add_dice = tf.add(add_dice, tf.math.pow(-math_ops.log(tf.divide(numerator, denominator)), gamma))
+            add_dice = tf.add(add_dice, tf.math.pow(-math_ops.log(clip_ops.clip_by_value(tf.divide(numerator, denominator), epsilon_, 1. - epsilon_)), gamma))
 
         dice_loss = tf.divide(add_dice, numClasses)
-        epsilon = backend_config.epsilon
-        # scale preds so that the class probas of each sample sum to 1
-        y_pred = y_pred / math_ops.reduce_sum(y_pred, axis=0, keepdims=True)
-        # Compute cross entropy from probabilities.
-        epsilon_ = constant_op.constant(epsilon(), y_pred.dtype.base_dtype)
+
         y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
 
         wcc_loss = -math_ops.reduce_sum(tf.math.pow(y_true * math_ops.log(y_pred), gamma),
