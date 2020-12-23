@@ -471,6 +471,10 @@ class BAUNet(object):
         out_mtl_list = []
         upsampling_layers = []
 
+        # First downsamling to reduce dimension
+        temp_layer = max_pool_layer(pool_size=self.pool_size,
+                                        strides=self.pool_strides,
+                                        padding=self.padding)(temp_layer)
         # Down sampling branch
         for i in range(self.depth):
             for j in range(2):
@@ -488,17 +492,18 @@ class BAUNet(object):
                 temp_layer = layers.Activation(self.activation)(temp_layer)
             downsampling_layers.append(temp_layer)
 
-            out_pee = PEE(temp_layer, self.n_initial_filters * pow(2, i))
-            # IF MINI_MTL is used
-            out_mtl, out_edge, out_mask = MINI_MTL(out_pee, self.n_initial_filters * pow(2, i), self.n_classes, i)
+            if i != (self.depth-1):
+                out_pee = PEE(temp_layer, self.n_initial_filters * pow(2, i))
+                # IF MINI_MTL is used
+                out_mtl, out_edge, out_mask = MINI_MTL(out_pee, self.n_initial_filters * pow(2, i), self.n_classes, i)
 
-            # IF build_MINI_MTL is used
-            # mtl_model, out_mtl = build_MINI_MTL(out_pee.shape[1], self.n_initial_filters * pow(2, i), self.n_classes, i)
-            # out_edge, out_mask = mtl_model(out_pee)
+                # IF build_MINI_MTL is used
+                # mtl_model, out_mtl = build_MINI_MTL(out_pee.shape[1], self.n_initial_filters * pow(2, i), self.n_classes, i)
+                # out_edge, out_mask = mtl_model(out_pee)
 
-            out_edge_list.append(out_edge)
-            out_mask_list.append(out_mask)
-            out_mtl_list.append(out_mtl)
+                out_edge_list.append(out_edge)
+                out_mask_list.append(out_mask)
+                out_mtl_list.append(out_mtl)
 
             temp_layer = max_pool_layer(pool_size=self.pool_size,
                                         strides=self.pool_strides,
@@ -509,7 +514,6 @@ class BAUNet(object):
 
         # Up sampling branch
         for i in range(self.depth):
-            out_cff = CFF(out_mtl_list, self.input_size[0], self.n_initial_filters * pow(2, (self.depth - 1) - i), (self.depth - i) - 1)
             temp_layer = conv_transpose_layer(self.n_initial_filters * pow(2, (self.depth - 1) - i),
                                               kernel_size=self.deconv_kernel_size,
                                               strides=self.deconv_strides,
@@ -520,8 +524,12 @@ class BAUNet(object):
             # activation
             temp_layer = layers.Activation(self.activation)(temp_layer)
 
-            # Concatenation
-            temp_layer = Concatenate()([temp_layer, out_cff])
+            if i == 0:
+                temp_layer = Concatenate()([temp_layer, downsampling_layers[(self.depth - i) - 1]])
+            else:
+                out_cff = CFF(out_mtl_list, self.input_size[0], self.n_initial_filters * pow(2, (self.depth - 1) - i), (self.depth - i) - 1)
+                # Concatenation
+                temp_layer = Concatenate()([temp_layer, out_cff])
 
             # Convolution
             for j in range(2):
@@ -536,6 +544,19 @@ class BAUNet(object):
                 # activation
                 temp_layer = layers.Activation(self.activation)(temp_layer)
 
+        temp_layer = conv_transpose_layer(self.n_initial_filters,
+                                              kernel_size=self.deconv_kernel_size,
+                                              strides=self.deconv_strides,
+                                              activation='linear',
+                                              padding=self.padding,
+                                              kernel_regularizer=self.kernel_regularizer,
+                                              bias_regularizer=self.bias_regularizer)(temp_layer)
+
+        # activation
+        temp_layer = layers.Activation(self.activation)(temp_layer)
+
+        temp_layer = Concatenate()([temp_layer, input_tensor])
+        
         # Convolution 1 filter sigmoidal (to make size converge to final one)
         temp_layer = conv_layer(self.n_classes, kernel_size=softmax_kernel_size,
                                 strides=self.strides,
