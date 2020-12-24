@@ -529,7 +529,10 @@ class BAUNet(object):
             else:
                 out_pee = PEE(downsampling_layers[(self.depth - i) - 1], self.n_initial_filters * pow(2, (self.depth - i) - 1))
                 # IF MINI_MTL is used
-                out_mtl, out_edge, out_mask = MINI_MTL(out_pee, self.n_initial_filters * pow(2, (self.depth - i) - 1), self.n_classes, i)
+                out_mtl, out_edge, out_mask = MINI_MTL(out_pee,
+                                                       self.n_initial_filters * pow(2, (self.depth - i) - 1),
+                                                       self.n_classes,
+                                                       (self.depth - i) - 1)
 
                 out_edge_list.append(out_edge)
                 out_mask_list.append(out_mask)
