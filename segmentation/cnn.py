@@ -524,21 +524,22 @@ class BAUNet(object):
             # activation
             temp_layer = layers.Activation(self.activation)(temp_layer)
 
-            if i == 0:
-                temp_layer = Concatenate()([temp_layer, downsampling_layers[(self.depth - i) - 1]])
-            else:
-                out_pee = PEE(downsampling_layers[(self.depth - i) - 1], self.n_initial_filters * pow(2, (self.depth - i) - 1))
-                # IF MINI_MTL is used
-                out_mtl, out_edge, out_mask = MINI_MTL(out_pee,
-                                                       self.n_initial_filters * pow(2, (self.depth - i) - 1),
-                                                       self.n_classes,
-                                                       (self.depth - i) - 1)
+            # if i == 0:
+            #     temp_layer = Concatenate()([temp_layer, downsampling_layers[(self.depth - i) - 1]])
+            # else:
 
-                out_edge_list.append(out_edge)
-                out_mask_list.append(out_mask)
+            out_pee = PEE(downsampling_layers[(self.depth - i) - 1], self.n_initial_filters * pow(2, (self.depth - i) - 1))
+            # IF MINI_MTL is used
+            out_mtl, out_edge, out_mask = MINI_MTL(out_pee,
+                                                   self.n_initial_filters * pow(2, (self.depth - i) - 1),
+                                                   self.n_classes,
+                                                   (self.depth - i) - 1)
 
-                # Concatenation
-                temp_layer = Concatenate()([temp_layer, out_mtl])
+            out_edge_list.append(out_edge)
+            out_mask_list.append(out_mask)
+
+            # Concatenation
+            temp_layer = Concatenate()([temp_layer, out_mtl])
 
             # Convolution
             for j in range(2):
@@ -575,7 +576,12 @@ class BAUNet(object):
                                 bias_regularizer=self.bias_regularizer)(temp_layer)
 
         output_tensor = layers.Softmax(axis=-1, name='out_final')(temp_layer)
-        self.model = Model(inputs=[input_tensor], outputs=[output_tensor]+out_edge_list+out_mask_list)
+        out_edge = Concatenate(out_edge_list)
+        out_mask = Concatenate(out_mask_list)
+        out_edge = layers.Softmax(axis=-1, name='out_edge')(out_edge)
+        out_mask = layers.Softmax(axis=-1, name='out_mask')(out_mask)
+
+        self.model = Model(inputs=[input_tensor], outputs=[output_tensor, out_edge, out_mask])
 
     def set_initial_weights(self, weights):
         '''
