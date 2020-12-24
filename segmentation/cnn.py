@@ -575,11 +575,25 @@ class BAUNet(object):
                                 kernel_regularizer=self.kernel_regularizer,
                                 bias_regularizer=self.bias_regularizer)(temp_layer)
 
-        output_tensor = layers.Softmax(axis=-1, name='out_final')(temp_layer)
         out_edge = Concatenate()(out_edge_list)
+        out_edge = conv_layer(self.n_classes, kernel_size=softmax_kernel_size,
+                              strides=self.strides,
+                              padding='same',
+                              activation='linear',
+                              kernel_regularizer=self.kernel_regularizer,
+                              bias_regularizer=self.bias_regularizer)(out_edge)
+        
         out_mask = Concatenate()(out_mask_list)
+        out_mask = conv_layer(self.n_classes, kernel_size=softmax_kernel_size,
+                              strides=self.strides,
+                              padding='same',
+                              activation='linear',
+                              kernel_regularizer=self.kernel_regularizer,
+                              bias_regularizer=self.bias_regularizer)(out_mask)
+
         out_edge = layers.Softmax(axis=-1, name='out_edge')(out_edge)
         out_mask = layers.Softmax(axis=-1, name='out_mask')(out_mask)
+        output_tensor = layers.Softmax(axis=-1, name='out_final')(temp_layer)
 
         self.model = Model(inputs=[input_tensor], outputs=[output_tensor, out_edge, out_mask])
 
