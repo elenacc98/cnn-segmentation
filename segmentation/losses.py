@@ -635,7 +635,7 @@ def Hausdorff_Distance(numClasses, alpha):
                              inp=[y_true_real, numClasses],
                              Tout=tf.float32)
 
-        h_dist = tf.multiply(tf.math.pow(SDM,2), tf.math.pow(tf.subtract(y_pred, y_true_real), 2))
+        h_dist = tf.multiply(SDM, tf.math.pow(tf.subtract(y_pred, y_true_real), 2))
         h_dist_loss = tf.divide(tf.reduce_sum(h_dist), nVoxels)
 
         return h_dist_loss
