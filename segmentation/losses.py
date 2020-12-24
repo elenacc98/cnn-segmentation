@@ -631,7 +631,7 @@ def Hausdorff_Distance(numClasses, alpha):
         nVoxels = tf.size(y_true_real) / numClasses
         nVoxels = tf.cast(nVoxels, tf.float32)
 
-        SDM = tf.py_function(func=calc_SDM_batch_edge,
+        SDM = tf.py_function(func=calc_DM_batch_edge,
                              inp=[y_true_real, numClasses],
                              Tout=tf.float32)
 
