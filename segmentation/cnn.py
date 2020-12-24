@@ -576,8 +576,8 @@ class BAUNet(object):
                                 bias_regularizer=self.bias_regularizer)(temp_layer)
 
         output_tensor = layers.Softmax(axis=-1, name='out_final')(temp_layer)
-        out_edge = Concatenate(out_edge_list)
-        out_mask = Concatenate(out_mask_list)
+        out_edge = Concatenate()(out_edge_list)
+        out_mask = Concatenate()(out_mask_list)
         out_edge = layers.Softmax(axis=-1, name='out_edge')(out_edge)
         out_mask = layers.Softmax(axis=-1, name='out_mask')(out_mask)
 
