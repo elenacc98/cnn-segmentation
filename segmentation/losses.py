@@ -4,7 +4,7 @@ in segmentation tasks.
 """
 
 from segmentation.metrics import MeanDice
-from segmentation.utils import calc_SDM_batch, calc_DM_batch, calc_SDM, calc_DM
+from segmentation.utils import calc_SDM_batch, calc_DM_batch, calc_SDM, calc_DM, calc_DM_batch_edge, calc_DM_edge
 from segmentation.utils import count_class_voxels, get_loss_weights
 from keras import backend as K
 import numpy as np
@@ -587,3 +587,59 @@ def Exp_Log_Loss(numClasses, gamma):
         return 0.8 * dice_loss + 0.2 * wcc_loss
 
     return exp_log
+
+
+def Hausdorff_Distance(numClasses, alpha):
+    """
+
+    Args:
+        numClasses:
+        alpha:
+
+    Returns:
+
+    """
+
+    def hausdorff_distance(y_true, y_pred):
+        """
+
+        Args:
+            y_true:
+            y_pred:
+
+        Returns:
+
+        """
+
+        y_true_real = y_true[:,:,:,:,5:10]
+
+        if len(y_true.shape) == 5:
+            axisSum = (1, 2, 3)
+            y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
+            y_true_real = tf.transpose(y_true_real, [4, 0, 1, 2, 3])
+        elif len(y_true.shape) == 4:
+            axisSum = (1, 2)
+            y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
+            y_true_real = tf.transpose(y_true_real, [3, 0, 1, 2])
+        else:
+            print("Could not recognise input dimensions")
+            return
+
+        # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
+        y_true_real = tf.cast(y_true_real, tf.float32)
+        y_pred = tf.cast(y_pred, tf.float32)
+        nVoxels = tf.size(y_true_real) / numClasses
+        nVoxels = tf.cast(nVoxels, tf.float32)
+
+        SDM = tf.py_function(func=calc_SDM_batch_edge,
+                             inp=[y_true_real, numClasses],
+                             Tout=tf.float32)
+
+        h_dist = tf.multiply(tf.math.pow(SDM,2), tf.math.pow(tf.subtract(y_pred, y_true_real), 2))
+        h_dist_loss = tf.divide(tf.reduce_sum(h_dist), nVoxels)
+
+        return h_dist_loss
+
+    return hausdorff_distance
+
+

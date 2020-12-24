@@ -582,7 +582,7 @@ class BAUNet(object):
                               activation='linear',
                               kernel_regularizer=self.kernel_regularizer,
                               bias_regularizer=self.bias_regularizer)(out_edge)
-        
+
         out_mask = Concatenate()(out_mask_list)
         out_mask = conv_layer(self.n_classes, kernel_size=softmax_kernel_size,
                               strides=self.strides,

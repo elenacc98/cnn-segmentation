@@ -92,6 +92,28 @@ def calc_DM(seg):
         print("Could not recognise dimensions")
 
 
+def calc_DM_edge(seg):
+    """
+    Computes Non-Signed Distance Map of input ground truth image or volume using scipy function.
+    In case seg is 3D volume, it separately computes 2D DM fo each single slice.
+    Args:
+        seg: 2D or 3D binary array to compute the distance map
+    Returns:
+        res: distance map
+    """
+
+    res = np.zeros_like(seg)
+    posmask = seg.astype(np.bool)
+
+    for i in range(seg.shape[2]):
+        pos = posmask[:, :, i]
+        if pos.any():
+            neg = ~pos
+            res[:, :, i] = distance(neg)
+    return res
+
+
+
 def calc_DM_batch(y_true, numClasses):
     """
     Prepares the input for distance maps computation, and pass it to calc_dist_map
@@ -107,6 +129,24 @@ def calc_DM_batch(y_true, numClasses):
         temp_y = y_true_numpy[c]
         for i, y in enumerate(temp_y):
             dist_batch[c, i] = calc_DM(y)
+    return np.array(dist_batch).astype(np.float32)
+
+
+def calc_DM_batch_edge(y_true, numClasses):
+    """
+    Prepares the input for distance maps computation, and pass it to calc_dist_map
+    Args:
+        y_true: ground truth tensor [class, batch, rows, columns, slices] or [class, batch, rows, columns]
+        numClasses: number of classes
+    Returns:
+        array of distance map of the same dimension of input tensor
+    """
+    y_true_numpy = y_true.numpy()
+    dist_batch = np.zeros_like(y_true_numpy)
+    for c in range(numClasses):
+        temp_y = y_true_numpy[c]
+        for i, y in enumerate(temp_y):
+            dist_batch[c, i] = calc_DM_edge(y)
     return np.array(dist_batch).astype(np.float32)
 
 
