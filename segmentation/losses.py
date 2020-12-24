@@ -96,26 +96,30 @@ def CrossEntropyEdge_loss(numClasses):
         Returns:
 
         """
+
+        y_true_real = y_true[:,:,:,:,5:10]
+
         if len(y_true.shape) == 5:
             axisSum = (1, 2, 3)
             y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
-            y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
+            y_true_real = tf.transpose(y_true_real, [4, 0, 1, 2, 3])
         elif len(y_true.shape) == 4:
             axisSum = (1, 2)
             y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
-            y_true = tf.transpose(y_true, [3, 0, 1, 2])
+            y_true_real = tf.transpose(y_true_real, [3, 0, 1, 2])
         else:
             print("Could not recognise input dimensions")
             return
 
+
         # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
-        y_true = tf.cast(y_true, tf.float32)
+        y_true_real = tf.cast(y_true_real, tf.float32)
         y_pred = tf.cast(y_pred, tf.float32)
-        nVoxels = tf.size(y_true) / numClasses
+        nVoxels = tf.size(y_true_real) / numClasses
         nVoxels = tf.cast(nVoxels, tf.float32)
 
-        loss_weights = get_loss_weights(y_true, nVoxels, numClasses)
-        nEdgeVoxels = tf.math.count_nonzero(y_true)
+        loss_weights = get_loss_weights(y_true_real, nVoxels, numClasses)
+        nEdgeVoxels = tf.math.count_nonzero(y_true_real)
         epsilon = backend_config.epsilon
 
         # scale preds so that the class probas of each sample sum to 1
@@ -124,7 +128,7 @@ def CrossEntropyEdge_loss(numClasses):
         epsilon_ = constant_op.constant(epsilon(), y_pred.dtype.base_dtype)
         y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
 
-        wcc_loss = -math_ops.reduce_sum(y_true * math_ops.log(y_pred), axis=(1,2,3,4)) / tf.cast(nEdgeVoxels, tf.float32)
+        wcc_loss = -math_ops.reduce_sum(y_true_real * math_ops.log(y_pred), axis=(1,2,3,4)) / tf.cast(nEdgeVoxels, tf.float32)
         wcc_loss = tf.reduce_sum(tf.multiply(loss_weights, wcc_loss))
 
         return wcc_loss
@@ -152,25 +156,28 @@ def CrossEntropyRegion_loss(numClasses):
         Returns:
 
         """
+
+        y_true_real = y_true[:, :, :, :, 0:5]
+
         if len(y_true.shape) == 5:
             axisSum = (1, 2, 3)
             y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
-            y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
+            y_true_real = tf.transpose(y_true_real, [4, 0, 1, 2, 3])
         elif len(y_true.shape) == 4:
             axisSum = (1, 2)
             y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
-            y_true = tf.transpose(y_true, [3, 0, 1, 2])
+            y_true_real = tf.transpose(y_true_real, [3, 0, 1, 2])
         else:
             print("Could not recognise input dimensions")
             return
 
         # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
-        y_true = tf.cast(y_true, tf.float32)
+        y_true_real = tf.cast(y_true_real, tf.float32)
         y_pred = tf.cast(y_pred, tf.float32)
-        nVoxels = tf.size(y_true) / numClasses
+        nVoxels = tf.size(y_true_real) / numClasses
         nVoxels = tf.cast(nVoxels, tf.float32)
 
-        loss_weights = get_loss_weights(y_true, nVoxels, numClasses)
+        loss_weights = get_loss_weights(y_true_real, nVoxels, numClasses)
         epsilon = backend_config.epsilon
 
         # scale preds so that the class probas of each sample sum to 1
@@ -179,7 +186,7 @@ def CrossEntropyRegion_loss(numClasses):
         epsilon_ = constant_op.constant(epsilon(), y_pred.dtype.base_dtype)
         y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
 
-        wcc_loss = -math_ops.reduce_sum(y_true * math_ops.log(y_pred), axis=(1, 2, 3, 4)) / tf.cast(nVoxels,
+        wcc_loss = -math_ops.reduce_sum(y_true_real * math_ops.log(y_pred), axis=(1, 2, 3, 4)) / tf.cast(nVoxels,
                                                                                                     tf.float32)
         wcc_loss = tf.reduce_sum(tf.multiply(loss_weights, wcc_loss))
 
