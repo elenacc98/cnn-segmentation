@@ -685,7 +685,7 @@ def Hausdorff_Distance2(numClasses, alpha):
 
         SDM, contours = tf.py_function(func=calc_DM_batch_edge2,
                              inp=[y_true, numClasses],
-                             Tout=tf.float32)
+                             Tout=[tf.float32, tf.float32])
 
         h_dist = tf.multiply(SDM, tf.math.pow(tf.subtract(y_pred, contours), 2))
         h_dist_loss = tf.divide(tf.reduce_sum(h_dist), nVoxels)

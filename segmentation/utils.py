@@ -4,6 +4,7 @@ Utils functions.
 
 from scipy.ndimage import distance_transform_edt as distance
 from cv2 import findContours
+from cv2 import RETR_EXTERNAL, CHAIN_APPROX_NONE, cvtColor, COLOR_BGR2GRAY
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import Model
@@ -167,8 +168,8 @@ def calc_DM_batch_edge2(y_true, numClasses):
         temp_y = y_true_numpy[c]
         for i, y in enumerate(temp_y):
             for k in range(y.shape[2]):
-                img_lab = y[:, :, k]
-                contour_lab, hierarchy_lab = findContours(img_lab, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+                img_lab = y[:, :, k].astype(np.uint8)
+                contour_lab, hierarchy_lab = findContours(img_lab, RETR_EXTERNAL, CHAIN_APPROX_NONE)
                 if len(contour_lab) != 0:
                     # CONTOUR PER SLICE IS PRESENT
                     for j in range(len(contour_lab)):
@@ -178,7 +179,7 @@ def calc_DM_batch_edge2(y_true, numClasses):
                 else:
                     surface_label[c, i, :, :, k] = np.zeros_like(img_lab)
             dist_batch[c, i] = calc_DM_edge(surface_label[c, i])
-            
+
     return np.array(dist_batch).astype(np.float32), np.array(surface_label).astype(np.float32)
 
 
