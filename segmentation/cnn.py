@@ -396,9 +396,9 @@ class UNet2(object):
         temp_layer_mask = layers.Activation(self.activation)(temp_layer_mask)
 
         # Concatenate with input
-        # temp_layer_edge = Concatenate()([temp_layer_edge, input_tensor])
-        # temp_layer_mask = Concatenate()([temp_layer_mask, input_tensor])
-        #
+        temp_layer_edge = Concatenate()([temp_layer_edge, input_tensor])
+        temp_layer_mask = Concatenate()([temp_layer_mask, input_tensor])
+        
         # for j in range(2):
         #     temp_layer_edge = conv_layer(self.n_initial_filters,
         #                                  kernel_size=self.kernel_size,
