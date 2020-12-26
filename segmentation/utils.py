@@ -3,6 +3,7 @@ Utils functions.
 """
 
 from scipy.ndimage import distance_transform_edt as distance
+from cv2 import findContours
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import Model
@@ -148,6 +149,37 @@ def calc_DM_batch_edge(y_true, numClasses):
         for i, y in enumerate(temp_y):
             dist_batch[c, i] = calc_DM_edge(y)
     return np.array(dist_batch).astype(np.float32)
+
+
+def calc_DM_batch_edge2(y_true, numClasses):
+    """
+    Prepares the input for distance maps computation, and pass it to calc_dist_map
+    Args:
+        y_true: ground truth tensor [class, batch, rows, columns, slices] or [class, batch, rows, columns]
+        numClasses: number of classes
+    Returns:
+        array of distance map of the same dimension of input tensor
+    """
+    y_true_numpy = y_true.numpy()
+    surface_label = np.zeros_like(y_true_numpy)
+    dist_batch = np.zeros_like(y_true_numpy)
+    for c in range(numClasses):
+        temp_y = y_true_numpy[c]
+        for i, y in enumerate(temp_y):
+            for k in range(y.shape[2]):
+                img_lab = y[:, :, k]
+                contour_lab, hierarchy_lab = findContours(img_lab, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+                if len(contour_lab) != 0:
+                    # CONTOUR PER SLICE IS PRESENT
+                    for j in range(len(contour_lab)):
+                        if contour_lab[j].shape[1] == 1:
+                            contour_lab[j].resize(contour_lab[j].shape[0], 2)
+                        surface_label[c, i, contour_lab[j][:, 1], contour_lab[j][:, 0], k] = 1
+                else:
+                    surface_label[c, i, :, :, k] = np.zeros_like(img_lab)
+            dist_batch[c, i] = calc_DM_edge(surface_label[c, i])
+            
+    return np.array(dist_batch).astype(np.float32), np.array(surface_label).astype(np.float32)
 
 
 def count_class_voxels(labels, nVoxels, numClasses):
