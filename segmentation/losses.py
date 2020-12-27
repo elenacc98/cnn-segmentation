@@ -591,7 +591,8 @@ def Exp_Log_Loss(numClasses, gamma):
 
 def Hausdorff_Distance(numClasses, alpha):
     """
-
+    Computes Hausdorff distance from contour groud truth loaded in y_pred by
+    some DataGenerator.
     Args:
         numClasses:
         alpha:
@@ -645,6 +646,7 @@ def Hausdorff_Distance(numClasses, alpha):
 
 def Hausdorff_Distance2(numClasses, alpha):
     """
+    Computes Hausdorff distance after having created contour ground truth labels from mask ground truth labels.
 
     Args:
         numClasses:
@@ -678,16 +680,16 @@ def Hausdorff_Distance2(numClasses, alpha):
             return
 
         # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
-        y_true_real = tf.cast(y_true, tf.float32)
+        y_true = tf.cast(y_true, tf.float32)
         y_pred = tf.cast(y_pred, tf.float32)
-        nVoxels = tf.size(y_true_real) / numClasses
+        nVoxels = tf.size(y_true) / numClasses
         nVoxels = tf.cast(nVoxels, tf.float32)
 
         SDM, contours = tf.py_function(func=calc_DM_batch_edge2,
                              inp=[y_true, numClasses],
                              Tout=[tf.float32, tf.float32])
 
-        h_dist = tf.multiply(SDM, tf.math.pow(tf.subtract(y_pred, contours), 2))
+        h_dist = tf.math.pow(tf.multiply(SDM, tf.math.pow(tf.subtract(y_pred, contours), 2)), 2)
         h_dist_loss = tf.divide(tf.reduce_sum(h_dist), nVoxels)
 
         return h_dist_loss
@@ -695,3 +697,67 @@ def Hausdorff_Distance2(numClasses, alpha):
     return hausdorff_distance
 
 
+def Haus_Crossentropy_Loss(numClasses, alpha=0.5):
+    """
+
+    Args:
+        numClasses:
+        alpha:
+
+    Returns:
+
+    """
+
+    def hausdorff_crossentropy(y_true, y_pred):
+        """
+
+        Args:
+            y_true:
+            y_pred:
+
+        Returns:
+
+        """
+
+        if len(y_true.shape) == 5:
+            axisSum = (1, 2, 3)
+            y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
+            y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
+        elif len(y_true.shape) == 4:
+            axisSum = (1, 2)
+            y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
+            y_true = tf.transpose(y_true, [3, 0, 1, 2])
+        else:
+            print("Could not recognise input dimensions")
+            return
+
+        # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
+        y_true = tf.cast(y_true, tf.float32)
+        y_pred = tf.cast(y_pred, tf.float32)
+        nVoxels = tf.size(y_true) / numClasses
+        nVoxels = tf.cast(nVoxels, tf.float32)
+
+        SDM, contours = tf.py_function(func=calc_DM_batch_edge2,
+                             inp=[y_true, numClasses],
+                             Tout=[tf.float32, tf.float32])
+
+        h_dist = tf.math.pow(tf.multiply(SDM, tf.math.pow(tf.subtract(y_pred, contours), 2)), 2)
+        h_dist_loss = tf.divide(tf.reduce_sum(h_dist), nVoxels)
+
+        loss_weights = get_loss_weights(y_true, nVoxels, numClasses)
+        nEdgeVoxels = tf.math.count_nonzero(contours)
+        epsilon = backend_config.epsilon
+
+        # scale preds so that the class probas of each sample sum to 1
+        y_pred = y_pred / math_ops.reduce_sum(y_pred, axis=0, keepdims=True)
+        # Compute cross entropy from probabilities.
+        epsilon_ = constant_op.constant(epsilon(), y_pred.dtype.base_dtype)
+        y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
+
+        wcc_loss = -math_ops.reduce_sum(contours * math_ops.log(y_pred), axis=(1, 2, 3, 4)) / tf.cast(nEdgeVoxels,
+                                                                                                         tf.float32)
+        wcc_loss = tf.reduce_sum(tf.multiply(loss_weights, wcc_loss))
+
+        return alpha * h_dist_loss + alpha * wcc_loss
+
+    return hausdorff_crossentropy

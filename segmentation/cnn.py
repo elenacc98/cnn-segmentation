@@ -276,9 +276,9 @@ class UNet2(object):
         temp_layer = layers.Input(shape=self.input_size)
         input_tensor = temp_layer
 
-        temp_layer = max_pool_layer(pool_size=self.pool_size,
-                                    strides=self.pool_strides,
-                                    padding=self.padding)(temp_layer)
+        # temp_layer = max_pool_layer(pool_size=self.pool_size,
+        #                             strides=self.pool_strides,
+        #                             padding=self.padding)(temp_layer)
 
         # Variables holding the layers so that they can be concatenated
         downsampling_layers = []
@@ -375,30 +375,30 @@ class UNet2(object):
             else:
                 temp_layer_merge = temp_layer_mask
 
-        # EDGE PATH
-        temp_layer_edge = conv_transpose_layer(self.n_initial_filters,
-                                               kernel_size=self.deconv_kernel_size,
-                                               strides=self.deconv_strides,
-                                               activation='linear',
-                                               padding=self.padding,
-                                               kernel_regularizer=self.kernel_regularizer,
-                                               bias_regularizer=self.bias_regularizer)(temp_layer_edge)
-        temp_layer_edge = layers.Activation(self.activation)(temp_layer_edge)
+        # # EDGE PATH
+        # temp_layer_edge = conv_transpose_layer(self.n_initial_filters,
+        #                                        kernel_size=self.deconv_kernel_size,
+        #                                        strides=self.deconv_strides,
+        #                                        activation='linear',
+        #                                        padding=self.padding,
+        #                                        kernel_regularizer=self.kernel_regularizer,
+        #                                        bias_regularizer=self.bias_regularizer)(temp_layer_edge)
+        # temp_layer_edge = layers.Activation(self.activation)(temp_layer_edge)
+        #
+        # # MASK PATH
+        # temp_layer_mask = conv_transpose_layer(self.n_initial_filters,
+        #                                        kernel_size=self.deconv_kernel_size,
+        #                                        strides=self.deconv_strides,
+        #                                        activation='linear',
+        #                                        padding=self.padding,
+        #                                        kernel_regularizer=self.kernel_regularizer,
+        #                                        bias_regularizer=self.bias_regularizer)(temp_layer_merge)
+        # temp_layer_mask = layers.Activation(self.activation)(temp_layer_mask)
+        #
+        # # Concatenate with input
+        # temp_layer_edge = Concatenate()([temp_layer_edge, input_tensor])
+        # temp_layer_mask = Concatenate()([temp_layer_mask, input_tensor])
 
-        # MASK PATH
-        temp_layer_mask = conv_transpose_layer(self.n_initial_filters,
-                                               kernel_size=self.deconv_kernel_size,
-                                               strides=self.deconv_strides,
-                                               activation='linear',
-                                               padding=self.padding,
-                                               kernel_regularizer=self.kernel_regularizer,
-                                               bias_regularizer=self.bias_regularizer)(temp_layer_merge)
-        temp_layer_mask = layers.Activation(self.activation)(temp_layer_mask)
-
-        # Concatenate with input
-        temp_layer_edge = Concatenate()([temp_layer_edge, input_tensor])
-        temp_layer_mask = Concatenate()([temp_layer_mask, input_tensor])
-        
         # for j in range(2):
         #     temp_layer_edge = conv_layer(self.n_initial_filters,
         #                                  kernel_size=self.kernel_size,
@@ -738,9 +738,10 @@ class BAUNet(object):
         upsampling_layers = []
 
         # First downsamling to reduce dimension
-        temp_layer = max_pool_layer(pool_size=self.pool_size,
-                                        strides=self.pool_strides,
-                                        padding=self.padding)(temp_layer)
+        # temp_layer = max_pool_layer(pool_size=self.pool_size,
+        #                                 strides=self.pool_strides,
+        #                                 padding=self.padding)(temp_layer)
+
         # Down sampling branch
         for i in range(self.depth):
             for j in range(2):
@@ -789,11 +790,6 @@ class BAUNet(object):
                                               bias_regularizer=self.bias_regularizer)(temp_layer)
             # activation
             temp_layer = layers.Activation(self.activation)(temp_layer)
-
-            # if i == 0:
-            #     temp_layer = Concatenate()([temp_layer, downsampling_layers[(self.depth - i) - 1]])
-            # else:
-
             out_pee = PEE(downsampling_layers[(self.depth - i) - 1], self.n_initial_filters * pow(2, (self.depth - i) - 1))
             # IF MINI_MTL is used
             out_mtl, out_edge, out_mask = MINI_MTL(out_pee,
@@ -820,18 +816,18 @@ class BAUNet(object):
                 # activation
                 temp_layer = layers.Activation(self.activation)(temp_layer)
 
-        temp_layer = conv_transpose_layer(self.n_initial_filters,
-                                              kernel_size=self.deconv_kernel_size,
-                                              strides=self.deconv_strides,
-                                              activation='linear',
-                                              padding=self.padding,
-                                              kernel_regularizer=self.kernel_regularizer,
-                                              bias_regularizer=self.bias_regularizer)(temp_layer)
-
-        # activation
-        temp_layer = layers.Activation(self.activation)(temp_layer)
-
-        temp_layer = Concatenate()([temp_layer, input_tensor])
+        # temp_layer = conv_transpose_layer(self.n_initial_filters,
+        #                                       kernel_size=self.deconv_kernel_size,
+        #                                       strides=self.deconv_strides,
+        #                                       activation='linear',
+        #                                       padding=self.padding,
+        #                                       kernel_regularizer=self.kernel_regularizer,
+        #                                       bias_regularizer=self.bias_regularizer)(temp_layer)
+        #
+        # # activation
+        # temp_layer = layers.Activation(self.activation)(temp_layer)
+        #
+        # temp_layer = Concatenate()([temp_layer, input_tensor])
 
         # Convolution 1 filter sigmoidal (to make size converge to final one)
         temp_layer = conv_layer(self.n_classes, kernel_size=softmax_kernel_size,
