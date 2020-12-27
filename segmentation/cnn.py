@@ -779,16 +779,19 @@ class BAUNet(object):
             temp_layer = layers.Activation(self.activation)(temp_layer)
             out_pee = PEE(downsampling_layers[(self.depth - i) - 1], self.n_initial_filters * pow(2, (self.depth - i) - 1))
             # IF MINI_MTL is used
-            out_mtl, out_edge, out_mask = MINI_MTL(out_pee,
-                                                   self.n_initial_filters * pow(2, (self.depth - i) - 1),
-                                                   self.n_classes,
-                                                   (self.depth - i) - 1)
+            if i != (self.depth - 1):
+                out_mtl, out_edge, out_mask = MINI_MTL(out_pee,
+                                                       self.n_initial_filters * pow(2, (self.depth - i) - 1),
+                                                       self.n_classes,
+                                                       (self.depth - i) - 1)
 
-            out_edge_list.append(out_edge)
-            out_mask_list.append(out_mask)
+                out_edge_list.append(out_edge)
+                out_mask_list.append(out_mask)
 
-            # Concatenation
-            temp_layer = Concatenate()([temp_layer, out_mtl])
+                # Concatenation
+                temp_layer = Concatenate()([temp_layer, out_mtl])
+            else:
+                temp_layer = Concatenate()([temp_layer, out_pee])
 
             # Convolution
             for j in range(2):
