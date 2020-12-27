@@ -759,19 +759,6 @@ class BAUNet(object):
                 temp_layer = layers.Activation(self.activation)(temp_layer)
             downsampling_layers.append(temp_layer)
 
-            # if i != (self.depth-1):
-            #     out_pee = PEE(temp_layer, self.n_initial_filters * pow(2, i))
-            #     # IF MINI_MTL is used
-            #     out_mtl, out_edge, out_mask = MINI_MTL(out_pee, self.n_initial_filters * pow(2, i), self.n_classes, i)
-            #
-            #     # IF build_MINI_MTL is used
-            #     # mtl_model, out_mtl = build_MINI_MTL(out_pee.shape[1], self.n_initial_filters * pow(2, i), self.n_classes, i)
-            #     # out_edge, out_mask = mtl_model(out_pee)
-            #
-            #     out_edge_list.append(out_edge)
-            #     out_mask_list.append(out_mask)
-            #     out_mtl_list.append(out_mtl)
-
             temp_layer = max_pool_layer(pool_size=self.pool_size,
                                         strides=self.pool_strides,
                                         padding=self.padding)(temp_layer)
