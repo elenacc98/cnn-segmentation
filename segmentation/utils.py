@@ -195,7 +195,7 @@ def calc_DM_batch_edge2(y_true, numClasses):
     y_true_numpy = y_true.numpy()
     surface_label = np.zeros_like(y_true_numpy)
     dist_batch = np.zeros_like(y_true_numpy)
-    for c in range(numClasses):
+    for c in range(1, numClasses):
         temp_y = y_true_numpy[c]
         for i, y in enumerate(temp_y):
             for k in range(y.shape[2]):
@@ -209,6 +209,10 @@ def calc_DM_batch_edge2(y_true, numClasses):
                 else:
                     surface_label[c, i, :, :, k] = np.zeros_like(img_lab)
             dist_batch[c, i] = calc_DM_edge(surface_label[c, i])
+
+    surface_label[0] = surface_label[1] + surface_label[2] + surface_label[3] + surface_label[4]
+    for i in range(y_true_numpy.shape[1]):
+        dist_batch[0,i] = calc_DM_edge(surface_label[0, i])
     return np.array(dist_batch).astype(np.float32), np.array(surface_label).astype(np.float32)
 
 
