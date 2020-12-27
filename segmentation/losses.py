@@ -688,8 +688,13 @@ def Hausdorff_Distance2(numClasses, alpha):
         SDM, contours = tf.py_function(func=calc_DM_batch_edge2,
                              inp=[y_true, numClasses],
                              Tout=[tf.float32, tf.float32])
+        gamma = 8
+        sigma = 10
 
-        h_dist = tf.math.pow(tf.multiply(SDM, tf.math.pow(tf.subtract(y_pred, contours), 2)), 2)
+        # Exponential transformation of the Distance transform
+        DWM = 1 + gamma * tf.math.exp(tf.math.negative(SDM) / sigma)
+
+        h_dist = tf.multiply(DWM, tf.math.pow(tf.subtract(y_pred, contours), 2))
         h_dist_loss = tf.divide(tf.reduce_sum(h_dist), nVoxels)
 
         return h_dist_loss
@@ -741,7 +746,7 @@ def Haus_Crossentropy_Loss(numClasses, alpha=0.5):
                              inp=[y_true, numClasses],
                              Tout=[tf.float32, tf.float32])
 
-        h_dist = tf.math.pow(tf.multiply(SDM, tf.math.pow(tf.subtract(y_pred, contours), 2)), 2)
+        h_dist = tf.multiply(SDM, tf.math.pow(tf.subtract(y_pred, contours), 2))
         h_dist_loss = tf.divide(tf.reduce_sum(h_dist), nVoxels)
 
         loss_weights = get_loss_weights(y_true, nVoxels, numClasses)
