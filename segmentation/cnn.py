@@ -777,9 +777,9 @@ class BAUNet(object):
                                               bias_regularizer=self.bias_regularizer)(temp_layer)
             # activation
             temp_layer = layers.Activation(self.activation)(temp_layer)
-            out_pee = PEE(downsampling_layers[(self.depth - i) - 1], self.n_initial_filters * pow(2, (self.depth - i) - 1))
             # IF MINI_MTL is used
             if i != (self.depth - 1):
+                out_pee = PEE(downsampling_layers[(self.depth - i) - 1], self.n_initial_filters * pow(2, (self.depth - i) - 1))
                 out_mtl, out_edge, out_mask = MINI_MTL(out_pee,
                                                        self.n_initial_filters * pow(2, (self.depth - i) - 1),
                                                        self.n_classes,
@@ -791,7 +791,7 @@ class BAUNet(object):
                 # Concatenation
                 temp_layer = Concatenate()([temp_layer, out_mtl])
             else:
-                temp_layer = Concatenate()([temp_layer, out_pee])
+                temp_layer = Concatenate()([temp_layer, downsampling_layers[(self.depth - i) - 1]])
 
             # Convolution
             for j in range(2):
