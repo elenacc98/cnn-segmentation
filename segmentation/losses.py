@@ -713,7 +713,7 @@ def Boundary_Crossentropy(numClasses, alpha=0.5):
 
     """
 
-    def boundary_crossentropy(y_true, y_pred, numClasses=5):
+    def boundary_crossentropy(y_true, y_pred):
         """
 
         Args:
