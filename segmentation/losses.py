@@ -4,7 +4,8 @@ in segmentation tasks.
 """
 
 from segmentation.metrics import MeanDice
-from segmentation.utils import calc_SDM_batch, calc_DM_batch, calc_SDM, calc_DM, calc_DM_batch_edge, calc_DM_edge, calc_DM_batch_edge2
+from segmentation.utils import calc_SDM_batch, calc_DM_batch, \
+    calc_SDM, calc_DM, calc_DM_batch_edge, calc_DM_edge, calc_DM_batch_edge2, computeContours
 from segmentation.utils import count_class_voxels, get_loss_weights
 from keras import backend as K
 import numpy as np
