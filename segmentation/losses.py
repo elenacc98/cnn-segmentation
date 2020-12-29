@@ -702,7 +702,7 @@ def Hausdorff_Distance2(numClasses, alpha):
     return hausdorff_distance
 
 
-def Haus_Crossentropy_Loss(numClasses, alpha=0.5):
+def Boundary_Crossentropy(numClasses, alpha=0.5):
     """
 
     Args:
@@ -713,7 +713,7 @@ def Haus_Crossentropy_Loss(numClasses, alpha=0.5):
 
     """
 
-    def hausdorff_crossentropy(y_true, y_pred):
+    def boundary_crossentropy(y_true, y_pred, numClasses=5):
         """
 
         Args:
@@ -736,33 +736,29 @@ def Haus_Crossentropy_Loss(numClasses, alpha=0.5):
             print("Could not recognise input dimensions")
             return
 
-        # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
+            # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
         y_true = tf.cast(y_true, tf.float32)
         y_pred = tf.cast(y_pred, tf.float32)
         nVoxels = tf.size(y_true) / numClasses
         nVoxels = tf.cast(nVoxels, tf.float32)
 
-        SDM, contours = tf.py_function(func=calc_DM_batch_edge2,
-                             inp=[y_true, numClasses],
-                             Tout=[tf.float32, tf.float32])
+        contours = tf.py_function(func=computeContours,
+                                  inp=[y_true, numClasses],
+                                  Tout=tf.float32)
 
-        h_dist = tf.multiply(SDM, tf.math.pow(tf.subtract(y_pred, contours), 2))
-        h_dist_loss = tf.divide(tf.reduce_sum(h_dist), nVoxels)
-
-        loss_weights = get_loss_weights(y_true, nVoxels, numClasses)
         nEdgeVoxels = tf.math.count_nonzero(contours)
+        nEdgeVoxels = tf.cast(nEdgeVoxels, tf.float32)
+        beta = 1 - nEdgeVoxels / nVoxels
         epsilon = backend_config.epsilon
 
-        # scale preds so that the class probas of each sample sum to 1
-        y_pred = y_pred / math_ops.reduce_sum(y_pred, axis=0, keepdims=True)
-        # Compute cross entropy from probabilities.
         epsilon_ = constant_op.constant(epsilon(), y_pred.dtype.base_dtype)
         y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
 
-        wcc_loss = -math_ops.reduce_sum(contours * math_ops.log(y_pred), axis=(1, 2, 3, 4)) / tf.cast(nEdgeVoxels,
-                                                                                                         tf.float32)
-        wcc_loss = tf.reduce_sum(tf.multiply(loss_weights, wcc_loss))
+        first_term = beta * tf.multiply(contours, math_ops.log(y_pred))
+        second_term = (1 - beta) * tf.multiply((1 - contours), math_ops.log(1 - y_pred))
 
-        return alpha * h_dist_loss + alpha * wcc_loss
+        bc = - tf.reduce_sum(tf.add(first_term, second_term)) / nEdgeVoxels
 
-    return hausdorff_crossentropy
+        return bc
+
+    return boundary_crossentropy

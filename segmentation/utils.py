@@ -185,6 +185,26 @@ def calc_DM_batch_edge2(y_true, numClasses):
     return np.array(dist_batch).astype(np.float32), np.array(surface_label).astype(np.float32)
 
 
+def computeContours(y_true, numClasses):
+    y_true_numpy = y_true.numpy()
+    surface_label = np.zeros_like(y_true_numpy)
+    for c in range(1, numClasses):
+        temp_y = y_true_numpy[c]
+        for i, y in enumerate(temp_y):
+            for k in range(y.shape[2]):
+                img_lab = y[:, :, k].astype(np.uint8)
+                contour_lab, hierarchy_lab = findContours(img_lab, RETR_EXTERNAL, CHAIN_APPROX_NONE)
+                if len(contour_lab) != 0:  # CONTOUR PER SLICE IS PRESENT
+                    for j in range(len(contour_lab)):
+                        if contour_lab[j].shape[1] == 1:
+                            contour_lab[j].resize(contour_lab[j].shape[0], 2)
+                        surface_label[c, i, contour_lab[j][:, 1], contour_lab[j][:, 0], k] = 1
+                else:
+                    surface_label[c, i, :, :, k] = np.zeros_like(img_lab)
+    surface_label[0] = surface_label[1] + surface_label[2] + surface_label[3] + surface_label[4]
+    return np.array(surface_label).astype(np.float32)
+
+
 def count_class_voxels(labels, nVoxels, numClasses):
     """
     Counts total number of voxels for each class in the batch size.
