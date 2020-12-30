@@ -311,7 +311,7 @@ class UNet2(object):
                                     kernel_regularizer=self.kernel_regularizer,
                                     bias_regularizer=self.bias_regularizer)(temp_layer)
             if (self.add_batch_normalization):
-                temp_layer = temp_layer = layers.BatchNormalization(axis=-1)(temp_layer)
+                temp_layer = layers.BatchNormalization(axis=-1)(temp_layer)
             # activation
             temp_layer = layers.Activation(self.activation)(temp_layer)
 
@@ -352,6 +352,8 @@ class UNet2(object):
                                              activation='linear',
                                              kernel_regularizer=self.kernel_regularizer,
                                              bias_regularizer=self.bias_regularizer)(temp_layer_edge)
+                if (self.add_batch_normalization):
+                    temp_layer = layers.BatchNormalization(axis=-1)(temp_layer)
                 temp_layer_edge = layers.Activation(self.activation)(temp_layer_edge)
 
                 temp_layer_mask = conv_layer(self.n_initial_filters * pow(2, (self.depth - 1) - i),
@@ -361,62 +363,23 @@ class UNet2(object):
                                              activation='linear',
                                              kernel_regularizer=self.kernel_regularizer,
                                              bias_regularizer=self.bias_regularizer)(temp_layer_mask)
+                if (self.add_batch_normalization):
+                    temp_layer = layers.BatchNormalization(axis=-1)(temp_layer)
                 temp_layer_mask = layers.Activation(self.activation)(temp_layer_mask)
 
             if i % 2 != 1:
-                temp_layer_merge = Concatenate()([temp_layer_edge, temp_layer_mask])
-                temp_layer_merge = conv_layer(self.n_initial_filters * pow(2, (self.depth - 1) - i),
-                                              kernel_size=self.kernel_size,
-                                              strides=self.strides,
-                                              padding=self.padding,
-                                              activation='linear',
-                                              kernel_regularizer=self.kernel_regularizer,
-                                              bias_regularizer=self.bias_regularizer)(temp_layer_merge)
+                temp_layer_merge = Add()([temp_layer_edge, temp_layer_mask])
+
+                # temp_layer_merge = Concatenate()([temp_layer_edge, temp_layer_mask])
+                # temp_layer_merge = conv_layer(self.n_initial_filters * pow(2, (self.depth - 1) - i),
+                #                               kernel_size=self.kernel_size,
+                #                               strides=self.strides,
+                #                               padding=self.padding,
+                #                               activation='linear',
+                #                               kernel_regularizer=self.kernel_regularizer,
+                #                               bias_regularizer=self.bias_regularizer)(temp_layer_merge)
             else:
                 temp_layer_merge = temp_layer_mask
-
-        # # EDGE PATH
-        # temp_layer_edge = conv_transpose_layer(self.n_initial_filters,
-        #                                        kernel_size=self.deconv_kernel_size,
-        #                                        strides=self.deconv_strides,
-        #                                        activation='linear',
-        #                                        padding=self.padding,
-        #                                        kernel_regularizer=self.kernel_regularizer,
-        #                                        bias_regularizer=self.bias_regularizer)(temp_layer_edge)
-        # temp_layer_edge = layers.Activation(self.activation)(temp_layer_edge)
-        #
-        # # MASK PATH
-        # temp_layer_mask = conv_transpose_layer(self.n_initial_filters,
-        #                                        kernel_size=self.deconv_kernel_size,
-        #                                        strides=self.deconv_strides,
-        #                                        activation='linear',
-        #                                        padding=self.padding,
-        #                                        kernel_regularizer=self.kernel_regularizer,
-        #                                        bias_regularizer=self.bias_regularizer)(temp_layer_merge)
-        # temp_layer_mask = layers.Activation(self.activation)(temp_layer_mask)
-        #
-        # # Concatenate with input
-        # temp_layer_edge = Concatenate()([temp_layer_edge, input_tensor])
-        # temp_layer_mask = Concatenate()([temp_layer_mask, input_tensor])
-
-        # for j in range(2):
-        #     temp_layer_edge = conv_layer(self.n_initial_filters,
-        #                                  kernel_size=self.kernel_size,
-        #                                  strides=self.strides,
-        #                                  padding=self.padding,
-        #                                  activation='linear',
-        #                                  kernel_regularizer=self.kernel_regularizer,
-        #                                  bias_regularizer=self.bias_regularizer)(temp_layer_edge)
-        #     temp_layer_edge = layers.Activation(self.activation)(temp_layer_edge)
-        #
-        #     temp_layer_mask = conv_layer(self.n_initial_filters,
-        #                                  kernel_size=self.kernel_size,
-        #                                  strides=self.strides,
-        #                                  padding=self.padding,
-        #                                  activation='linear',
-        #                                  kernel_regularizer=self.kernel_regularizer,
-        #                                  bias_regularizer=self.bias_regularizer)(temp_layer_mask)
-        #     temp_layer_mask = layers.Activation(self.activation)(temp_layer_mask)
 
         # Convolution 1 filter sigmoidal (to make size converge to final one)
         temp_layer_mask = conv_layer(self.n_classes, kernel_size=softmax_kernel_size,
@@ -426,7 +389,7 @@ class UNet2(object):
                                      kernel_regularizer=self.kernel_regularizer,
                                      bias_regularizer=self.bias_regularizer)(temp_layer_mask)
 
-        temp_layer_edge = conv_layer(self.n_classes, kernel_size=softmax_kernel_size,
+        temp_layer_edge = conv_layer(self.n_classes - 1, kernel_size=softmax_kernel_size,
                                      strides=self.strides,
                                      padding='same',
                                      activation='linear',
