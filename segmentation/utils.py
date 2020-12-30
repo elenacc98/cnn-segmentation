@@ -196,9 +196,9 @@ def computeContours(y_true, numClasses):
                 contour_lab, hierarchy_lab = findContours(img_lab, RETR_EXTERNAL, CHAIN_APPROX_NONE)
                 if len(contour_lab) != 0:  # CONTOUR PER SLICE IS PRESENT
                     for j in range(len(contour_lab)):
-                        # if contour_lab[j].shape[1] == 1:
-                        #     contour_lab[j].resize(contour_lab[j].shape[0], 2)
-                        contour_lab[j] = np.squeeze(contour_lab[j])
+                        if contour_lab[j].shape[1] == 1:
+                            contour_lab[j].resize(contour_lab[j].shape[0], 2)
+                        # contour_lab[j] = np.squeeze(contour_lab[j])
                         surface_label[c-1, i, contour_lab[j][:, 1], contour_lab[j][:, 0], k] = 1
                 else:
                     surface_label[c-1, i, :, :, k] = np.zeros_like(img_lab)
