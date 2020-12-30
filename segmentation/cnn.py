@@ -9,7 +9,7 @@ from tensorflow.keras import Model
 from keras.layers.core import Dense, Dropout, Activation
 from keras.layers.convolutional import Conv1D, Conv2D, Conv3D, Conv3DTranspose
 from keras.layers.pooling import AveragePooling2D, AveragePooling3D, GlobalAveragePooling3D, MaxPool3D
-from keras.layers import Input, Concatenate, Lambda, Dropout, Concatenate, Multiply, Softmax
+from keras.layers import Input, Concatenate, Lambda, Dropout, Concatenate, Multiply, Softmax, Add
 from keras.layers.normalization import BatchNormalization
 from keras.regularizers import l2
 from segmentation.utils import conv_factory, transition, denseblock, channelModule, \
