@@ -700,10 +700,6 @@ class BAUNet(object):
         out_mtl_list = []
         upsampling_layers = []
 
-        # First downsamling to reduce dimension
-        # temp_layer = max_pool_layer(pool_size=self.pool_size,
-        #                                 strides=self.pool_strides,
-        #                                 padding=self.padding)(temp_layer)
 
         # Down sampling branch
         for i in range(self.depth):
@@ -766,21 +762,11 @@ class BAUNet(object):
                                         activation='linear',
                                         kernel_regularizer=self.kernel_regularizer,
                                         bias_regularizer=self.bias_regularizer)(temp_layer)
+                if self.add_batch_normalization:
+                    temp_layer = layers.BatchNormalization(axis=-1)(temp_layer)
                 # activation
                 temp_layer = layers.Activation(self.activation)(temp_layer)
 
-        # temp_layer = conv_transpose_layer(self.n_initial_filters,
-        #                                       kernel_size=self.deconv_kernel_size,
-        #                                       strides=self.deconv_strides,
-        #                                       activation='linear',
-        #                                       padding=self.padding,
-        #                                       kernel_regularizer=self.kernel_regularizer,
-        #                                       bias_regularizer=self.bias_regularizer)(temp_layer)
-        #
-        # # activation
-        # temp_layer = layers.Activation(self.activation)(temp_layer)
-        #
-        # temp_layer = Concatenate()([temp_layer, input_tensor])
 
         # Convolution 1 filter sigmoidal (to make size converge to final one)
         temp_layer = conv_layer(self.n_classes, kernel_size=softmax_kernel_size,
@@ -791,7 +777,7 @@ class BAUNet(object):
                                 bias_regularizer=self.bias_regularizer)(temp_layer)
 
         out_edge = Concatenate()(out_edge_list)
-        out_edge = conv_layer(self.n_classes, kernel_size=softmax_kernel_size,
+        out_edge = conv_layer(self.n_classes - 1, kernel_size=softmax_kernel_size,
                               strides=self.strides,
                               padding='same',
                               activation='linear',

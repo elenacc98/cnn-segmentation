@@ -689,7 +689,7 @@ def MINI_MTL(inputs, filters, numClasses, i):
     x_mask = BatchNormalization(axis=-1)(x_mask)
     x_mask = Activation('relu')(x_mask)
 
-    out_edge = Conv3D(numClasses, (1, 1, 1), padding='same')(x_edge)
+    out_edge = Conv3D(numClasses - 1, (1, 1, 1), padding='same')(x_edge)
     # out_edge = Softmax(axis=-1)(out_edge)
     out_edge = UpSampling3D(pow(2,i), name='out_edge_{}'.format(i))(out_edge)
     out_mask = Conv3D(numClasses, (1, 1, 1), padding='same')(x_mask)
