@@ -740,19 +740,26 @@ class BAUNet(object):
             # activation
             temp_layer = layers.Activation(self.activation)(temp_layer)
             # IF MINI_MTL is used
-            if i != (self.depth - 1):
+            if i != (self.depth - 1):  # don't do that in the shallowest layer
                 out_pee = PEE(downsampling_layers[(self.depth - i) - 1], self.n_initial_filters * pow(2, (self.depth - i) - 1))
-                out_mtl, out_edge, out_mask = MINI_MTL(out_pee,
+                out_mtl, out_edge_temp, out_mask_temp = MINI_MTL(out_pee,
                                                        self.n_initial_filters * pow(2, (self.depth - i) - 1),
                                                        self.n_classes,
                                                        (self.depth - i) - 1)
 
-                out_edge_list.append(out_edge)
-                out_mask_list.append(out_mask)
+                if i == 0:
+                    out_edge = out_edge_temp
+                    out_mask = out_mask_temp
+                else:
+                    out_edge = Add([out_edge, out_edge_temp])
+                    out_mask = Add([out_mask, out_mask_temp])
+
+                # out_edge_list.append(out_edge)
+                # out_mask_list.append(out_mask)
 
                 # Concatenation
                 temp_layer = Concatenate()([temp_layer, out_mtl])
-            else:
+            else:  # simple concatenation in the shallowest layer
                 temp_layer = Concatenate()([temp_layer, downsampling_layers[(self.depth - i) - 1]])
 
             # Convolution
@@ -779,21 +786,21 @@ class BAUNet(object):
                                 kernel_regularizer=self.kernel_regularizer,
                                 bias_regularizer=self.bias_regularizer)(temp_layer)
 
-        out_edge = Concatenate()(out_edge_list)
-        out_edge = conv_layer(self.n_classes - 1, kernel_size=softmax_kernel_size,
-                              strides=self.strides,
-                              padding='same',
-                              activation='linear',
-                              kernel_regularizer=self.kernel_regularizer,
-                              bias_regularizer=self.bias_regularizer)(out_edge)
-
-        out_mask = Concatenate()(out_mask_list)
-        out_mask = conv_layer(self.n_classes, kernel_size=softmax_kernel_size,
-                              strides=self.strides,
-                              padding='same',
-                              activation='linear',
-                              kernel_regularizer=self.kernel_regularizer,
-                              bias_regularizer=self.bias_regularizer)(out_mask)
+        # out_edge = Concatenate()(out_edge_list)
+        # out_edge = conv_layer(self.n_classes - 1, kernel_size=softmax_kernel_size,
+        #                       strides=self.strides,
+        #                       padding='same',
+        #                       activation='linear',
+        #                       kernel_regularizer=self.kernel_regularizer,
+        #                       bias_regularizer=self.bias_regularizer)(out_edge)
+        #
+        # out_mask = Concatenate()(out_mask_list)
+        # out_mask = conv_layer(self.n_classes, kernel_size=softmax_kernel_size,
+        #                       strides=self.strides,
+        #                       padding='same',
+        #                       activation='linear',
+        #                       kernel_regularizer=self.kernel_regularizer,
+        #                       bias_regularizer=self.bias_regularizer)(out_mask)
 
         out_edge = layers.Softmax(axis=-1, name='out_edge')(out_edge)
         out_mask = layers.Softmax(axis=-1, name='out_mask')(out_mask)
