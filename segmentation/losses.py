@@ -807,7 +807,7 @@ def Dist_Boundary_Crossentropy(numClasses, alpha=0.5):
 
         SDM, contours = tf.py_function(func=calc_DM_batch_edge2,
                                   inp=[y_true, numClasses],
-                                  Tout=tf.float32)
+                                  Tout=[tf.float32, tf.float32])
 
         nEdgeVoxels = tf.math.count_nonzero(contours)
         nEdgeVoxels = tf.cast(nEdgeVoxels, tf.float32)
