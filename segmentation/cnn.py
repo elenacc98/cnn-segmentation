@@ -751,8 +751,8 @@ class BAUNet(object):
                     out_edge = out_edge_temp
                     out_mask = out_mask_temp
                 else:
-                    out_edge = Add([out_edge, out_edge_temp])
-                    out_mask = Add([out_mask, out_mask_temp])
+                    out_edge = Add()([out_edge, out_edge_temp])
+                    out_mask = Add()([out_mask, out_mask_temp])
 
                 # out_edge_list.append(out_edge)
                 # out_mask_list.append(out_mask)
