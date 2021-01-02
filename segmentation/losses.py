@@ -821,8 +821,8 @@ def Dist_Boundary_Crossentropy(numClasses, alpha=0.5):
         epsilon_ = constant_op.constant(epsilon(), y_pred.dtype.base_dtype)
         y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
 
-        first_term = beta * tf.multiply(DWM, contours, math_ops.log(y_pred))
-        second_term = (1 - beta) * tf.multiply(DWM, (1 - contours), math_ops.log(1 - y_pred))
+        first_term = beta * tf.multiply(DWM, tf.multiply(contours, math_ops.log(y_pred)))
+        second_term = (1 - beta) * tf.multiply(DWM, tf.multiply((1 - contours), math_ops.log(1 - y_pred)))
 
         bc = - tf.reduce_sum(tf.add(first_term, second_term)) / nEdgeVoxels
 
