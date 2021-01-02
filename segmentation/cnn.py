@@ -368,7 +368,10 @@ class UNet2(object):
                 temp_layer_mask = layers.Activation(self.activation)(temp_layer_mask)
 
             if i % 2 != 1:
-                temp_layer_merge = Add()([temp_layer_edge, temp_layer_mask])
+                temp_layer_1 = RA(temp_layer_edge, temp_layer_mask, self.n_initial_filters * pow(2, (self.depth - 1) - i))
+                temp_layer_2 = RA(temp_layer_mask, temp_layer_edge, self.n_initial_filters * pow(2, (self.depth - 1) - i))
+                temp_layer_merge = Add()([temp_layer_1, temp_layer_2])
+                # temp_layer_merge = Add()([temp_layer_edge, temp_layer_mask])
 
                 # temp_layer_merge = Concatenate()([temp_layer_edge, temp_layer_mask])
                 # temp_layer_merge = conv_layer(self.n_initial_filters * pow(2, (self.depth - 1) - i),

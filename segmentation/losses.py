@@ -763,3 +763,69 @@ def Boundary_Crossentropy(numClasses, alpha=0.5):
         return bc
 
     return boundary_crossentropy
+
+
+def Dist_Boundary_Crossentropy(numClasses, alpha=0.5):
+    """
+
+    Args:
+        numClasses:
+        alpha:
+
+    Returns:
+
+    """
+
+    def dist_boundary_crossentropy(y_true, y_pred):
+        """
+
+        Args:
+            y_true:
+            y_pred:
+
+        Returns:
+
+        """
+
+        if len(y_true.shape) == 5:
+            axisSum = (1, 2, 3)
+            y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
+            y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
+        elif len(y_true.shape) == 4:
+            axisSum = (1, 2)
+            y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
+            y_true = tf.transpose(y_true, [3, 0, 1, 2])
+        else:
+            print("Could not recognise input dimensions")
+            return
+
+            # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
+        y_true = tf.cast(y_true, tf.float32)
+        y_pred = tf.cast(y_pred, tf.float32)
+        nVoxels = tf.size(y_true) / numClasses
+        nVoxels = tf.cast(nVoxels, tf.float32)
+
+        SDM, contours = tf.py_function(func=calc_DM_batch_edge2,
+                                  inp=[y_true, numClasses],
+                                  Tout=tf.float32)
+
+        nEdgeVoxels = tf.math.count_nonzero(contours)
+        nEdgeVoxels = tf.cast(nEdgeVoxels, tf.float32)
+        beta = 1 - nEdgeVoxels / nVoxels
+        epsilon = backend_config.epsilon
+        gamma = 8
+        sigma = 10
+        # Exponential transformation of the Distance transform
+        DWM = 1 + gamma * tf.math.exp(tf.math.negative(SDM) / sigma)
+
+        epsilon_ = constant_op.constant(epsilon(), y_pred.dtype.base_dtype)
+        y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
+
+        first_term = beta * tf.multiply(DWM, contours, math_ops.log(y_pred))
+        second_term = (1 - beta) * tf.multiply(DWM, (1 - contours), math_ops.log(1 - y_pred))
+
+        bc = - tf.reduce_sum(tf.add(first_term, second_term)) / nEdgeVoxels
+
+        return bc
+
+    return dist_boundary_crossentropy
