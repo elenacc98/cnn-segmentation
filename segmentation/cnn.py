@@ -401,7 +401,7 @@ class UNet2(object):
                                      bias_regularizer=self.bias_regularizer)(temp_layer_edge)
 
         # output_tensor_edge = layers.Softmax(axis=-1, name='out_edge')(temp_layer_edge)
-        output_tensor_edge = layers.Activation('sigmoid')(temp_layer_edge)
+        output_tensor_edge = layers.Activation('sigmoid', name='out_edge')(temp_layer_edge)
         output_tensor_mask = layers.Softmax(axis=-1, name='out_mask')(temp_layer_mask)
         self.model = Model(inputs=[input_tensor], outputs=[output_tensor_edge, output_tensor_mask])
 
