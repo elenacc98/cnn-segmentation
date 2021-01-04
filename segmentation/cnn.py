@@ -276,7 +276,7 @@ class UNet2(object):
         temp_layer = layers.Input(shape=self.input_size)
         input_tensor = temp_layer
 
-        input_layer = conv_layer(self.n_initial_filters * pow(2, i), kernel_size=self.kernel_size,
+        input_layer = conv_layer(self.n_initial_filters, kernel_size=self.kernel_size,
                                         strides=self.strides,
                                         padding=self.padding,
                                         activation='linear',
