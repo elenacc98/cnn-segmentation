@@ -371,8 +371,6 @@ class UNet2(object):
                 # temp_layer_1 = RA(temp_layer_edge, temp_layer_mask, self.n_initial_filters * pow(2, (self.depth - 1) - i))
                 # temp_layer_2 = RA(temp_layer_mask, temp_layer_edge, self.n_initial_filters * pow(2, (self.depth - 1) - i))
                 # temp_layer_merge = Add()([temp_layer_1, temp_layer_2])
-
-                temp_layer_edge = PEE(temp_layer_edge, self.n_initial_filters * pow(2, (self.depth - 1) - i))
                 temp_layer_merge = Add()([temp_layer_edge, temp_layer_mask])
 
                 # temp_layer_merge = Concatenate()([temp_layer_edge, temp_layer_mask])
@@ -392,7 +390,7 @@ class UNet2(object):
                                      padding='same',
                                      activation='linear',
                                      kernel_regularizer=self.kernel_regularizer,
-                                     bias_regularizer=self.bias_regularizer)(temp_layer_mask)
+                                     bias_regularizer=self.bias_regularizer)(temp_layer_merge)
 
         temp_layer_edge = conv_layer(self.n_classes - 1, kernel_size=softmax_kernel_size,
                                      strides=self.strides,
