@@ -393,14 +393,15 @@ class UNet2(object):
                                      kernel_regularizer=self.kernel_regularizer,
                                      bias_regularizer=self.bias_regularizer)(temp_layer_merge)
 
-        temp_layer_edge = conv_layer(self.n_classes - 1, kernel_size=softmax_kernel_size,
+        temp_layer_edge = conv_layer(1, kernel_size=softmax_kernel_size,
                                      strides=self.strides,
                                      padding='same',
                                      activation='linear',
                                      kernel_regularizer=self.kernel_regularizer,
                                      bias_regularizer=self.bias_regularizer)(temp_layer_edge)
 
-        output_tensor_edge = layers.Softmax(axis=-1, name='out_edge')(temp_layer_edge)
+        # output_tensor_edge = layers.Softmax(axis=-1, name='out_edge')(temp_layer_edge)
+        output_tensor_edge = layers.Activation('sigmoid')(temp_layer_edge)
         output_tensor_mask = layers.Softmax(axis=-1, name='out_mask')(temp_layer_mask)
         self.model = Model(inputs=[input_tensor], outputs=[output_tensor_edge, output_tensor_mask])
 
