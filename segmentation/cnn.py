@@ -383,8 +383,9 @@ class UNet2(object):
                 # temp_layer_1 = RA(temp_layer_edge, temp_layer_mask, self.n_initial_filters * pow(2, (self.depth - 1) - i))
                 # temp_layer_2 = RA(temp_layer_mask, temp_layer_edge, self.n_initial_filters * pow(2, (self.depth - 1) - i))
                 # temp_layer_merge = Add()([temp_layer_1, temp_layer_2])
-                temp_layer_edge = PEE(temp_layer_edge, self.n_initial_filters * pow(2, (self.depth - 1) - i))
+                # temp_layer_edge = PEE(temp_layer_edge, self.n_initial_filters * pow(2, (self.depth - 1) - i))
                 temp_layer_merge = Add()([temp_layer_edge, temp_layer_mask])
+
 
                 # temp_layer_merge = Concatenate()([temp_layer_edge, temp_layer_mask])
                 # temp_layer_merge = conv_layer(self.n_initial_filters * pow(2, (self.depth - 1) - i),
@@ -443,6 +444,8 @@ class UNet2(object):
             temp_layer_mask = layers.BatchNormalization(axis=-1)(temp_layer_mask)
         temp_layer_mask = layers.Activation(self.activation)(temp_layer_mask)
 
+        ######################## ++++++++++++++++++++++++++++ #############################
+
         # Convolution 1 filter sigmoidal (to make size converge to final one)
         temp_layer_mask = conv_layer(self.n_classes, kernel_size=softmax_kernel_size,
                                      strides=self.strides,
@@ -451,15 +454,14 @@ class UNet2(object):
                                      kernel_regularizer=self.kernel_regularizer,
                                      bias_regularizer=self.bias_regularizer)(temp_layer_mask)
 
-        temp_layer_edge = conv_layer(1, kernel_size=softmax_kernel_size,
+        temp_layer_edge = conv_layer(self.n_classes - 1, kernel_size=softmax_kernel_size,
                                      strides=self.strides,
                                      padding='same',
                                      activation='linear',
                                      kernel_regularizer=self.kernel_regularizer,
                                      bias_regularizer=self.bias_regularizer)(temp_layer_edge)
 
-        # output_tensor_edge = layers.Softmax(axis=-1, name='out_edge')(temp_layer_edge)
-        output_tensor_edge = layers.Activation('sigmoid', name='out_edge')(temp_layer_edge)
+        output_tensor_edge = layers.Softmax(axis=-1, name='out_edge')(temp_layer_edge)
         output_tensor_mask = layers.Softmax(axis=-1, name='out_mask')(temp_layer_mask)
         self.model = Model(inputs=[input_tensor], outputs=[output_tensor_edge, output_tensor_mask])
 
