@@ -720,11 +720,11 @@ def MINI_MTL(inputs, filters, numClasses, i):
     x_mask = Activation('relu')(x_mask)
 
     out_edge = Conv3D(numClasses - 1, (1, 1, 1), padding='same')(x_edge)
-    # out_edge = Softmax(axis=-1)(out_edge)
-    out_edge = UpSampling3D(pow(2,i), name='out_edge_{}'.format(i))(out_edge)
+    out_edge = UpSampling3D(pow(2,i))(out_edge)
+    out_edge = Softmax(axis=-1, name='out_edge_{}'.format(i))(out_edge)
     out_mask = Conv3D(numClasses, (1, 1, 1), padding='same')(x_mask)
-    # out_mask = Softmax(axis=-1)(out_mask)
-    out_mask = UpSampling3D(pow(2,i), name='out_mask_{}'.format(i))(out_mask)
+    out_mask = UpSampling3D(pow(2,i))(out_mask)
+    out_mask = Softmax(axis=-1, name='out_mask_{}'.format(i))(out_mask)
 
     out_mtl = Add()([x_mask, x_edge])
     # out_mtl = Concatenate()([x_mask, x_edge])
@@ -761,18 +761,18 @@ def build_MINI_MTL(input_shape, filters, numClasses, i):
 
 
 def CFF(input_list, input_size, filters, i):
-    out_shape = input_size/pow(2,i+1)
+    out_shape = input_size/pow(2,i)
 
-    y = tf.zeros_like(input_list[i])
+    y = tf.zeros_like(input_list[i-1])
     for j,x in enumerate(input_list):
-        if j < i:
+        if j < i-1:
             down_factor = int((input_size/pow(2,j+1)) / out_shape)
             x = AveragePooling3D((down_factor, down_factor, down_factor))(x)
             x = Conv3D(filters, (1, 1, 1), padding='same')(x)
             sigm = Activation('sigmoid')(x)
             x = Multiply()([x, sigm])
             y = Add()([y, x])
-        if j > i:
+        if j > i-1:
             up_factor = int(out_shape / (input_size/pow(2,j+1)))
             x = Conv3D(filters, (1, 1, 1), padding='same')(x)
             x = UpSampling3D((up_factor, up_factor, up_factor))(x)
@@ -780,7 +780,7 @@ def CFF(input_list, input_size, filters, i):
             x = Multiply()([x, sigm])
             y = Add()([y,x])
 
-    x_i = input_list[i]
+    x_i = input_list[i-1]
     x_i_sigm = Activation('sigmoid')(x_i)
     x_i_sigm = -1 * x_i_sigm + 1
     out = Multiply()([x_i_sigm, y])

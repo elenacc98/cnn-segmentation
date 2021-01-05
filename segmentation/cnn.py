@@ -765,7 +765,6 @@ class BAUNet(object):
         out_mtl_list = []
         upsampling_layers = []
 
-
         # Down sampling branch
         for i in range(self.depth):
             for j in range(2):
@@ -781,6 +780,16 @@ class BAUNet(object):
                     temp_layer = layers.BatchNormalization(axis=-1)(temp_layer)
                 # activation
                 temp_layer = layers.Activation(self.activation)(temp_layer)
+            if i > 0:
+                out_pee = PEE(temp_layer, self.n_initial_filters * pow(2, i))
+                out_mtl, out_edge, out_mask = MINI_MTL(out_pee,
+                                                       self.n_initial_filters * pow(2, i),
+                                                       self.n_classes,
+                                                       i)
+                out_edge_list.append(out_edge)
+                out_mask_list.append(out_mask)
+                out_mtl_list.append(out_mtl)
+
             downsampling_layers.append(temp_layer)
 
             temp_layer = max_pool_layer(pool_size=self.pool_size,
@@ -803,41 +812,34 @@ class BAUNet(object):
             temp_layer = layers.Activation(self.activation)(temp_layer)
             # IF MINI_MTL is used
             if i != (self.depth - 1):  # don't do that in the shallowest layer
-                out_pee = PEE(downsampling_layers[(self.depth - i) - 1], self.n_initial_filters * pow(2, (self.depth - i) - 1))
-                out_mtl, out_edge_temp, out_mask_temp = MINI_MTL(out_pee,
-                                                       self.n_initial_filters * pow(2, (self.depth - i) - 1),
-                                                       self.n_classes,
-                                                       (self.depth - i) - 1)
-
-                if i == 0:
-                    out_edge = out_edge_temp
-                    out_mask = out_mask_temp
-                else:
-                    out_edge = Add()([out_edge, out_edge_temp])
-                    out_mask = Add()([out_mask, out_mask_temp])
-
-                # out_edge_list.append(out_edge)
-                # out_mask_list.append(out_mask)
+                out_cff = CFF(out_mtl_list,
+                              self.input_size[1],
+                              self.n_initial_filters * pow(2, (self.depth - 1) - i),
+                              (self.depth - 1) - i)
 
                 # Concatenation
-                temp_layer = Concatenate()([temp_layer, out_mtl])
+                temp_layer = Concatenate()([temp_layer, out_cff])
             else:  # simple concatenation in the shallowest layer
                 temp_layer = Concatenate()([temp_layer, downsampling_layers[(self.depth - i) - 1]])
 
-            # Convolution
-            for j in range(2):
-                # Convolution
-                temp_layer = conv_layer(self.n_initial_filters * pow(2, (self.depth - 1) - i),
-                                        kernel_size=self.kernel_size,
-                                        strides=self.strides,
-                                        padding=self.padding,
-                                        activation='linear',
-                                        kernel_regularizer=self.kernel_regularizer,
-                                        bias_regularizer=self.bias_regularizer)(temp_layer)
-                if self.add_batch_normalization:
-                    temp_layer = layers.BatchNormalization(axis=-1)(temp_layer)
-                # activation
-                temp_layer = layers.Activation(self.activation)(temp_layer)
+            temp_layer = conv_layer(self.n_initial_filters * pow(2, (self.depth - 1) - i),
+                                    kernel_size=(1, 1, 1),
+                                    padding='same')(temp_layer)
+
+            # # Convolution
+            # for j in range(2):
+            #     # Convolution
+            #     temp_layer = conv_layer(self.n_initial_filters * pow(2, (self.depth - 1) - i),
+            #                             kernel_size=self.kernel_size,
+            #                             strides=self.strides,
+            #                             padding=self.padding,
+            #                             activation='linear',
+            #                             kernel_regularizer=self.kernel_regularizer,
+            #                             bias_regularizer=self.bias_regularizer)(temp_layer)
+            #     if self.add_batch_normalization:
+            #         temp_layer = layers.BatchNormalization(axis=-1)(temp_layer)
+            #     # activation
+            #     temp_layer = layers.Activation(self.activation)(temp_layer)
 
 
         # Convolution 1 filter sigmoidal (to make size converge to final one)
@@ -864,11 +866,11 @@ class BAUNet(object):
         #                       kernel_regularizer=self.kernel_regularizer,
         #                       bias_regularizer=self.bias_regularizer)(out_mask)
 
-        out_edge = layers.Softmax(axis=-1, name='out_edge')(out_edge)
-        out_mask = layers.Softmax(axis=-1, name='out_mask')(out_mask)
+        # out_edge = layers.Softmax(axis=-1, name='out_edge')(out_edge)
+        # out_mask = layers.Softmax(axis=-1, name='out_mask')(out_mask)
         output_tensor = layers.Softmax(axis=-1, name='out_final')(temp_layer)
 
-        self.model = Model(inputs=[input_tensor], outputs=[output_tensor, out_edge, out_mask])
+        self.model = Model(inputs=[input_tensor], outputs=[output_tensor, out_edge_list, out_mask_list])
 
     def set_initial_weights(self, weights):
         '''
