@@ -780,6 +780,7 @@ class BAUNet(object):
                     temp_layer = layers.BatchNormalization(axis=-1)(temp_layer)
                 # activation
                 temp_layer = layers.Activation(self.activation)(temp_layer)
+
             if i > 0:
                 out_pee = PEE(temp_layer, self.n_initial_filters * pow(2, i))
                 out_mtl, out_edge, out_mask = MINI_MTL(out_pee,
@@ -789,8 +790,8 @@ class BAUNet(object):
                 out_edge_list.append(out_edge)
                 out_mask_list.append(out_mask)
                 out_mtl_list.append(out_mtl)
-
-            downsampling_layers.append(temp_layer)
+            else:
+                downsampling_layers.append(temp_layer)
 
             temp_layer = max_pool_layer(pool_size=self.pool_size,
                                         strides=self.pool_strides,
