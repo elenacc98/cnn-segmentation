@@ -868,7 +868,7 @@ class BAUNet(object):
 
         # out_edge = layers.Softmax(axis=-1, name='out_edge')(out_edge)
         # out_mask = layers.Softmax(axis=-1, name='out_mask')(out_mask)
-        output_tensor = layers.Softmax(axis=-1, name='out_final')(temp_layer)
+        output_tensor = layers.Softmax(axis=-1, dtype='float32', name='out_final')(temp_layer)
 
         self.model = Model(inputs=[input_tensor], outputs=[output_tensor, out_edge_list, out_mask_list])
 
