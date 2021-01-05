@@ -871,7 +871,7 @@ class BAUNet(object):
         # out_mask = layers.Softmax(axis=-1, name='out_mask')(out_mask)
         output_tensor = layers.Softmax(axis=-1, dtype='float32', name='out_final')(temp_layer)
 
-        self.model = Model(inputs=[input_tensor], outputs=[output_tensor, out_edge_list, out_mask_list])
+        self.model = Model(inputs=[input_tensor], outputs=[output_tensor] + out_edge_list + out_mask_list)
 
     def set_initial_weights(self, weights):
         '''
