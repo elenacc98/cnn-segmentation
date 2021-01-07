@@ -720,7 +720,6 @@ class PEENet2(object):
         print(self.model.summary())
 
 
-
 class ERANet(object):
     """
     This class provides a simple interface to create
