@@ -44,7 +44,7 @@ def extract_patches(arr, patch_shape=8, extraction_step=1):
     patch_strides = arr.strides
 
     slices = [slice(None, None, st) for st in extraction_step]
-    indexing_strides = arr[slices].strides
+    indexing_strides = arr[tuple(slices)].strides
 
     patch_indices_shape = ((np.array(arr.shape) - np.array(patch_shape)) //
                            np.array(extraction_step)) + 1
