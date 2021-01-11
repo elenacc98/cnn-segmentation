@@ -49,7 +49,7 @@ def calc_SDM(seg):
 
 def calc_SDM_batch(y_true, numClasses):
     """
-    Prepares the input for distance maps computation, and pass it to calc_dist_map
+    Prepares the input for distance maps computation, and pass it to calc_SDM
     Args:
         y_true: ground truth tensor [class, batch, rows, columns, slices] or [class, batch, rows, columns]
         numClasses: number of classes
@@ -94,31 +94,9 @@ def calc_DM(seg):
         print("Could not recognise dimensions")
 
 
-def calc_DM_edge(seg):
-    """
-    Computes Non-Signed Distance Map of input ground truth image or volume using scipy function.
-    In case seg is 3D volume, it separately computes 2D DM fo each single slice.
-    Args:
-        seg: 2D or 3D binary array to compute the distance map
-    Returns:
-        res: distance map
-    """
-
-    res = np.zeros_like(seg)
-    posmask = seg.astype(np.bool)
-
-    for i in range(seg.shape[2]):
-        pos = posmask[:, :, i]
-        if pos.any():
-            neg = ~pos
-            res[:, :, i] = distance(neg)
-    return res
-
-
-
 def calc_DM_batch(y_true, numClasses):
     """
-    Prepares the input for distance maps computation, and pass it to calc_dist_map
+    Prepares the input for distance maps computation, and pass it to calc_DM
     Args:
         y_true: ground truth tensor [class, batch, rows, columns, slices] or [class, batch, rows, columns]
         numClasses: number of classes
@@ -134,11 +112,33 @@ def calc_DM_batch(y_true, numClasses):
     return np.array(dist_batch).astype(np.float32)
 
 
+def calc_DM_edge(seg):
+    """
+    Computes Non-Signed Distance Map of input ground-truth image/volume CONTOURS using scipy function.
+    In case seg is 3D volume, it separately computes 2D DM fo each single slice.
+    Args:
+        seg: 2D or 3D binary image of ground truth contours to compute the distance map
+    Returns:
+        res: distance map
+    """
+
+    res = np.zeros_like(seg)
+    posmask = seg.astype(np.bool)
+
+    for i in range(seg.shape[2]):
+        pos = posmask[:, :, i]
+        if pos.any():
+            neg = ~pos
+            res[:, :, i] = distance(neg)
+    return res
+
+
 def calc_DM_batch_edge(y_true, numClasses):
     """
-    Prepares the input for distance maps computation, and pass it to calc_dist_map
+    Prepares the input (contours) for distance maps computation, and pass it to calc_dist_map.
+    To use when loading ground truth contours from disk.
     Args:
-        y_true: ground truth tensor [class, batch, rows, columns, slices] or [class, batch, rows, columns]
+        y_true: ground truth contour tensor [class, batch, rows, columns, slices] or [class, batch, rows, columns]
         numClasses: number of classes
     Returns:
         array of distance map of the same dimension of input tensor
@@ -154,12 +154,14 @@ def calc_DM_batch_edge(y_true, numClasses):
 
 def calc_DM_batch_edge2(y_true, numClasses):
     """
-    Prepares the input for distance maps computation, and pass it to calc_dist_map
+    Prepares the input for distance maps computation: it takes y_true masks, creates y_true contours
+    and passes it to calc_DM_edge.
     Args:
         y_true: ground truth tensor [class, batch, rows, columns, slices] or [class, batch, rows, columns]
         numClasses: number of classes
     Returns:
         array of distance map of the same dimension of input tensor
+        array of ground truth contours of the same dimension of input tensor
     """
     y_true_numpy = y_true.numpy()
     # surface_label = np.zeros((numClasses - 1, ) + y_true_numpy.shape[1::])
@@ -188,38 +190,15 @@ def calc_DM_batch_edge2(y_true, numClasses):
     return np.array(dist_batch).astype(np.float32), np.array(surface_label).astype(np.float32)
 
 
-# def calc_DM_batch_edge2(y_true, numClasses):
-#     """
-#     Prepares the input for distance maps computation, and pass it to calc_dist_map
-#     Args:
-#         y_true: ground truth tensor [class, batch, rows, columns, slices] or [class, batch, rows, columns]
-#         numClasses: number of classes
-#     Returns:
-#         array of distance map of the same dimension of input tensor
-#     """
-#     y_true_numpy = y_true.numpy()
-#     surface_label = np.zeros((1,) + y_true_numpy.shape[1::])
-#     dist_batch = np.zeros((1,) + y_true_numpy.shape[1::])
-#     for c in range(1, numClasses):
-#         temp_y = y_true_numpy[c]
-#         for i, y in enumerate(temp_y):
-#             for k in range(y.shape[2]):
-#                 img_lab = y[:, :, k].astype(np.uint8)
-#                 contour_lab, hierarchy_lab = findContours(img_lab, RETR_EXTERNAL, CHAIN_APPROX_NONE)
-#                 if len(contour_lab) != 0:  # CONTOUR PER SLICE IS PRESENT
-#                     for j in range(len(contour_lab)):
-#                         if contour_lab[j].shape[1] == 1:
-#                             contour_lab[j].resize(contour_lab[j].shape[0], 2)
-#                         surface_label[0, i, contour_lab[j][:, 1], contour_lab[j][:, 0], k] = 1
-#                 else:
-#                     surface_label[0, i, :, :, k] = np.zeros_like(img_lab)
-#     for i in range(y_true_numpy.shape[1]):
-#         dist_batch[0, i] = calc_DM_edge(surface_label[0, i])
-#
-#     return np.array(dist_batch).astype(np.float32), np.array(surface_label).astype(np.float32)
-
-
 def computeContours(y_true, numClasses):
+    """
+    Receive y_true masks and creates y_true contours
+    Args:
+        y_true: ground truth tensor [class, batch, rows, columns, slices] or [class, batch, rows, columns]
+        numClasses: number of classes
+
+    Returns: array of ground truth contours of the same dimension of input tensor
+    """
     y_true_numpy = y_true.numpy()
     surface_label = np.zeros((numClasses - 1, ) + y_true_numpy.shape[1::])
     for c in range(1, numClasses):
@@ -260,56 +239,6 @@ def count_class_voxels(labels, nVoxels, numClasses):
     second_term = tf.reduce_sum(out)
     out[0] = tf.subtract(first_term, second_term)
     return out
-
-
-# def get_loss_weights(labels, nVoxels, numClasses):
-#     """
-#     Compute loss weights for each class.
-#     Args:
-#         labels: ground truth tensor of dimensions (class, batch_size, rows, columns, slices) or
-#         (class, batch_size, rows, columns)
-#         nVoxels: total number of voxels
-#         numClasses: number of classes
-#     Returns:
-#         1D tf.tensor of len = numClasses containing weights for each class
-#     """
-#
-#     numerator_1 = count_class_voxels(labels, nVoxels, numClasses)
-#     numerator = tf.multiply(1.0 / nVoxels, numerator_1)
-#     subtract_term = tf.subtract(1.0, numerator)
-#     return tf.multiply(1.0 / (numClasses - 1), subtract_term)
-
-
-# def get_loss_weights(labels, nVoxels, numClasses):
-#     """
-#     Compute loss weights for each class.
-#     Args:
-#         labels: ground truth tensor of dimensions (class, batch_size, rows, columns, slices) or
-#         (class, batch_size, rows, columns)
-#         nVoxels: total number of voxels
-#         numClasses: number of classes
-#     Returns:
-#         1D tf.tensor of len = numClasses containing weights for each class
-#     """
-#
-#     numerator_1 = count_class_voxels(labels, nVoxels, numClasses)
-#     numerator = tf.multiply(1.0 / nVoxels, numerator_1)
-#     subtract_term = tf.subtract(1.0, numerator)
-#     out = tf.multiply(1.0 / (numClasses - 1), subtract_term)
-#
-#     numerator_2 = numerator_1[1::]
-#     numerator = tf.multiply(1.0 / (nVoxels - numerator_1[0].numpy()), numerator_2)
-#     subtract_term = tf.subtract(1.0, numerator)
-#     temp_out = tf.multiply(1.0 / (numClasses - 2), subtract_term)
-#     temp_out = tf.cast(temp_out, tf.float32)
-#
-#     lista = [out[0]]
-#     for temp in temp_out:
-#         lista.append(temp)
-#
-#     out1 = tf.stack(lista)
-#
-#     return out1/tf.reduce_sum(out1)
 
 
 def get_loss_weights(labels, nVoxels, numClasses):
@@ -549,6 +478,7 @@ def upsamplingUnit(encoding_input, decoding_input, filter_enc, filter_dec, kerne
     return Concatenate()([x, y])
 
 
+############################## ––––––––––––––––– ##############################
 # Functions for DoubleUnet
 def squeeze_excite_block(inputs, ratio=8):
     init = inputs
@@ -645,42 +575,10 @@ def Upsample(tensor, size):
         return tf.image.resize(images=x, size=size)
     return Lambda(lambda x: _upsample(x, size), output_shape=size)(tensor)
 
-
-def ASPP(x, filters):
-    shape = x.shape
-
-    y1 = AveragePooling3D(pool_size=(shape[1], shape[2], shape[3]))(x)
-    y1 = Conv3D(filters/2, 1, padding="same")(y1)
-    y1 = BatchNormalization()(y1)
-    y1 = Activation("relu")(y1)
-    y1 = UpSampling3D((shape[1], shape[2], shape[3]))(y1)
-
-    y2 = Conv3D(filters/2, 1, dilation_rate=1, padding="same", use_bias=False)(x)
-    y2 = BatchNormalization()(y2)
-    y2 = Activation("relu")(y2)
-
-    y3 = Conv3D(filters/2, 3, dilation_rate=2, padding="same", use_bias=False)(x)
-    y3 = BatchNormalization()(y3)
-    y3 = Activation("relu")(y3)
-
-    y4 = Conv3D(filters/2, 3, dilation_rate=4, padding="same", use_bias=False)(x)
-    y4 = BatchNormalization()(y4)
-    y4 = Activation("relu")(y4)
-
-    y5 = Conv3D(filters/2, 3, dilation_rate=8, padding="same", use_bias=False)(x)
-    y5 = BatchNormalization()(y5)
-    y5 = Activation("relu")(y5)
-
-    y = Concatenate()([y1, y2, y3, y4, y5])
-
-    y = Conv3D(filters, 1, dilation_rate=1, padding="same", use_bias=False)(y)
-    y = BatchNormalization()(y)
-    y = Activation("relu")(y)
-
-    return y
+############################## ––––––––––––––––– ##############################
 
 
-# Functions for Unet_2
+# Functions for Unet2
 def PEE(x, filters):
     if filters > 30:
         pool_size_1 = (3, 3, 3)
@@ -789,3 +687,37 @@ def CFF(input_list, input_size, filters, i):
     out = Multiply()([x_i_sigm, y])
     out = Add()([out, x_i])
     return out
+
+
+def ASPP(x, filters):
+    shape = x.shape
+
+    y1 = AveragePooling3D(pool_size=(shape[1], shape[2], shape[3]))(x)
+    y1 = Conv3D(filters/2, 1, padding="same")(y1)
+    y1 = BatchNormalization()(y1)
+    y1 = Activation("relu")(y1)
+    y1 = UpSampling3D((shape[1], shape[2], shape[3]))(y1)
+
+    y2 = Conv3D(filters/2, 1, dilation_rate=1, padding="same", use_bias=False)(x)
+    y2 = BatchNormalization()(y2)
+    y2 = Activation("relu")(y2)
+
+    y3 = Conv3D(filters/2, 3, dilation_rate=2, padding="same", use_bias=False)(x)
+    y3 = BatchNormalization()(y3)
+    y3 = Activation("relu")(y3)
+
+    y4 = Conv3D(filters/2, 3, dilation_rate=4, padding="same", use_bias=False)(x)
+    y4 = BatchNormalization()(y4)
+    y4 = Activation("relu")(y4)
+
+    y5 = Conv3D(filters/2, 3, dilation_rate=8, padding="same", use_bias=False)(x)
+    y5 = BatchNormalization()(y5)
+    y5 = Activation("relu")(y5)
+
+    y = Concatenate()([y1, y2, y3, y4, y5])
+
+    y = Conv3D(filters, 1, dilation_rate=1, padding="same", use_bias=False)(y)
+    y = BatchNormalization()(y)
+    y = Activation("relu")(y)
+
+    return y

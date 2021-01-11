@@ -1502,9 +1502,6 @@ class CDUnet(object):
         print(self.model.summary())
 
 
-
-
-
 def createCDDUnet(input_shape, NumClasses, weight_decay=1E-4, growth_rate=12, n_layers=6, theta=0.5):
     """
     Function to create a contextual deconvolution dense segmentation model with spatial and
