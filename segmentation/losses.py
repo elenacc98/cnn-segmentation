@@ -572,7 +572,7 @@ def MeanDice_Loss2(numClasses):
 
 
 # 6
-def Exp_Log_Loss(numClasses, gamma):
+def Exp_Log_Loss(numClasses, gamma=1):
     """
     Dice + Focal loss wrapper function between y_pred tensor and a target tensor.
     Arguments:
@@ -640,7 +640,9 @@ def Exp_Log_Loss(numClasses, gamma):
             denominator = tf.add(tf.reduce_sum(y_true_c, axis=axisSum), tf.reduce_sum(y_pred_c, axis=axisSum))
             # class_loss_weight = loss_weights[c]
 
-            add_dice = tf.add(add_dice, tf.math.pow(-math_ops.log(clip_ops.clip_by_value(tf.divide(numerator, denominator), epsilon_, 1. - epsilon_)), gamma))
+            add_dice = tf.add(add_dice,
+                              tf.math.pow(-math_ops.log(clip_ops.clip_by_value(
+                                  tf.divide(numerator, denominator), epsilon_, 1. - epsilon_)), gamma))
 
         dice_loss = tf.divide(add_dice, numClasses)
 
