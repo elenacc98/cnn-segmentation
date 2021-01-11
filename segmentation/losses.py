@@ -35,7 +35,8 @@ def Weighted_DiceCatCross_Loss_v0(numClasses, alpha):
 
     def dice_categorical_cross_entropy(y_true, y_pred):
         """
-        Computes categorical cross entropy weighted by distance weighted map.
+        Computes categorical cross entropy weighted by an exponential transformation of the
+        distance weighted map. Voxels closer to boundaries are weighted more.
         Args:
             y_true: ground truth tensor of dimensions [class, batch_size, rows, columns]
             y_pred: A tensor resulting from a softmax of the same shape as y_true
@@ -106,7 +107,7 @@ def Weighted_DiceCatCross_Loss_v0(numClasses, alpha):
 # 1
 def Weighted_DiceCatCross_Loss_v1(numClasses, alpha):
     """
-    Categorical crossentropy wrapper function between y_pred tensor and a target tensor.
+    Categorical crossentropy wrapper function between y_pred tensor and ground truth tensor.
     Arguments:
         numClasses: number of classes
         alpha: parameter to weight contribution of dice and distance-weighted categorical crossentropy loss
@@ -119,7 +120,8 @@ def Weighted_DiceCatCross_Loss_v1(numClasses, alpha):
 
     def dice_categorical_cross_entropy(y_true, y_pred):
         """
-        Computes categorical cross entropy weighted by distance weighted map.
+        Computes categorical cross entropy weighted by am exponential transformation of the
+        distance weighted map. Voxels closer to the boundaries are weighted more.
         Args:
             y_true: ground truth tensor of dimensions [class, batch_size, rows, columns]
             y_pred: A tensor resulting from a softmax of the same shape as y_true
@@ -205,7 +207,8 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha):
 
     def multiclass_weighted_dice_boundary_loss(y_true, y_pred):
         """
-        Compute multiclass class weighted dice loss function.
+        Compute multiclass weighted dice index, weighted by the euclidean distance transform. Voxels
+        further from the boundaries are weighted more.
         Args:
             y_true: ground truth tensor [batch, rows, columns, slices, classes], or [batch, rows, columns, classes]
             y_pred: softmax probabilities predicting classes. Shape must be the same as y_true.
@@ -273,7 +276,7 @@ def Weighted_DiceFocal_Loss(numClasses, alpha):
     def dice_focal(y_true, y_pred):
         """
         Computes categorical cross entropy weighted with focal method.
-        Voxel classified with less confidence weight more in the function.
+        Voxel classified with less confidence are weighted more in the function.
         Args:
             y_true: ground truth tensor of dimensions [class, batch_size, rows, columns]
             y_pred: A tensor resulting from a softmax of the same shape as y_true
@@ -392,7 +395,7 @@ def Hausdorff_Distance(numClasses, alpha):
 
 def Hausdorff_Distance2(numClasses, alpha):
     """
-    Computes Hausdorff distance after having created contour ground truth labels from mask ground truth labels.
+    Computes Hausdorff distance after the generatoikn of contour ground truth labels from mask ground truth labels.
 
     Args:
         numClasses:
@@ -451,16 +454,16 @@ def Hausdorff_Distance2(numClasses, alpha):
 # 5
 def MeanDice_Loss(numClasses):
     """
-
+    Mean dice wrapper to compute loss function with weights to compensate for class imbalance.
     Args:
-        numClasses:
+        numClasses: number of classes
 
-    Returns:
+    Returns: mean dice weigthed by class
 
     """
     def mean_dice(y_true, y_pred):
         """
-
+        Computed mean dice coefficient
         Args:
             y_true:
             y_pred:
@@ -519,7 +522,7 @@ def MeanDice_Loss2(numClasses):
     """
     def mean_dice(y_true, y_pred):
         """
-
+        Computed mean dice weighting differently both th classes and the slides in the volume.
         Args:
             y_true:
             y_pred:
@@ -574,7 +577,7 @@ def MeanDice_Loss2(numClasses):
 # 6
 def Exp_Log_Loss(numClasses, gamma=1):
     """
-    Dice + Focal loss wrapper function between y_pred tensor and a target tensor.
+    Exponential logarithmic computation of dice and Cross entropy indexes.
     Arguments:
         numClasses: number of classes
         alpha: parameter to weight contribution of dice and distance-weighted categorical crossentropy loss
@@ -582,14 +585,11 @@ def Exp_Log_Loss(numClasses, gamma=1):
 
     Returns:
         categorical_cross_entropy function
-    Raises:
-        ValueError: if `axis` is neither -1 nor one of the axes of `output`.
     """
 
     def exp_log(y_true, y_pred):
         """
-        Computes categorical cross entropy weighted with focal method.
-        Voxel classified with less confidence weight more in the function.
+        Computes categorical cross entropy and dice with exponential logarithmic transformations.
         Args:
             y_true: ground truth tensor of dimensions [class, batch_size, rows, columns]
             y_pred: A tensor resulting from a softmax of the same shape as y_true
@@ -658,14 +658,14 @@ def Exp_Log_Loss(numClasses, gamma=1):
 
 
 # 7
-def Boundary_Crossentropy(numClasses, alpha=0.5):
+def Boundary_Crossentropy(numClasses):
     """
-
+    Computes "double-faced" boundary cross entropy, after the generation of contours ground truth labels with function
+    "computeContours".
     Args:
-        numClasses:
-        alpha:
+        numClasses: number fo classes
 
-    Returns:
+    Returns: value of "double-faced" cross entropy
 
     """
 
@@ -719,14 +719,14 @@ def Boundary_Crossentropy(numClasses, alpha=0.5):
     return boundary_crossentropy
 
 
-def Dist_Boundary_Crossentropy(numClasses, alpha=0.5):
+def Dist_Boundary_Crossentropy(numClasses):
     """
-
+    Computes "double-faced" boundary cross entropy, after the generation of contours ground truth labels
+    and generation of euclidean distance transform map with function "calc_DM_batch_edge2".
     Args:
-        numClasses:
-        alpha:
+        numClasses: number of classes
 
-    Returns:
+    Returns: Value of "double-faced" cross entropy
 
     """
 
@@ -789,11 +789,11 @@ def Dist_Boundary_Crossentropy(numClasses, alpha=0.5):
 # 8
 def Region_Crossentropy(numClasses):
     """
-
+    Computes the "double-faced" regional cross entropy function.
     Args:
-        numClasses:
+        numClasses: number of classes
 
-    Returns:
+    Returns: vaue of the the "double-faced" regional cross entropy
 
     """
 
@@ -844,11 +844,12 @@ def Region_Crossentropy(numClasses):
 
 def Dist_Region_Crossentropy(numClasses):
     """
-
+     Computes "double-faced" regional cross entropy weighted with euclidean distance transform map,
+     after generation of euclidean distance transform map with function "calc_DM_batch".
     Args:
-        numClasses:
+        numClasses: number of classes
 
-    Returns:
+    Returns: value of "double-faced" regional cross entropy
 
     """
 
