@@ -178,10 +178,10 @@ def calc_DM_batch_edge2(y_true, numClasses):
                     for j in range(len(contour_lab)):
                         if contour_lab[j].shape[1] == 1:
                             contour_lab[j].resize(contour_lab[j].shape[0], 2)
-                        surface_label[c-1, i, contour_lab[j][:, 1], contour_lab[j][:, 0], k] = 1
+                        surface_label[c, i, contour_lab[j][:, 1], contour_lab[j][:, 0], k] = 1
                 else:
                     surface_label[c, i, :, :, k] = np.zeros_like(img_lab)
-            dist_batch[c, i] = calc_DM_edge(surface_label[c-1, i])
+            dist_batch[c, i] = calc_DM_edge(surface_label[c, i])
 
     surface_label[0] = surface_label[1] + surface_label[2] + surface_label[3] + surface_label[4]
     for i in range(y_true_numpy.shape[1]):
