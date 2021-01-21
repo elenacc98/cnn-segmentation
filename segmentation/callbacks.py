@@ -141,11 +141,35 @@ class AlphaScheduler(Callback):
         alpha: parameter to weight functions. Must be in [0,1]
         update_fn: function that updates alpha every time "on_epoch_end" calls it.
     """
-    def __init__(self, alpha, update_fn, progressive=True, step_epoch=40):
+    def __init__(self, alpha, update_fn, output_dir=None, progressive=True, step_epoch=40):
         self.alpha = alpha
         self.update_fn = update_fn
         self.progressive = progressive
         self.step_epoch = step_epoch
+
+        self.output_dir = Path(output_dir)
+
+    def set_output_dir(self, output_dir):
+        """Set output directory to store the plot.
+        """
+        self.output_dir = Path(output_dir)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+
+    def load_data(self, file_path):
+        """Load file containing data from previous plot.
+        In case training was accidentally stopped, this function allows you
+        to recover data from a previous plot and to continue plotting from it.
+        """
+        self.previous_data = True
+        if Path(file_path).exists():
+            self.data = pd.read_csv(file_path)
+            self.epoch_counter = len(self.data)
+        else:
+            print('Could not read previous data. Starting plot from 0.')
+
+    def on_train_begin(self, logs={}):
+        self.data = pd.DataFrame(columns=['alpha'], dtype=float)
+
 
     def on_epoch_end(self, epoch, logs=None):
         if self.progressive:
@@ -155,3 +179,8 @@ class AlphaScheduler(Callback):
             if (epoch % self.step_epoch) == 0 and (epoch != 0):
                 updated_alpha = self.update_fn(K.get_value(self.alpha))
                 K.set_value(self.alpha, updated_alpha)
+
+        # Append metrics
+        self.data.loc[self.epoch_counter, 'alpha'] = float(K.get_value(self.alpha))
+        self.epoch_counter += 1
+        self.data.to_csv(self.output_dir / 'AlphaMonitoring.csv', index=False)
