@@ -148,6 +148,7 @@ class AlphaScheduler(Callback):
         self.step_epoch = step_epoch
 
         self.output_dir = Path(output_dir)
+        self.epoch_counter = 0
 
     def set_output_dir(self, output_dir):
         """Set output directory to store the plot.
