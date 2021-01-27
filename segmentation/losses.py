@@ -991,7 +991,7 @@ def Weighted_Dice2CatCross_Loss_v0(numClasses, alpha):
 
         wcc_loss_temp = -math_ops.reduce_sum(DWM * y_true * math_ops.log(y_pred), axis=(0, 1, 2, 3)) / tf.cast(nVoxels,
                                                                                                                tf.float32)
-        wcc_loss = math_ops.reeduce_sum(tf.multiply(vect, wcc_loss_temp))
+        wcc_loss = math_ops.reduce_sum(tf.multiply(vect, wcc_loss_temp))
 
         return alpha * tf.subtract(1.0, mean_over_classes) + (1 - alpha) * wcc_loss
 
