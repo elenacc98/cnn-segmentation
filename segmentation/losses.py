@@ -384,6 +384,9 @@ def Weighted_Dice2Focal_Loss(numClasses, alpha):
 
         y_true.shape.assert_is_compatible_with(y_pred.shape)
 
+        x = tf.linspace(1, 192, 192)
+        vect = tf.cast(1.5 * tf.exp(-tf.square(tf.subtract(x, 85)) / 800) + 0.6, tf.float32)
+
         mean_over_classes = tf.zeros((1,))
         # Get loss weights
         loss_weights = get_loss_weights(y_true, nVoxels, numClasses)
