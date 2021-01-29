@@ -965,13 +965,13 @@ def Weighted_Dice2CatCross_Loss_v0(numClasses, alpha):
             numerator = tf.scalar_mul(2.0, tf.reduce_sum(tf.multiply(y_true_c, y_pred_c), axis=(0, 1, 2)))
             denominator = tf.add(tf.reduce_sum(y_true_c, axis=(0, 1, 2)), tf.reduce_sum(y_pred_c, axis=(0, 1, 2)))
 
-            numerator_1 = tf.reduce_sum(tf.multiply(vect, numerator))
-            denominator_1 = tf.reduce_sum(tf.multiply(vect, denominator))
+            numerator = tf.reduce_sum(tf.multiply(vect, numerator))
+            denominator = tf.reduce_sum(tf.multiply(vect, denominator))
             class_loss_weight = loss_weights[c]
 
             mean_over_classes = tf.add(mean_over_classes,
                                        tf.multiply(class_loss_weight,
-                                                   tf.divide(numerator_1, denominator_1)))
+                                                   tf.divide(numerator, denominator)))
 
         SDM = tf.py_function(func=calc_DM_batch,
                              inp=[y_true, numClasses],
@@ -989,9 +989,9 @@ def Weighted_Dice2CatCross_Loss_v0(numClasses, alpha):
         epsilon_ = constant_op.constant(epsilon(), y_pred.dtype.base_dtype)
         y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
 
-        wcc_loss_temp = -math_ops.reduce_sum(DWM * y_true * math_ops.log(y_pred), axis=(0, 1, 2, 3)) / tf.cast(nVoxels,
+        wcc_loss = -math_ops.reduce_sum(DWM * y_true * math_ops.log(y_pred), axis=(0, 1, 2, 3)) / tf.cast(nVoxels,
                                                                                                                tf.float32)
-        wcc_loss = math_ops.reduce_sum(tf.multiply(vect, wcc_loss_temp))
+        wcc_loss = math_ops.reduce_sum(tf.multiply(vect, wcc_loss))
 
         return alpha * tf.subtract(1.0, mean_over_classes) + (1 - alpha) * wcc_loss
 
