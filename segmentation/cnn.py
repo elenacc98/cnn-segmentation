@@ -491,7 +491,7 @@ class UNet2(object):
         print(self.model.summary())
 
 
-class PEENet2(object):
+class CEL_UNet(object):
     """
     This class provides a simple interface to create
     a U-Net network with custom parameters.
@@ -657,23 +657,19 @@ class PEENet2(object):
                     temp_layer_mask = layers.BatchNormalization(axis=-1)(temp_layer_mask)
                 temp_layer_mask = layers.Activation(self.activation)(temp_layer_mask)
 
-            if i % 2 != 1:
-                # temp_layer_1 = RA(temp_layer_edge, temp_layer_mask, self.n_initial_filters * pow(2, (self.depth - 1) - i))
-                # temp_layer_2 = RA(temp_layer_mask, temp_layer_edge, self.n_initial_filters * pow(2, (self.depth - 1) - i))
-                # temp_layer_merge = Add()([temp_layer_1, temp_layer_2])
-                temp_layer_edge = PEE(temp_layer_edge, self.n_initial_filters * pow(2, (self.depth - 1) - i))
-                # temp_layer_merge = Add()([temp_layer_edge, temp_layer_mask])
+            # if i % 2 != 1:
+            temp_layer_edge = PEE(temp_layer_edge, self.n_initial_filters * pow(2, (self.depth - 1) - i))
 
-                temp_layer_merge = Concatenate()([temp_layer_edge, temp_layer_mask])
-                temp_layer_merge = conv_layer(self.n_initial_filters * pow(2, (self.depth - 1) - i),
-                                              kernel_size=self.kernel_size,
-                                              strides=self.strides,
-                                              padding=self.padding,
-                                              activation='linear',
-                                              kernel_regularizer=self.kernel_regularizer,
-                                              bias_regularizer=self.bias_regularizer)(temp_layer_merge)
-            else:
-                temp_layer_merge = temp_layer_mask
+            temp_layer_merge = Concatenate()([temp_layer_edge, temp_layer_mask])
+            temp_layer_merge = conv_layer(self.n_initial_filters * pow(2, (self.depth - 1) - i),
+                                          kernel_size=self.kernel_size,
+                                          strides=self.strides,
+                                          padding=self.padding,
+                                          activation='linear',
+                                          kernel_regularizer=self.kernel_regularizer,
+                                          bias_regularizer=self.bias_regularizer)(temp_layer_merge)
+            # else:
+            #     temp_layer_merge = temp_layer_mask
 
         # Convolution 1 filter sigmoidal (to make size converge to final one)
         temp_layer_mask = conv_layer(self.n_classes, kernel_size=softmax_kernel_size,
