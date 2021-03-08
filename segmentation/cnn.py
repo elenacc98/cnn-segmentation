@@ -523,7 +523,7 @@ class CEL_UNet(object):
                  depth=5,
                  activation='relu',
                  padding='same',
-                 n_initial_filters=8,
+                 n_initial_filters=4,
                  add_batch_normalization=True,
                  kernel_regularizer=regularizers.l2(0.001),
                  bias_regularizer=regularizers.l2(0.001),
