@@ -64,7 +64,7 @@ This value must be provided, since a confusion matrix of dimension =
 <dd>(Optional) class for which Dice value is returned. Default to 0.</dd>
 </dl>
 <p>Standalone usage:</p>
-<pre><code class="language-python-repl">&gt;&gt;&gt; # cm = [[1, 1],
+<pre><code class="python-repl">&gt;&gt;&gt; # cm = [[1, 1],
 &gt;&gt;&gt; #        [1, 1]]
 &gt;&gt;&gt; # sum_row = [2, 2], sum_col = [2, 2], true_positives = [1, 1]
 &gt;&gt;&gt; # dice = 2*true_positives / (sum_row + sum_col))
@@ -80,7 +80,7 @@ This value must be provided, since a confusion matrix of dimension =
 0.25
 </code></pre>
 <p>Usage with <code>compile()</code> API:</p>
-<pre><code class="language-python">model.compile(
+<pre><code class="python">model.compile(
   optimizer='sgd',
   loss='mse',
   metrics=[segmentation.metrics.Dice(num_classes=2)])
@@ -137,6 +137,55 @@ be broadcastable to <code>y_true</code>.</dd>
 </dd>
 </dl>
 </dd>
+<dt id="segmentation.metrics.IoUPerClass"><code class="flex name class">
+<span>class <span class="ident">IoUPerClass</span></span>
+<span>(</span><span>numClasses, name=None, dtype=None, class_to_return=0)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Compute metric IoU for parameter y_true and y_pred only for the
+specified class.</p>
+<p>Input y_true and y_pred is supposed to be 5-dimensional:
+(batch, x, y, z, softmax_probabilities)</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>tensorflow.python.keras.metrics.Metric</li>
+<li>tensorflow.python.keras.engine.base_layer.Layer</li>
+<li>tensorflow.python.module.module.Module</li>
+<li>tensorflow.python.training.tracking.tracking.AutoTrackable</li>
+<li>tensorflow.python.training.tracking.base.Trackable</li>
+<li>tensorflow.python.keras.utils.version_utils.LayerVersionSelector</li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="segmentation.metrics.IoUPerClass.result"><code class="name flex">
+<span>def <span class="ident">result</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>This function is only used to assign a name to the given IoU metric.</p></div>
+</dd>
+<dt id="segmentation.metrics.IoUPerClass.update_state"><code class="name flex">
+<span>def <span class="ident">update_state</span></span>(<span>self, y_true, y_pred)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Accumulates statistics for the metric.</p>
+<p>Note: This function is executed as a graph function in graph mode.
+This means:
+a) Operations on the same resource are executed in textual order.
+This should make it easier to do things like add the updated
+value of a variable to another, for example.
+b) You don't need to worry about collecting the update ops to execute.
+All update ops added to the graph by this function will be executed.
+As a result, code should generally work the same way with graph or
+eager execution.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt>*args:</dt>
+<dt><strong><code>**kwargs</code></strong></dt>
+<dd>A mini-batch of inputs to the Metric.</dd>
+</dl></div>
+</dd>
+</dl>
+</dd>
 <dt id="segmentation.metrics.MeanDice"><code class="flex name class">
 <span>class <span class="ident">MeanDice</span></span>
 <span>(</span><span>num_classes, name=None, dtype=None)</span>
@@ -164,7 +213,7 @@ This value must be provided, since a confusion matrix of dimension =
 <dd>(Optional) data type of the metric result.</dd>
 </dl>
 <p>Standalone usage:</p>
-<pre><code class="language-python-repl">&gt;&gt;&gt; # cm = [[1, 1],
+<pre><code class="python-repl">&gt;&gt;&gt; # cm = [[1, 1],
 &gt;&gt;&gt; #        [1, 1]]
 &gt;&gt;&gt; # sum_row = [2, 2], sum_col = [2, 2], true_positives = [1, 1]
 &gt;&gt;&gt; # dice = 2*true_positives / (sum_row + sum_col - true_positives))
@@ -268,7 +317,7 @@ This value must be provided, since a confusion matrix of dimension =
 <dd>(Optional) data type of the metric result.</dd>
 </dl>
 <p>Standalone usage:</p>
-<pre><code class="language-python-repl">&gt;&gt;&gt; # cm = [[1, 1],
+<pre><code class="python-repl">&gt;&gt;&gt; # cm = [[1, 1],
 &gt;&gt;&gt; #        [1, 1]]
 &gt;&gt;&gt; # sum_row = [2, 2], sum_col = [2, 2], true_positives = [1, 1]
 &gt;&gt;&gt; # iou = true_positives / (sum_row + sum_col - true_positives))
@@ -284,7 +333,7 @@ This value must be provided, since a confusion matrix of dimension =
 0.14285715
 </code></pre>
 <p>Usage with <code>compile()</code> API:</p>
-<pre><code class="language-python">model.compile(
+<pre><code class="python">model.compile(
   optimizer='sgd',
   loss='mse',
   metrics=[segmentation.metrics.PerClassIoU(num_classes=2, class_to_return=0)])
@@ -364,6 +413,13 @@ be broadcastable to <code>y_true</code>.</dd>
 <li><code><a title="segmentation.metrics.Dice.reset_states" href="#segmentation.metrics.Dice.reset_states">reset_states</a></code></li>
 <li><code><a title="segmentation.metrics.Dice.result" href="#segmentation.metrics.Dice.result">result</a></code></li>
 <li><code><a title="segmentation.metrics.Dice.update_state" href="#segmentation.metrics.Dice.update_state">update_state</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="segmentation.metrics.IoUPerClass" href="#segmentation.metrics.IoUPerClass">IoUPerClass</a></code></h4>
+<ul class="">
+<li><code><a title="segmentation.metrics.IoUPerClass.result" href="#segmentation.metrics.IoUPerClass.result">result</a></code></li>
+<li><code><a title="segmentation.metrics.IoUPerClass.update_state" href="#segmentation.metrics.IoUPerClass.update_state">update_state</a></code></li>
 </ul>
 </li>
 <li>

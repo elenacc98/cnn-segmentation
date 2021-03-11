@@ -32,6 +32,39 @@ in segmentation tasks.</p>
 <section>
 </section>
 <section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="segmentation.losses.Weighted_DiceBoundary_Loss"><code class="name flex">
+<span>def <span class="ident">Weighted_DiceBoundary_Loss</span></span>(<span>numClasses, alpha)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>DiceBoundary wrapper function.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>numClasses</code></strong></dt>
+<dd>number of classes</dd>
+<dt><strong><code>alpha</code></strong></dt>
+<dd>parameter to weight contribution of dice and boundary loss</dd>
+</dl>
+<p>Returns: multiclass_3D_weighted_dice_boundary_loss</p></div>
+</dd>
+<dt id="segmentation.losses.Weighted_DiceCatCross_Loss_v1"><code class="name flex">
+<span>def <span class="ident">Weighted_DiceCatCross_Loss_v1</span></span>(<span>numClasses, alpha)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Categorical crossentropy wrapper function between y_pred tensor and a target tensor.</p>
+<h2 id="arguments">Arguments</h2>
+<p>numClasses: number of classes
+alpha: parameter to weight contribution of dice and distance-weighted categorical crossentropy loss</p>
+<h2 id="returns">Returns</h2>
+<p>categorical_cross_entropy function</p>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>ValueError</code></dt>
+<dd>if <code>axis</code> is neither -1 nor one of the axes of <code>output</code>.</dd>
+</dl></div>
+</dd>
+</dl>
 </section>
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
@@ -63,7 +96,7 @@ This value must be provided, since a confusion matrix of dimension =
 <dd>(Optional) data type of the metric result.</dd>
 </dl>
 <p>Standalone usage:</p>
-<pre><code class="language-python-repl">&gt;&gt;&gt; # cm = [[1, 1],
+<pre><code class="python-repl">&gt;&gt;&gt; # cm = [[1, 1],
 &gt;&gt;&gt; #        [1, 1]]
 &gt;&gt;&gt; # sum_row = [2, 2], sum_col = [2, 2], true_positives = [1, 1]
 &gt;&gt;&gt; # dice = 2*true_positives / (sum_row + sum_col - true_positives))
@@ -119,6 +152,12 @@ model.compile(
 <li><h3>Super-module</h3>
 <ul>
 <li><code><a title="segmentation" href="index.html">segmentation</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="segmentation.losses.Weighted_DiceBoundary_Loss" href="#segmentation.losses.Weighted_DiceBoundary_Loss">Weighted_DiceBoundary_Loss</a></code></li>
+<li><code><a title="segmentation.losses.Weighted_DiceCatCross_Loss_v1" href="#segmentation.losses.Weighted_DiceCatCross_Loss_v1">Weighted_DiceCatCross_Loss_v1</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
