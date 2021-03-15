@@ -11,7 +11,9 @@ class UNet(object):
     This class provides a simple interface to create
     a U-Net network with custom parameters. 
     Args:
-        input_size: input size for the network
+        input_size: input size for the network. If the input of the network is two-dimensional, input size must be
+        of type (input_dim_1, input_dim_2, 1). If the input is three-dimensional, then input size must be
+        of type (input_dim_1, input_dim_2, input_dim_3, 1).
         kernel_size: size of the kernel to be used in the convolutional layers of the U-Net
         strides: stride shape to be used in the convolutional layers of the U-Net
         deconv_strides: stride shape to be used in the deconvolutional layers of the U-Net
@@ -188,7 +190,9 @@ class CELUNet(object):
     This class provides a simple interface to create
     a CEL U-Net network with custom parameters.
     Args:
-        input_size: input size for the network
+        input_size: input_size: input size for the network. If the input of the network is two-dimensional, input size must be
+        of type (input_dim_1, input_dim_2, 1). If the input is three-dimensional, then input size must be
+        of type (input_dim_1, input_dim_2, input_dim_3, 1).
         kernel_size: size of the kernel to be used in the convolutional layers of the U-Net
         strides: stride shape to be used in the convolutional layers of the U-Net
         deconv_strides: stride shape to be used in the deconvolutional layers of the U-Net

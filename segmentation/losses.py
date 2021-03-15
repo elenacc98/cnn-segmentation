@@ -6,7 +6,7 @@ in segmentation tasks.
 from segmentation.metrics import MeanDice
 from segmentation.utils import calc_SDM_batch, calc_DM_batch, calc_SDM, calc_DM
 from segmentation.utils import count_class_voxels, get_loss_weights
-from keras import backend as K
+from tensorflow.keras import backend as K
 import numpy as np
 import tensorflow as tf
 from scipy.ndimage import distance_transform_edt as distance
@@ -19,11 +19,11 @@ from tensorflow.python.keras import backend_config
 
 
 
-def Weighted_DiceBoundary_Loss(numClasses, alpha):
+def WeightedDiceBoundaryLoss(num_classes, alpha):
     """
     DiceBoundary wrapper function.
     Args:
-        numClasses: number of classes
+        num_classes: number of classes
         alpha: parameter to weight contribution of dice and boundary loss
 
     Returns: multiclass_3D_weighted_dice_boundary_loss
@@ -81,11 +81,11 @@ def Weighted_DiceBoundary_Loss(numClasses, alpha):
     return multiclass_weighted_dice_boundary_loss
 
 
-def Weighted_DiceCatCross_Loss_v1(numClasses, alpha):
+def WeightedDiceCatCrossLoss(num_classes, alpha):
     """
     Categorical crossentropy wrapper function between y_pred tensor and a target tensor.
     Arguments:
-        numClasses: number of classes
+        num_classes: number of classes
         alpha: parameter to weight contribution of dice and distance-weighted categorical crossentropy loss
 
     Returns:

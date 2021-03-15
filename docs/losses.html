@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
-<meta name="generator" content="pdoc 0.9.1" />
+<meta name="generator" content="pdoc 0.9.2" />
 <title>segmentation.losses API documentation</title>
 <meta name="description" content="The losses submodule implements loss function to be used
 in segmentation tasks." />
@@ -64,83 +64,41 @@ alpha: parameter to weight contribution of dice and distance-weighted categorica
 <dd>if <code>axis</code> is neither -1 nor one of the axes of <code>output</code>.</dd>
 </dl></div>
 </dd>
+<dt id="segmentation.losses.Weighted_DiceCatCross_Loss_v2"><code class="name flex">
+<span>def <span class="ident">Weighted_DiceCatCross_Loss_v2</span></span>(<span>numClasses, alpha)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Categorical crossentropy wrapper function between y_pred tensor and a target tensor.</p>
+<h2 id="arguments">Arguments</h2>
+<p>numClasses: number of classes
+alpha: parameter to weight contribution of dice and distance-weighted categorical crossentropy loss</p>
+<h2 id="returns">Returns</h2>
+<p>categorical_cross_entropy function</p>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>ValueError</code></dt>
+<dd>if <code>axis</code> is neither -1 nor one of the axes of <code>output</code>.</dd>
+</dl></div>
+</dd>
+<dt id="segmentation.losses.Weighted_DiceFocal_Loss"><code class="name flex">
+<span>def <span class="ident">Weighted_DiceFocal_Loss</span></span>(<span>numClasses, alpha)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Dice + Focal loss wrapper function between y_pred tensor and a target tensor.</p>
+<h2 id="arguments">Arguments</h2>
+<p>numClasses: number of classes
+alpha: parameter to weight contribution of dice and distance-weighted categorical crossentropy loss</p>
+<h2 id="returns">Returns</h2>
+<p>categorical_cross_entropy function</p>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>ValueError</code></dt>
+<dd>if <code>axis</code> is neither -1 nor one of the axes of <code>output</code>.</dd>
+</dl></div>
+</dd>
 </dl>
 </section>
 <section>
-<h2 class="section-title" id="header-classes">Classes</h2>
-<dl>
-<dt id="segmentation.losses.MeanDiceLoss"><code class="flex name class">
-<span>class <span class="ident">MeanDiceLoss</span></span>
-<span>(</span><span>num_classes, name=None, dtype=None)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Computes the Dice metric average over classes.
-Dice is a common evaluation metric for semantic image
-segmentation, obtained by computing the Dice for each semantic class
-and then by averaging the values.
-Dice is defined as follows:</p>
-<p><span><span class="MathJax_Preview"> Dice = \frac{2*true_positive}{2*true_positive + false_positive + false_negative}. </span><script type="math/tex; mode=display"> Dice = \frac{2*true_positive}{2*true_positive + false_positive + false_negative}. </script></span>
-The predictions are accumulated in a confusion matrix, weighted by
-<code>sample_weight</code> and the metric is then calculated from it.
-If <code>sample_weight</code> is <code>None</code>, weights default to 1.
-Use <code>sample_weight</code> of 0 to mask values.</p>
-<h2 id="args">Args</h2>
-<dl>
-<dt><strong><code>num_classes</code></strong></dt>
-<dd>The possible number of labels the prediction task can have.
-This value must be provided, since a confusion matrix of dimension =
-[num_classes, num_classes] will be allocated.</dd>
-<dt><strong><code>name</code></strong></dt>
-<dd>(Optional) string name of the metric instance.</dd>
-<dt><strong><code>dtype</code></strong></dt>
-<dd>(Optional) data type of the metric result.</dd>
-</dl>
-<p>Standalone usage:</p>
-<pre><code class="python-repl">&gt;&gt;&gt; # cm = [[1, 1],
-&gt;&gt;&gt; #        [1, 1]]
-&gt;&gt;&gt; # sum_row = [2, 2], sum_col = [2, 2], true_positives = [1, 1]
-&gt;&gt;&gt; # dice = 2*true_positives / (sum_row + sum_col - true_positives))
-&gt;&gt;&gt; # result = (1 / (2 + 2 - 1) , 1 / (2 + 2 - 1)) = 0.33, 0.33
-&gt;&gt;&gt; m = tf.keras.metrics.MeanIoU(num_classes=2)
-&gt;&gt;&gt; m.update_state([0, 0, 1, 1], [0, 1, 0, 1])
-&gt;&gt;&gt; m.result().numpy()
-0.33333334, 0.33333334
-&gt;&gt;&gt; m.reset_states()
-&gt;&gt;&gt; m.update_state([0, 0, 1, 1], [0, 1, 0, 1],
-...                sample_weight=[0.3, 0.3, 0.3, 0.1])
-&gt;&gt;&gt; m.result().numpy()
-0.33333334, 0.14285715
-Usage with &lt;code&gt;compile()&lt;/code&gt; API:
-```python
-model.compile(
-  optimizer='sgd',
-  loss='mse',
-  metrics=[tf.keras.metrics.MeanIoU(num_classes=2)])
-</code></pre>
-<p>```</p></div>
-<h3>Ancestors</h3>
-<ul class="hlist">
-<li><a title="segmentation.metrics.MeanDice" href="metrics.html#segmentation.metrics.MeanDice">MeanDice</a></li>
-<li>tensorflow.python.keras.metrics.Metric</li>
-<li>tensorflow.python.keras.engine.base_layer.Layer</li>
-<li>tensorflow.python.module.module.Module</li>
-<li>tensorflow.python.training.tracking.tracking.AutoTrackable</li>
-<li>tensorflow.python.training.tracking.base.Trackable</li>
-<li>tensorflow.python.keras.utils.version_utils.LayerVersionSelector</li>
-</ul>
-<h3>Inherited members</h3>
-<ul class="hlist">
-<li><code><b><a title="segmentation.metrics.MeanDice" href="metrics.html#segmentation.metrics.MeanDice">MeanDice</a></b></code>:
-<ul class="hlist">
-<li><code><a title="segmentation.metrics.MeanDice.get_config" href="metrics.html#segmentation.metrics.MeanDice.get_config">get_config</a></code></li>
-<li><code><a title="segmentation.metrics.MeanDice.reset_states" href="metrics.html#segmentation.metrics.MeanDice.reset_states">reset_states</a></code></li>
-<li><code><a title="segmentation.metrics.MeanDice.result" href="metrics.html#segmentation.metrics.MeanDice.result">result</a></code></li>
-<li><code><a title="segmentation.metrics.MeanDice.update_state" href="metrics.html#segmentation.metrics.MeanDice.update_state">update_state</a></code></li>
-</ul>
-</li>
-</ul>
-</dd>
-</dl>
 </section>
 </article>
 <nav id="sidebar">
@@ -158,20 +116,15 @@ model.compile(
 <ul class="">
 <li><code><a title="segmentation.losses.Weighted_DiceBoundary_Loss" href="#segmentation.losses.Weighted_DiceBoundary_Loss">Weighted_DiceBoundary_Loss</a></code></li>
 <li><code><a title="segmentation.losses.Weighted_DiceCatCross_Loss_v1" href="#segmentation.losses.Weighted_DiceCatCross_Loss_v1">Weighted_DiceCatCross_Loss_v1</a></code></li>
-</ul>
-</li>
-<li><h3><a href="#header-classes">Classes</a></h3>
-<ul>
-<li>
-<h4><code><a title="segmentation.losses.MeanDiceLoss" href="#segmentation.losses.MeanDiceLoss">MeanDiceLoss</a></code></h4>
-</li>
+<li><code><a title="segmentation.losses.Weighted_DiceCatCross_Loss_v2" href="#segmentation.losses.Weighted_DiceCatCross_Loss_v2">Weighted_DiceCatCross_Loss_v2</a></code></li>
+<li><code><a title="segmentation.losses.Weighted_DiceFocal_Loss" href="#segmentation.losses.Weighted_DiceFocal_Loss">Weighted_DiceFocal_Loss</a></code></li>
 </ul>
 </li>
 </ul>
 </nav>
 </main>
 <footer id="footer">
-<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.1</a>.</p>
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.2</a>.</p>
 </footer>
 </body>
 </html>
