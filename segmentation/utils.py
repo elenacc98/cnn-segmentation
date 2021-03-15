@@ -18,56 +18,9 @@ from keras.layers.normalization import BatchNormalization
 from keras.regularizers import l2
 
 
-def calc_SDM(seg):
-    """
-    Computes Signed Distance Map of input ground truth image or volume using scipy function.
-    In case seg is 3D volume, it separately computes 2D SDM fo each single slice.
-    Args:
-        seg: 2D or 3D binary array to compute the distance map
-    Returns:
-        res: distance map
-    """
-
-    res = np.zeros_like(seg)
-    posmask = seg.astype(np.bool)
-
-    if len(seg.shape) == 2:
-        if posmask.any():
-            negmask = ~posmask
-            res = distance(negmask) * negmask - (distance(posmask) - 1) * posmask
-        return res
-    elif len(seg.shape) == 3:
-        for i in range(seg.shape[2]):
-            pos = posmask[:, :, i]
-            if pos.any():
-                neg = ~pos
-                res[:, :, i] = distance(neg) * neg - (distance(pos) - 1) * pos
-        return res
-    else:
-        print("Could not recognise dimensions")
-
-
-def calc_SDM_batch(y_true, numClasses):
-    """
-    Prepares the input for distance maps computation, and pass it to calc_SDM
-    Args:
-        y_true: ground truth tensor [class, batch, rows, columns, slices] or [class, batch, rows, columns]
-        numClasses: number of classes
-    Returns:
-        array of distance map of the same dimension of input tensor
-    """
-    y_true_numpy = y_true.numpy()
-    dist_batch = np.zeros_like(y_true_numpy)
-    for c in range(numClasses):
-        temp_y = y_true_numpy[c]
-        for i, y in enumerate(temp_y):
-            dist_batch[c, i] = calc_SDM(y)
-    return np.array(dist_batch).astype(np.float32)
-
-
 def calc_DM(seg):
     """
-    Computes Non-Signed Distance Map of input ground truth image or volume using scipy function.
+    Computes NON-SIGNED Distance Map of input ground truth image or volume using scipy function.
     In case seg is 3D volume, it separately computes 2D DM fo each single slice.
     Args:
         seg: 2D or 3D binary array to compute the distance map
@@ -94,30 +47,41 @@ def calc_DM(seg):
         print("Could not recognise dimensions")
 
 
-def calc_DM_batch(y_true, numClasses):
+def calc_SDM(seg):
     """
-    Prepares the input for distance maps computation, and pass it to calc_DM
+    Computes SIGNED Distance Map of input ground truth image or volume using scipy function.
+    In case seg is 3D volume, it separately computes 2D SDM fo each single slice.
     Args:
-        y_true: ground truth tensor [class, batch, rows, columns, slices] or [class, batch, rows, columns]
-        numClasses: number of classes
+        seg: 2D or 3D binary array to compute the distance map
     Returns:
-        array of distance map of the same dimension of input tensor
+        res: distance map
     """
-    y_true_numpy = y_true.numpy()
-    dist_batch = np.zeros_like(y_true_numpy)
-    for c in range(numClasses):
-        temp_y = y_true_numpy[c]
-        for i, y in enumerate(temp_y):
-            dist_batch[c, i] = calc_DM(y)
-    return np.array(dist_batch).astype(np.float32)
+
+    res = np.zeros_like(seg)
+    posmask = seg.astype(np.bool)
+
+    if len(seg.shape) == 2:
+        if posmask.any():
+            negmask = ~posmask
+            res = distance(negmask) * negmask - (distance(posmask) - 1) * posmask
+        return res
+    elif len(seg.shape) == 3:
+        for i in range(seg.shape[2]):
+            pos = posmask[:, :, i]
+            if pos.any():
+                neg = ~pos
+                res[:, :, i] = distance(neg) * neg - (distance(pos) - 1) * pos
+        return res
+    else:
+        print("Could not recognise dimensions")
 
 
 def calc_DM_edge(seg):
     """
-    Computes Non-Signed Distance Map of input ground-truth image/volume CONTOURS using scipy function.
-    In case seg is 3D volume, it separately computes 2D DM fo each single slice.
+    Computes Non-Signed (Euclidean) Distance Map of input ground-truth volume CONTOURS using scipy function.
+    It separately computes 2D Distance Maps for each single slice in the volume.
     Args:
-        seg: 2D or 3D binary image of ground truth contours to compute the distance map
+        seg: 3D binary volume of ground truth contours
     Returns:
         res: distance map
     """
@@ -133,12 +97,11 @@ def calc_DM_edge(seg):
     return res
 
 
-def calc_DM_batch_edge(y_true, numClasses):
+def calc_DM_batch(y_true, numClasses):
     """
-    Prepares the input (contours) for distance maps computation, and pass it to calc_dist_map.
-    To use when loading ground truth contours from disk.
+    Prepares the input for NON-SIGNED Distance Map computation, and pass it to calc_DM
     Args:
-        y_true: ground truth contour tensor [class, batch, rows, columns, slices] or [class, batch, rows, columns]
+        y_true: ground truth tensor [class, batch, rows, columns, slices] or [class, batch, rows, columns]
         numClasses: number of classes
     Returns:
         array of distance map of the same dimension of input tensor
@@ -148,14 +111,32 @@ def calc_DM_batch_edge(y_true, numClasses):
     for c in range(numClasses):
         temp_y = y_true_numpy[c]
         for i, y in enumerate(temp_y):
-            dist_batch[c, i] = calc_DM_edge(y)
+            dist_batch[c, i] = calc_DM(y)
     return np.array(dist_batch).astype(np.float32)
 
 
-def calc_DM_batch_edge2(y_true, numClasses):
+def calc_SDM_batch(y_true, numClasses):
     """
-    Prepares the input for distance maps computation: it takes y_true masks, creates y_true contours
-    and passes it to calc_DM_edge.
+    Prepares the input for SIGNED Distance Map computation, and pass it to calc_SDM
+    Args:
+        y_true: ground truth tensor [class, batch, rows, columns, slices] or [class, batch, rows, columns]
+        numClasses: number of classes
+    Returns:
+        array of distance map of the same dimension of input tensor
+    """
+    y_true_numpy = y_true.numpy()
+    dist_batch = np.zeros_like(y_true_numpy)
+    for c in range(numClasses):
+        temp_y = y_true_numpy[c]
+        for i, y in enumerate(temp_y):
+            dist_batch[c, i] = calc_SDM(y)
+    return np.array(dist_batch).astype(np.float32)
+
+
+def calc_DM_batch_edge(y_true, numClasses):
+    """
+    Receives y_true mask labels, returns y_true contours and euclidean transform of y_true mask labels. Euclidean
+    transform is computed by the function 'calc_DM_edge'.
     Args:
         y_true: ground truth tensor [class, batch, rows, columns, slices] or [class, batch, rows, columns]
         numClasses: number of classes
@@ -164,40 +145,42 @@ def calc_DM_batch_edge2(y_true, numClasses):
         array of ground truth contours of the same dimension of input tensor
     """
     y_true_numpy = y_true.numpy()
-    # surface_label = np.zeros((numClasses - 1, ) + y_true_numpy.shape[1::])
-    # dist_batch = np.zeros((numClasses - 1, ) + y_true_numpy.shape[1::])
     surface_label = np.zeros_like(y_true_numpy)
     dist_batch = np.zeros_like(y_true_numpy)
-    for c in range(1, numClasses):
+
+    # compute contours for each slice, in each class volume, in each batch.
+    for c in range(1, numClasses):  # for each class
         temp_y = y_true_numpy[c]
-        for i, y in enumerate(temp_y):
-            for k in range(y.shape[2]):
+        for i, y in enumerate(temp_y):  # for each batch
+            for k in range(y.shape[2]):  # for each slice
                 img_lab = y[:, :, k].astype(np.uint8)
                 contour_lab, hierarchy_lab = findContours(img_lab, RETR_EXTERNAL, CHAIN_APPROX_NONE)
-                if len(contour_lab) != 0:  # CONTOUR PER SLICE IS PRESENT
+
+                if len(contour_lab) != 0:  # if contour per slice is present
                     for j in range(len(contour_lab)):
                         if contour_lab[j].shape[1] == 1:
                             contour_lab[j].resize(contour_lab[j].shape[0], 2)
                         surface_label[c, i, contour_lab[j][:, 1], contour_lab[j][:, 0], k] = 1
                 else:
                     surface_label[c, i, :, :, k] = np.zeros_like(img_lab)
-            dist_batch[c, i] = calc_DM_edge(surface_label[c, i])
+            dist_batch[c, i] = calc_DM_edge(surface_label[c, i])  # compute Euclidean transform
 
-        surface_label[0] += surface_label[c]  # + surface_label[3] + surface_label[4]
+        surface_label[0] += surface_label[c]
     for i in range(y_true_numpy.shape[1]):
         dist_batch[0,i] = calc_DM_edge(surface_label[0, i])
-    surface_label[0] = 1 - surface_label[0]
+    surface_label[0] = 1 - surface_label[0]  # invert background label
     return np.array(dist_batch).astype(np.float32), np.array(surface_label).astype(np.float32)
 
 
 def computeContours(y_true, numClasses):
     """
-    Receive y_true masks and creates y_true contours
+    Receive y_true masks and creates y_true contours. It excludes contours of the background, as it is
     Args:
         y_true: ground truth tensor [class, batch, rows, columns, slices] or [class, batch, rows, columns]
         numClasses: number of classes
 
-    Returns: array of ground truth contours of the same dimension of input tensor
+    Returns: array of ground truth contours: background contours are excluded. Output dimension is
+        [class-1, batch, rows, columns, slices]
     """
     y_true_numpy = y_true.numpy()
     surface_label = np.zeros((numClasses - 1, ) + y_true_numpy.shape[1::])
@@ -214,7 +197,7 @@ def computeContours(y_true, numClasses):
                         surface_label[c-1, i, contour_lab[j][:, 1], contour_lab[j][:, 0], k] = 1
                 else:
                     surface_label[c-1, i, :, :, k] = np.zeros_like(img_lab)
-    # surface_label[0] = surface_label[1] + surface_label[2] + surface_label[3] + surface_label[4]
+
     return np.array(surface_label).astype(np.float32)
 
 
@@ -258,324 +241,6 @@ def get_loss_weights(labels, nVoxels, numClasses):
     numerator_1 = tf.divide(numerator_1, tf.reduce_sum(numerator_1))
 
     return numerator_1
-
-
-# Functions for CDDUnet and CDUnet
-
-def conv_factory(x, concat_axis, nb_filter, dropout_rate=None, weight_decay=1E-4, kernel_size = (3,3,3)):
-    """
-    This function defines the convolution operation to perform in each layer of a dense block
-    Args:
-        x: Input tensor
-        concat_axis: axis of concatenation
-        nb_filter: number of features of input tensor
-        dropout_rate: probability of dropout layers
-        weight_decay: weight decay parameter
-        kernel_size: kernel size used for convolution. Default (3,3,3)
-
-    Returns: Tensor to pass to the next layer
-    """
-
-    x = BatchNormalization(axis=concat_axis,
-                           gamma_regularizer=l2(weight_decay),
-                           beta_regularizer=l2(weight_decay))(x)
-    x = Activation('relu')(x)
-    x = Conv3D(4*nb_filter, (1, 1, 1),
-               kernel_initializer="he_uniform",
-               padding="same",
-               # use_bias=False,
-               kernel_regularizer=l2(weight_decay))(x)
-    x = Conv3D(nb_filter, kernel_size,
-               kernel_initializer="he_uniform",
-               padding="same",
-               # use_bias=False,
-               kernel_regularizer=l2(weight_decay))(x)
-    if dropout_rate:
-        x = Dropout(dropout_rate)(x)
-
-    return x
-
-
-def transition(x, concat_axis, nb_filter, theta, dropout_rate=None, weight_decay=1E-4):
-    """
-    Transition layer after each dense block.
-    It reduces tensor dimension and number of features.
-    Args:
-        x: Input tensor
-        concat_axis: axis of concatenation
-        nb_filter: number of features of input tensor
-        theta: parameter in (0,1] to specify number of features in output.
-            features_out = theta * features_in
-        dropout_rate: probability of dropout layers
-        weight_decay: weight decay parameter
-
-    Returns: returns resized tensor in order to reduce dimensionality
-    """
-
-    x = BatchNormalization(axis=concat_axis,
-                           gamma_regularizer=l2(weight_decay),
-                           beta_regularizer=l2(weight_decay))(x)
-    x = Activation('relu')(x)
-    x = Conv3D(nb_filter * theta, (1, 1, 1),
-               kernel_initializer="he_uniform",
-               padding="same",
-               # use_bias=False,
-               kernel_regularizer=l2(weight_decay))(x)
-    if dropout_rate:
-        x = Dropout(dropout_rate)(x)
-    x = AveragePooling3D((2, 2, 2), strides=(2, 2, 2))(x)
-
-    return x, nb_filter * theta
-
-
-def denseblock(x, concat_axis, nb_layers, nb_filter, growth_rate,
-               dropout_rate=None, weight_decay=1E-4):
-    """
-    Create a dense connected block of depth nb_layers,
-    where each output is fed into all subsequent layers.
-    Args:
-        x: tensor in input
-        concat_axis: axis of concatenation
-        nb_layers: number of layers of the dense block
-        nb_filter: number of filters of input tensor
-        growth_rate: number of output features for each layer in the block
-        dropout_rate: probability of dropout layers
-        weight_decay: weight decay parameter
-
-    Returns: Output tensor with same shape and number of features
-    equal to: nb_filter + nb_layers * growth_rate
-    """
-
-    list_feat = [x]
-
-    for i in range(nb_layers):
-        x = conv_factory(x, concat_axis, growth_rate,
-                         dropout_rate, weight_decay)
-        list_feat.append(x)
-        x = Concatenate(axis=concat_axis)(list_feat)
-        nb_filter += growth_rate
-
-    return x, nb_filter
-
-
-def channelModule(input_tensor, nb_filter):
-    """
-    Channel contextual model to enhance channel information flow.
-    Args:
-        input_tensor: input tensor
-        nb_filter: number of features of the input tensor
-    Returns: tensor of the same shape of input where relevant channel have been enhanced
-        in contrast to less relevant ones.
-    """
-
-    scale_tensor = tf.ones_like(input_tensor)
-
-    x = GlobalAveragePooling3D()(input_tensor)
-    x = tf.expand_dims(x, axis=1)
-    x = tf.expand_dims(x, axis=1)
-    x = tf.expand_dims(x, axis=1)
-    x = Conv1D(nb_filter/2, 1,
-               kernel_initializer="he_uniform")(x)
-    x = Activation('relu')(x)
-    x = Conv1D(nb_filter, 1,
-               kernel_initializer="he_uniform")(x)
-    x = Activation('sigmoid')(x)
-
-    x = tf.multiply(x, scale_tensor)  # Lambda(lambda y: tf.multiply(y, scale_tensor))(x)
-    output_tensor = Multiply()([x, input_tensor])
-
-    return output_tensor
-
-
-def spatialModule(input_tensor, nb_filter):
-    """
-    Spatial contextual model to enhance spatial information across features.
-    Args:
-        input_tensor: input tensor
-        nb_filter: number of features in the input tensor.
-
-    Returns: tensor of the same shape of input where relevant patches inside the
-        volume are enhanced in contrast to less relebant ones.
-    """
-
-    scale_tensor = tf.ones_like(input_tensor)
-
-    x = Conv3D(nb_filter/2, (1, 1, 1),
-               kernel_initializer="he_uniform")(input_tensor)
-    x = Activation('relu')(x)
-    x = Conv3D(1, (1, 1, 1),
-               kernel_initializer="he_uniform")(x)
-    x = Activation('sigmoid')(x)
-
-    x = tf.multiply(x, scale_tensor)  # Lambda(lambda y: tf.multiply(y, scale_tensor))(x)
-    output_tensor = Multiply()([x, input_tensor])
-    return output_tensor
-
-
-def denseUnit(input_tensor, dense_filters=48, weight_decay=1E-4, kernel_size = (3,3,3)):
-    """
-    Dense unit that comprehends a convolution with a fixed number of filters and the two
-        spatial and channel contextual modules.
-    Args:
-        input_tensor: input tensor
-        dense_filters: number of filters for the first convolution
-        weight_decay: weight decay parameter
-        kernel_size: kernel used for convolution
-
-    Returns: tensor with the same shape as input
-    """
-
-    x = BatchNormalization(gamma_regularizer=l2(weight_decay),
-                           beta_regularizer=l2(weight_decay))(input_tensor)
-    x = Activation('relu')(x)
-    x = Conv3D(dense_filters, kernel_size, padding='same')(x)
-    x = Dropout(0.2)(x)
-
-    x = spatialModule(x, dense_filters)
-    x = channelModule(x, dense_filters)
-
-    x = Concatenate()([x, input_tensor])
-    return x
-
-
-def compressionUnit(input_tensor, nb_filter, kernel_size=(3,3,3)):
-    """
-    Compression unit to reduce the linear increase of feature numbers in the dense units.
-    Args:
-        input_tensor: input tensor
-        nb_filter: number fo filters for the convolution
-        kernel_size: kernel size used for convolution. Default (3,3,3)
-
-    Returns: a tensor with number of features specified in nb_filter
-    """
-
-    x = Conv3D(nb_filter, kernel_size, padding='same')(input_tensor)
-
-    x = spatialModule(x, nb_filter)
-    x = channelModule(x, nb_filter)
-    return x
-
-
-def upsamplingUnit(encoding_input, decoding_input, filter_enc, filter_dec, kernel_size=(3,3,3),
-                   deconv_kernel_size=(2,2,2), deconv_strides=(2, 2, 2)):
-    """
-    Upsampling unit that upsamples from decoding path and concatenates with encoding path to
-        maintain fine spatial information and produce dense predictions.
-    Args:
-        encoding_input: input tensor coming from encoding path
-        decoding_input: input tensor coming from decoding path
-        filter_enc: number fo filter for the convolution of the encoding path
-        filter_dec: number fo filter for the transposed convolution of the decoding path
-        kernel_size: kernel size used for convolution. Default (3,3,3)
-        deconv_kernel_size: kernel size used for deconvolution. Default (2,2,2)
-        deconv_strides: strides used for deconvolution. Default (2,2,2)
-
-    Returns: concatenation of the two tensors in input after convolutions
-    """
-
-    x = Conv3D(filter_enc, kernel_size, padding='same')(encoding_input)
-    y = Conv3DTranspose(filter_dec, deconv_kernel_size, strides=deconv_strides, padding='same')(decoding_input)
-    return Concatenate()([x, y])
-
-
-############################## ––––––––––––––––– ##############################
-# Functions for DoubleUnet
-def squeeze_excite_block(inputs, ratio=8):
-    init = inputs
-    channel_axis = -1
-    filters = init.shape[channel_axis]
-    se_shape = (1, 1, 1, filters)
-
-    se = GlobalAveragePooling3D()(init)
-    se = Reshape(se_shape)(se)
-    se = Dense(filters // ratio, activation='relu', kernel_initializer='he_normal', use_bias=False)(se)
-    se = Dense(filters, activation='sigmoid', kernel_initializer='he_normal', use_bias=False)(se)
-
-    x = Multiply()([init, se])
-    return x
-
-
-def conv_block(inputs, filters):
-    x = inputs
-
-    x = Conv3D(filters, (3, 3, 3), padding="same")(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-
-    x = Conv3D(filters, (3, 3, 3), padding="same")(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-
-    x = squeeze_excite_block(x)
-
-    return x
-
-
-def encoder1(inputs):
-    num_filters = [8, 16, 32, 64]
-    skip_connections = []
-    x = inputs
-
-    for i, f in enumerate(num_filters):
-        x = conv_block(x, f)
-        skip_connections.append(x)
-        x = MaxPool3D((2, 2, 2))(x)
-
-    return x, skip_connections
-
-
-def decoder1(inputs, skip_connections):
-    num_filters = [64, 32, 16, 8]
-    skip_connections.reverse()
-    x = inputs
-
-    for i, f in enumerate(num_filters):
-        x = UpSampling3D((2, 2, 2))(x)
-        x = Concatenate()([x, skip_connections[i]])
-        x = conv_block(x, f)
-
-    return x
-
-
-def encoder2(inputs):
-    num_filters = [8, 16, 32, 64]
-    skip_connections = []
-    x = inputs
-
-    for i, f in enumerate(num_filters):
-        x = conv_block(x, f)
-        skip_connections.append(x)
-        x = MaxPool3D((2, 2, 2))(x)
-
-    return x, skip_connections
-
-
-def decoder2(inputs, skip_1, skip_2):
-    num_filters = [64, 32, 16, 8]
-    skip_2.reverse()
-    x = inputs
-
-    for i, f in enumerate(num_filters):
-        x = UpSampling3D((2, 2, 2))(x)
-        x = Concatenate()([x, skip_1[i], skip_2[i]])
-        x = conv_block(x, f)
-
-    return x
-
-
-def output_block(inputs):
-    x = Conv3D(8, (1, 1, 1), padding="same")(inputs)
-    x = Activation('sigmoid')(x)
-    return x
-
-
-def Upsample(tensor, size):
-    """Bilinear upsampling"""
-    def _upsample(x, size):
-        return tf.image.resize(images=x, size=size)
-    return Lambda(lambda x: _upsample(x, size), output_shape=size)(tensor)
-
-############################## ––––––––––––––––– ##############################
 
 
 # Functions for Unet2
