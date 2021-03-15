@@ -135,11 +135,11 @@ class MetricsPlot(Callback):
 ### https://github.com/LIVIAETS/boundary-loss/issues/14#issuecomment-547048076
 class AlphaScheduler(Callback):
     """
-    Stores and update alpha parameter to weight the 2 contribution of Weighted_DiceBoundary_Loss,
-    or any other function with weighted contribution.
+    Stores and update alpha parameter to weight the 2 contributions in the loss functions.
     Args:
         alpha: parameter to weight functions. Must be in [0,1]
         update_fn: function that updates alpha every time "on_epoch_end" calls it.
+        output_dir: directory in which to store csv file that checks alpha value epoch after epoch.
     """
     def __init__(self, alpha, update_fn, output_dir=None, progressive=True, step_epoch=40):
         self.alpha = alpha
