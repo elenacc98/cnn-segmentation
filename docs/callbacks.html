@@ -41,14 +41,15 @@ of the network.</p>
 <span>(</span><span>alpha, update_fn, output_dir=None, progressive=True, step_epoch=40)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Stores and update alpha parameter to weight the 2 contribution of Weighted_DiceBoundary_Loss,
-or any other function with weighted contribution.</p>
+<div class="desc"><p>Stores and update alpha parameter to weight the 2 contributions in the loss functions.</p>
 <h2 id="args">Args</h2>
 <dl>
 <dt><strong><code>alpha</code></strong></dt>
 <dd>parameter to weight functions. Must be in [0,1]</dd>
 <dt><strong><code>update_fn</code></strong></dt>
 <dd>function that updates alpha every time "on_epoch_end" calls it.</dd>
+<dt><strong><code>output_dir</code></strong></dt>
+<dd>directory in which to store csv file that checks alpha value epoch after epoch.</dd>
 </dl></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
