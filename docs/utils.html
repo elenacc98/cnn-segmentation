@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.9.1" />
 <title>segmentation.utils API documentation</title>
-<meta name="description" content="" />
+<meta name="description" content="Utils functions." />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
 <link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
@@ -23,12 +23,121 @@
 <h1 class="title">Module <code>segmentation.utils</code></h1>
 </header>
 <section id="section-intro">
+<p>Utils functions.</p>
 </section>
 <section>
 </section>
 <section>
 </section>
 <section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="segmentation.utils.calc_DM"><code class="name flex">
+<span>def <span class="ident">calc_DM</span></span>(<span>seg)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Computes Non-Signed Distance Map of input ground truth image or volume using scipy function.
+In case seg is 3D volume, it separately computes 2D DM fo each single slice.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>seg</code></strong></dt>
+<dd>2D or 3D binary array to compute the distance map</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>res</code></dt>
+<dd>distance map</dd>
+</dl></div>
+</dd>
+<dt id="segmentation.utils.calc_DM_batch"><code class="name flex">
+<span>def <span class="ident">calc_DM_batch</span></span>(<span>y_true, numClasses)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Prepares the input for distance maps computation, and pass it to calc_dist_map</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>y_true</code></strong></dt>
+<dd>ground truth tensor [class, batch, rows, columns, slices] or [class, batch, rows, columns]</dd>
+<dt><strong><code>numClasses</code></strong></dt>
+<dd>number of classes</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>array of distance map of the same dimension of input tensor</p></div>
+</dd>
+<dt id="segmentation.utils.calc_SDM"><code class="name flex">
+<span>def <span class="ident">calc_SDM</span></span>(<span>seg)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Computes Signed Distance Map of input ground truth image or volume using scipy function.
+In case seg is 3D volume, it separately computes 2D SDM fo each single slice.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>seg</code></strong></dt>
+<dd>2D or 3D binary array to compute the distance map</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>res</code></dt>
+<dd>distance map</dd>
+</dl></div>
+</dd>
+<dt id="segmentation.utils.calc_SDM_batch"><code class="name flex">
+<span>def <span class="ident">calc_SDM_batch</span></span>(<span>y_true, numClasses)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Prepares the input for distance maps computation, and pass it to calc_dist_map</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>y_true</code></strong></dt>
+<dd>ground truth tensor [class, batch, rows, columns, slices] or [class, batch, rows, columns]</dd>
+<dt><strong><code>numClasses</code></strong></dt>
+<dd>number of classes</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>array of distance map of the same dimension of input tensor</p></div>
+</dd>
+<dt id="segmentation.utils.count_class_voxels"><code class="name flex">
+<span>def <span class="ident">count_class_voxels</span></span>(<span>labels, nVoxels, numClasses)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Counts total number of voxels for each class in the batch size.
+input is supposed to be 4 or 5-dimensional: (class, batch, rows, columns) or
+(class, batch, rows, columns, slices).</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>labels</code></strong></dt>
+<dd>ground truth tensor of dimensions (class, batch_size, rows, columns, slices) or</dd>
+<dt>(class, batch_size, rows, columns)</dt>
+<dt><strong><code>nVoxels</code></strong></dt>
+<dd>total number of voxels</dd>
+<dt><strong><code>numClasses</code></strong></dt>
+<dd>number of classes</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>out</code></dt>
+<dd>list with number of voxel per class</dd>
+</dl></div>
+</dd>
+<dt id="segmentation.utils.get_loss_weights"><code class="name flex">
+<span>def <span class="ident">get_loss_weights</span></span>(<span>labels, nVoxels, numClasses)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Compute loss weights for each class.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>labels</code></strong></dt>
+<dd>ground truth tensor of dimensions (class, batch_size, rows, columns, slices) or</dd>
+<dt>(class, batch_size, rows, columns)</dt>
+<dt><strong><code>nVoxels</code></strong></dt>
+<dd>total number of voxels</dd>
+<dt><strong><code>numClasses</code></strong></dt>
+<dd>number of classes</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>1D tf.tensor of len = numClasses containing weights for each class</p></div>
+</dd>
+</dl>
 </section>
 <section>
 </section>
@@ -42,6 +151,16 @@
 <li><h3>Super-module</h3>
 <ul>
 <li><code><a title="segmentation" href="index.html">segmentation</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="two-column">
+<li><code><a title="segmentation.utils.calc_DM" href="#segmentation.utils.calc_DM">calc_DM</a></code></li>
+<li><code><a title="segmentation.utils.calc_DM_batch" href="#segmentation.utils.calc_DM_batch">calc_DM_batch</a></code></li>
+<li><code><a title="segmentation.utils.calc_SDM" href="#segmentation.utils.calc_SDM">calc_SDM</a></code></li>
+<li><code><a title="segmentation.utils.calc_SDM_batch" href="#segmentation.utils.calc_SDM_batch">calc_SDM_batch</a></code></li>
+<li><code><a title="segmentation.utils.count_class_voxels" href="#segmentation.utils.count_class_voxels">count_class_voxels</a></code></li>
+<li><code><a title="segmentation.utils.get_loss_weights" href="#segmentation.utils.get_loss_weights">get_loss_weights</a></code></li>
 </ul>
 </li>
 </ul>
