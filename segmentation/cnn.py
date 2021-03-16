@@ -6,6 +6,17 @@ from tensorflow.keras import layers
 from tensorflow.keras import regularizers
 from tensorflow.keras import Model
 
+from keras.layers.core import Dense, Dropout, Activation
+from keras.layers.convolutional import Conv1D, Conv2D, Conv3D, Conv3DTranspose
+from keras.layers.pooling import AveragePooling2D, AveragePooling3D, GlobalAveragePooling3D, MaxPool3D
+from keras.layers import Input, Concatenate, Lambda, Dropout, Concatenate, Multiply, Softmax, Add
+from keras.layers.normalization import BatchNormalization
+from keras.regularizers import l2
+from segmentation.utils import ASPP, PEE, RA, MINI_MTL, CFF, build_MINI_MTL
+from tensorflow.keras.applications import *
+import math
+
+
 class UNet(object):
     """
     This class provides a simple interface to create
@@ -219,7 +230,7 @@ class CELUNet(object):
                  depth=5,
                  activation='relu',
                  padding='same',
-                 n_initial_filters=4,
+                 n_initial_filters=8,
                  add_batch_normalization=True,
                  kernel_regularizer=regularizers.l2(0.001),
                  bias_regularizer=regularizers.l2(0.001),

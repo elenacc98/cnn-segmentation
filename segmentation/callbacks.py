@@ -116,8 +116,8 @@ class MetricsPlot(Callback):
         sns.set(style='darkgrid')
         for metric in self.metrics:
             if metric in logs.keys():
-                sns.lineplot(x=range(0, len(self.data)), y=metric, data=self.data, ci=None,
-                             label=metric, linewidth=3)
+                sns.lineplot(x=range(0,len(self.data)),y=metric,data=self.data, ci=None, 
+                            label=metric, linewidth=3)
 
         ax.set_xlabel("Epochs", fontsize=16)
         ax.set_ylabel("", fontsize=16)
@@ -135,11 +135,11 @@ class MetricsPlot(Callback):
 ### https://github.com/LIVIAETS/boundary-loss/issues/14#issuecomment-547048076
 class AlphaScheduler(Callback):
     """
-    Stores and update alpha parameter to weight the 2 contribution of Weighted_DiceBoundary_Loss,
-    or any other function with weighted contribution.
+    Stores and update alpha parameter to weight the 2 contributions in the loss functions.
     Args:
         alpha: parameter to weight functions. Must be in [0,1]
         update_fn: function that updates alpha every time "on_epoch_end" calls it.
+        output_dir: directory in which to store csv file that checks alpha value epoch after epoch.
     """
     def __init__(self, alpha, update_fn, output_dir=None, progressive=True, step_epoch=40):
         self.alpha = alpha
