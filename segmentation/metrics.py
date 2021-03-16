@@ -68,6 +68,7 @@ class PerClassIoU(Metric):
         initializer=init_ops.zeros_initializer,
         dtype=dtypes.float64)
     self.class_to_return = class_to_return
+    self.name = name
 
   def update_state(self, y_true, y_pred, sample_weight=None):
     """Accumulates the confusion matrix statistics.
@@ -116,7 +117,7 @@ class PerClassIoU(Metric):
 
     # sum_over_row + sum_over_col =
     #     2 * true_positives + false_positives + false_negatives.
-    denominator = sum_over_row + sum_over_col - true_positives
+    denominator = sum_over_row[self.class_to_return] + sum_over_col[self.class_to_return] - true_positives[self.class_to_return]
 
     # The mean is only computed over classes that appear in the
     # label or prediction tensor. If the denominator is 0, we need to
@@ -124,8 +125,11 @@ class PerClassIoU(Metric):
     num_valid_entries = math_ops.reduce_sum(
         math_ops.cast(math_ops.not_equal(denominator, 0), dtype=self._dtype))
 
-    iou = math_ops.div_no_nan(true_positives, denominator)
-    return iou[self.class_to_return]
+    iou = math_ops.div_no_nan(true_positives[self.class_to_return], denominator)
+    
+    return math_ops.div_no_nan(
+        math_ops.reduce_sum(iou, name=self.name), num_valid_entries)
+
 
   def reset_states(self):
     K.set_value(self.total_cm, np.zeros((self.num_classes, self.num_classes)))
@@ -134,7 +138,6 @@ class PerClassIoU(Metric):
     config = {'num_classes': self.num_classes}
     base_config = super(PerClassIoU, self).get_config()
     return dict(list(base_config.items()) + list(config.items()))
-
   
 class Dice(Metric):
   """Computes the Dice metric per-class.
