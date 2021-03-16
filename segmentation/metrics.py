@@ -132,7 +132,7 @@ class PerClassIoU(Metric):
 
   def get_config(self):
     config = {'num_classes': self.num_classes}
-    base_config = super(MeanIoU, self).get_config()
+    base_config = super(PerClassIoU, self).get_config()
     return dict(list(base_config.items()) + list(config.items()))
 
   
