@@ -37,7 +37,7 @@ class PerClassIoU(Metric):
   >>> # sum_row = [2, 2], sum_col = [2, 2], true_positives = [1, 1]
   >>> # iou = true_positives / (sum_row + sum_col - true_positives))
   >>> # result = (1 / (2 + 2 - 1) , 1 / (2 + 2 - 1)) = 0.33, 0.33
-  >>> m = segmentation.metrics.MeanIoU(num_classes=2, class_to_return=1)
+  >>> m = segmentation.metrics.PerClassIoU(num_classes=2, class_to_return=1)
   >>> m.update_state([0, 0, 1, 1], [0, 1, 0, 1])
   >>> m.result().numpy()
   0.33333334
@@ -384,3 +384,53 @@ class MeanDice(Metric):
     config = {'num_classes': self.num_classes}
     base_config = super(MeanIoU, self).get_config()
     return dict(list(base_config.items()) + list(config.items()))
+
+  
+class IoUPerClass(Metric):
+    """
+    Compute metric IoU for parameter y_true and y_pred only for the
+    specified class.
+    Input y_true and y_pred is supposed to be 5-dimensional:
+    (batch, x, y, z, softmax_probabilities)
+    """
+
+    def __init__(self, numClasses, name=None, dtype=None, class_to_return=0):
+        super(IoUPerClass, self).__init__(name=name, dtype=dtype)
+        self.numClasses = numClasses
+        self.class_to_return = class_to_return
+        self.tp = 0
+        self.fn = 0
+        self.fp = 0
+
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        class_IoU_list = []
+        y_true = tf.cast(y_true, 'bool')
+        y_pred = tf.argmax(y_pred, axis=-1, output_type='int64')  #choose which class the model predicts for each voxel
+        y_pred = tf.one_hot(indices=y_pred, depth=self.numClasses, axis=-1, dtype='int64')
+        y_pred = tf.cast(y_pred, 'bool')
+
+        if len(y_true.shape) == 4:
+            y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
+            y_true = tf.transpose(y_true, [3, 0, 1, 2])
+        elif len(y_true.shape) == 5:
+            y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
+            y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
+        else:
+            print("Could not handle input dimensions.")
+            return
+
+        # Now dimensions are --> [Classes, Batch, Rows, Columns, Slices]
+        # or [Classes, Batch, Rows, Columns]
+
+        y_true_c = y_true[self.class_to_return]
+        y_pred_c = y_pred[self.class_to_return]
+        self.tp = tf.math.count_nonzero(tf.logical_and(y_true_c, y_pred_c))
+        self.fn = tf.math.count_nonzero(tf.logical_and(tf.math.logical_xor(y_true_c, y_pred_c), y_true_c))
+        self.fp = tf.math.count_nonzero(tf.logical_and(tf.math.logical_xor(y_true_c, y_pred_c), y_pred_c))
+        return self.tp, self.fn, self.fp
+
+    def result(self):
+        """
+        This function is only used to assign a name to the given IoU metric.
+        """
+        return self.tp / (self.tp + self.fn + self.fp)

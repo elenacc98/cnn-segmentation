@@ -20,7 +20,7 @@ Current lab students working on the project:
 
 ## Installation
 You can install the package directly from GitHub:
-`pip install +git https://github.com/ltebs-polimi/cnn-segmentation`ß
+`pip install +git https://github.com/ltebs-polimi/cnn-segmentation`
 
 ## Documentation
 You can generate your local documentation by running: `make docs` to update the documentation of the project. Updated documentation can be found in the `docs` folder.
