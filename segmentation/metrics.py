@@ -68,7 +68,6 @@ class PerClassIoU(Metric):
         initializer=init_ops.zeros_initializer,
         dtype=dtypes.float64)
     self.class_to_return = class_to_return
-    self.name = name
 
   def update_state(self, y_true, y_pred, sample_weight=None):
     """Accumulates the confusion matrix statistics.
