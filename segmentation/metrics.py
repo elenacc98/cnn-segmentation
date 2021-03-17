@@ -14,7 +14,8 @@ import tensorflow as tf
 
 
 class PerClassIoU(Metric):
-  """Computes the Intersection-Over-Union metric per-class.
+  """Computes the Intersection-Over-Union metric per-class. This metric
+  is supposed to work only with three-dimensional input. 
   Intersection-Over-Union is a common evaluation metric for semantic image
   segmentation, obtained by computing the IOU for each semantic class.
   IOU is defined as follows:
@@ -84,12 +85,19 @@ class PerClassIoU(Metric):
     y_true = math_ops.cast(y_true, self._dtype)
     y_pred = math_ops.cast(y_pred, self._dtype)
 
+    """
     # Flatten the input if its rank > 1.
     if y_pred.shape.ndims > 1:
       y_pred = array_ops.reshape(y_pred, [-1])
 
     if y_true.shape.ndims > 1:
       y_true = array_ops.reshape(y_true, [-1])
+    """
+
+    # Select predicted class for each voxel
+    y_pred = tf.argmax(y_pred, axis=-1, output_type='int32')  
+    y_pred = tf.one_hot(indices=y_pred, depth=self.num_classes, axis=-1, dtype='int32')
+    #y_pred = tf.cast(y_pred, 'bool')
 
     if sample_weight is not None:
       sample_weight = math_ops.cast(sample_weight, self._dtype)
@@ -210,12 +218,14 @@ class Dice(Metric):
     y_true = math_ops.cast(y_true, self._dtype)
     y_pred = math_ops.cast(y_pred, self._dtype)
 
+    """
     # Flatten the input if its rank > 1.
     if y_pred.shape.ndims > 1:
       y_pred = array_ops.reshape(y_pred, [-1])
 
     if y_true.shape.ndims > 1:
       y_true = array_ops.reshape(y_true, [-1])
+    """
 
     if sample_weight is not None:
       sample_weight = math_ops.cast(sample_weight, self._dtype)
