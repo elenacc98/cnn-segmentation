@@ -97,7 +97,7 @@ class PerClassIoU(Metric):
     # Select predicted class for each voxel
     y_pred = tf.argmax(y_pred, axis=-1, output_type='int32')  
     y_pred = tf.one_hot(indices=y_pred, depth=self.num_classes, axis=-1, dtype='int32')
-    #y_pred = tf.cast(y_pred, 'bool')
+    y_pred = tf.cast(y_pred, 'bool')
 
     if sample_weight is not None:
       sample_weight = math_ops.cast(sample_weight, self._dtype)
