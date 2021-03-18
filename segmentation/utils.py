@@ -174,31 +174,36 @@ def calc_DM_batch_edge(y_true, numClasses):
 
 def computeContours(y_true, numClasses):
     """
-    Receive y_true masks and creates y_true contours. It excludes contours of the background, as it is
+    Receive y_true masks and creates y_true contours.
     Args:
         y_true: ground truth tensor [class, batch, rows, columns, slices] or [class, batch, rows, columns]
         numClasses: number of classes
-
-    Returns: array of ground truth contours: background contours are excluded. Output dimension is
-        [class-1, batch, rows, columns, slices]
+    Returns:
+        array of ground truth contours [class, batch, rows, columns, slices]
+        number of contour voxels
     """
     y_true_numpy = y_true.numpy()
-    surface_label = np.zeros((numClasses - 1, ) + y_true_numpy.shape[1::])
+    contour_voxels = np.zeors(1)
+    surface_label = np.zeros_like(y_true_numpy)
     for c in range(1, numClasses):
         temp_y = y_true_numpy[c]
         for i, y in enumerate(temp_y):
             for k in range(y.shape[2]):
                 img_lab = y[:, :, k].astype(np.uint8)
                 contour_lab, hierarchy_lab = findContours(img_lab, RETR_EXTERNAL, CHAIN_APPROX_NONE)
+
                 if len(contour_lab) != 0:  # CONTOUR PER SLICE IS PRESENT
                     for j in range(len(contour_lab)):
                         if contour_lab[j].shape[1] == 1:
                             contour_lab[j].resize(contour_lab[j].shape[0], 2)
-                        surface_label[c-1, i, contour_lab[j][:, 1], contour_lab[j][:, 0], k] = 1
+                        surface_label[c, i, contour_lab[j][:, 1], contour_lab[j][:, 0], k] = 1
                 else:
-                    surface_label[c-1, i, :, :, k] = np.zeros_like(img_lab)
+                    surface_label[c, i, :, :, k] = np.zeros_like(img_lab)
 
-    return np.array(surface_label).astype(np.float32)
+        surface_label[0] += surface_label[c]
+        contour_voxels += np.count_nonzero(surface_label[c])
+
+    return np.array(surface_label).astype(np.float32), np.array(contour_voxels).astype(np.float32)
 
 
 def count_class_voxels(labels, nVoxels, numClasses):
