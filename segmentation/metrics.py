@@ -446,8 +446,6 @@ class IoUPerClass(Metric):
         This function is only used to assign a name to the given IoU metric.
         """
         return self.tp / (self.tp + self.fn + self.fp)
-<<<<<<< HEAD
-=======
 
 # def IoUmetricWrapper(numClasses):
 #
@@ -595,4 +593,3 @@ def compute_for(trueLabel, predictedLabel):
     fn = count_fn(cl_value, trueLabel, predictedLabel)
     for_values[cl_index] = fn/(tn+fn)
   return for_values
->>>>>>> Dev

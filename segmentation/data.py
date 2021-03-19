@@ -1,5 +1,6 @@
 from tensorflow.keras.utils import Sequence
 import numpy as np
+import nibabel as nib
 
 class DataGenerator(Sequence):
   '''
