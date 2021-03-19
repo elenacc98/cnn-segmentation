@@ -491,3 +491,95 @@ class IoUPerClass(Metric):
 #
 #     return my_metrics
 
+
+def count_tp(cl, trueLabel, predictedLabel):
+  '''
+  Return total number of true positives for the specified class, given
+  the true and predicted labels.
+  '''
+  match = trueLabel[np.nonzero(predictedLabel == cl)]
+  return(len(np.nonzero(match == cl)[0]))
+
+def count_fp(cl, trueLabel, predictedLabel):
+  '''
+  Return total number of false positives for the specified class, given
+  the true and predicted labels.
+  '''
+  match = trueLabel[np.nonzero(predictedLabel == cl)]
+  return(len(np.nonzero(match != cl)[0]))
+
+def count_tn(cl, trueLabel, predictedLabel):
+  '''
+  Return total number of true negatives for the specified class, given
+  the true and predicted labels.
+  '''
+  match = trueLabel[np.nonzero(predictedLabel != cl)]
+  return(len(np.nonzero(match != cl)[0]))
+
+def count_fn(cl, trueLabel, predictedLabel):
+  '''
+  Return total number of false negatives for the specified class, given
+  the true and predicted labels.
+  '''
+  match = trueLabel[np.nonzero(predictedLabel != cl)]
+  return(len(np.nonzero(match == cl)[0]))
+
+def compute_ppv_class(cl, trueLabel, predictedLabel):
+  tp = count_tp(cl, trueLabel, predictedLabel)
+  fp = count_fp(cl, trueLabel, predictedLabel)
+  ppv = tp/(tp+fp)
+  return ppv
+
+def compute_dice_class(cl, trueLabel, predictedLabel):
+  tp = count_tp(cl, trueLabel, predictedLabel)
+  fp = count_fp(cl, trueLabel, predictedLabel)
+  fn = count_fn(cl, trueLabel, predictedLabel)
+  dice = 2*tp/(2*tp+fp+fn)
+  return dice
+
+def compute_dice(trueLabel, predictedLabel, return_average = True):
+  dice_values = np.zeros(len(np.unique(predictedLabel)))
+  for cl_index, cl_value in enumerate(np.unique(predictedLabel)):
+    dice_values[cl_index] = compute_dice_class(cl_value,
+                                               trueLabel,
+                                               predictedLabel)
+  if (return_average):
+    return dice_values, np.mean(dice_values)
+  else:
+    return dice_values
+  
+def compute_jaccard(trueLabel, predictedLabel, return_average = True):
+  jaccard_values = np.zeros(len(np.unique(predictedLabel)))
+  for cl_index, cl_value in enumerate(np.unique(predictedLabel)):
+    dice_temp = compute_dice_class(cl_value,
+                                               trueLabel,
+                                               predictedLabel)
+    jaccard_values[cl_index] = dice_temp/(2-dice_temp)
+  if (return_average):
+    return jaccard_values, np.mean(jaccard_values)
+  else:
+    return jaccard_values
+
+def compute_sensitivity(trueLabel, predictedLabel):
+  sensitivity_values = np.zeros(len(np.unique(predictedLabel)))
+  for cl_index, cl_value in enumerate(np.unique(predictedLabel)):
+    tp = count_tp(cl_value, trueLabel, predictedLabel)
+    fn = count_fn(cl_value, trueLabel, predictedLabel)
+    sensitivity_values[cl_index] = tp/(tp+fn)
+  return sensitivity_values
+  
+def compute_precision(trueLabel, predictedLabel):
+  precision_values = np.zeros(len(np.unique(predictedLabel)))
+  for cl_index, cl_value in enumerate(np.unique(predictedLabel)):
+    tp = count_tp(cl_value, trueLabel, predictedLabel)
+    fp = count_fp(cl_value, trueLabel, predictedLabel)
+    precision_values[cl_index] = tp/(tp+fp)
+  return precision_values
+
+def compute_for(trueLabel, predictedLabel):
+  for_values = np.zeros(len(np.unique(predictedLabel)))
+  for cl_index, cl_value in enumerate(np.unique(predictedLabel)):
+    tn = count_tn(cl_value, trueLabel, predictedLabel)
+    fn = count_fn(cl_value, trueLabel, predictedLabel)
+    for_values[cl_index] = fn/(tn+fn)
+  return for_values
