@@ -142,5 +142,4 @@ dmypy.json
 cython_debug/
 
 *.code-workspace
-
 *.python-version

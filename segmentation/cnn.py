@@ -199,7 +199,8 @@ class UNet(object):
 class CELUNet(object):
     """
     This class provides a simple interface to create
-    a CEL U-Net network with custom parameters.
+    a CELU-Net network with custom parameters. CEL-Unet has the same encoding path of simple Unet and splits
+    decoding branch in two parallel paths, one for filled masks segmentation, another for boundary segmentation.
     Args:
         input_size: input_size: input size for the network. If the input of the network is two-dimensional, input size must be
         of type (input_dim_1, input_dim_2, 1). If the input is three-dimensional, then input size must be
@@ -425,7 +426,8 @@ class CELUNet(object):
 class ChenUNet(object):
     """
     This class provides a simple interface to create
-    a UNet as described in Chen et al. with custom parameters.
+    a Chen-UNet network with custom parameters, to replicate network found in paper "3D Feature-Enhanced Network for
+    Automatic Femur Segmentation".
     Args:
         input_size: input size for the network
         kernel_size: size of the kernel to be used in the convolutional layers of the U-Net
