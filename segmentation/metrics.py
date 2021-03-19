@@ -446,3 +446,153 @@ class IoUPerClass(Metric):
         This function is only used to assign a name to the given IoU metric.
         """
         return self.tp / (self.tp + self.fn + self.fp)
+<<<<<<< HEAD
+=======
+
+# def IoUmetricWrapper(numClasses):
+#
+#     def IoUMetricFunction(y_true, y_pred, class_value):
+#         '''
+#         Compute metric IoU for parameter y_true and y_pred only for the
+#         specified class.
+#
+#         Input y_true and y_pred is supposed to be 5-dimensional:
+#         (batch, x, y, z, softmax_probabilities)
+#         '''
+#         class_IoU_list = []
+#         y_true = tf.cast(y_true, 'bool')
+#         y_pred = tf.argmax(y_pred, axis=-1,
+#                            output_type='int64')  # argmax to choose which class the model predicts for each voxel
+#         y_pred = tf.one_hot(indices=y_pred, depth=N_CLASSES, axis=-1, dtype='int64')
+#         y_pred = tf.cast(y_pred, 'bool')
+#
+#         if len(y_true.shape) == 4:
+#             y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
+#             y_true = tf.transpose(y_true, [3, 0, 1, 2])
+#         elif len(y_true.shape) == 5:
+#             y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
+#             y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
+#         else:
+#             print("Could not handle input dimensions.")
+#             return
+#
+#         # Now dimensions are --> [Classes, Batch, Rows, Columns, Slices]
+#         # or [Classes, Batch, Rows, Columns]
+#
+#         y_true_c = y_true[class_value]
+#         y_pred_c = y_pred[class_value]
+#         tp = tf.math.count_nonzero(tf.logical_and(y_true_c, y_pred_c))
+#         fn = tf.math.count_nonzero(tf.logical_and(tf.math.logical_xor(y_true_c, y_pred_c), y_true_c))
+#         fp = tf.math.count_nonzero(tf.logical_and(tf.math.logical_xor(y_true_c, y_pred_c), y_pred_c))
+#         return tp / (tp + fn + fp)  # single scalar, already averaged over different instances
+#
+#     def IouMetricFactory(class_value):
+#         '''
+#         This function is only used to assign a name to the given IoU metric.
+#         '''
+#
+#         def fn(y_true, y_pred):
+#             return IoUMetricFunction(y_true, y_pred, class_value)
+#
+#         fn.__name__ = 'class_{}_IoU'.format(class_value)
+#         return fn
+#
+#     my_metrics = []
+#     for c in range(numClasses):
+#         my_metrics.append(IouMetricFactory(c))
+#
+#     return my_metrics
+
+
+def count_tp(cl, trueLabel, predictedLabel):
+  '''
+  Return total number of true positives for the specified class, given
+  the true and predicted labels.
+  '''
+  match = trueLabel[np.nonzero(predictedLabel == cl)]
+  return(len(np.nonzero(match == cl)[0]))
+
+def count_fp(cl, trueLabel, predictedLabel):
+  '''
+  Return total number of false positives for the specified class, given
+  the true and predicted labels.
+  '''
+  match = trueLabel[np.nonzero(predictedLabel == cl)]
+  return(len(np.nonzero(match != cl)[0]))
+
+def count_tn(cl, trueLabel, predictedLabel):
+  '''
+  Return total number of true negatives for the specified class, given
+  the true and predicted labels.
+  '''
+  match = trueLabel[np.nonzero(predictedLabel != cl)]
+  return(len(np.nonzero(match != cl)[0]))
+
+def count_fn(cl, trueLabel, predictedLabel):
+  '''
+  Return total number of false negatives for the specified class, given
+  the true and predicted labels.
+  '''
+  match = trueLabel[np.nonzero(predictedLabel != cl)]
+  return(len(np.nonzero(match == cl)[0]))
+
+def compute_ppv_class(cl, trueLabel, predictedLabel):
+  tp = count_tp(cl, trueLabel, predictedLabel)
+  fp = count_fp(cl, trueLabel, predictedLabel)
+  ppv = tp/(tp+fp)
+  return ppv
+
+def compute_dice_class(cl, trueLabel, predictedLabel):
+  tp = count_tp(cl, trueLabel, predictedLabel)
+  fp = count_fp(cl, trueLabel, predictedLabel)
+  fn = count_fn(cl, trueLabel, predictedLabel)
+  dice = 2*tp/(2*tp+fp+fn)
+  return dice
+
+def compute_dice(trueLabel, predictedLabel, return_average = True):
+  dice_values = np.zeros(len(np.unique(predictedLabel)))
+  for cl_index, cl_value in enumerate(np.unique(predictedLabel)):
+    dice_values[cl_index] = compute_dice_class(cl_value,
+                                               trueLabel,
+                                               predictedLabel)
+  if (return_average):
+    return dice_values, np.mean(dice_values)
+  else:
+    return dice_values
+  
+def compute_jaccard(trueLabel, predictedLabel, return_average = True):
+  jaccard_values = np.zeros(len(np.unique(predictedLabel)))
+  for cl_index, cl_value in enumerate(np.unique(predictedLabel)):
+    dice_temp = compute_dice_class(cl_value,
+                                               trueLabel,
+                                               predictedLabel)
+    jaccard_values[cl_index] = dice_temp/(2-dice_temp)
+  if (return_average):
+    return jaccard_values, np.mean(jaccard_values)
+  else:
+    return jaccard_values
+
+def compute_sensitivity(trueLabel, predictedLabel):
+  sensitivity_values = np.zeros(len(np.unique(predictedLabel)))
+  for cl_index, cl_value in enumerate(np.unique(predictedLabel)):
+    tp = count_tp(cl_value, trueLabel, predictedLabel)
+    fn = count_fn(cl_value, trueLabel, predictedLabel)
+    sensitivity_values[cl_index] = tp/(tp+fn)
+  return sensitivity_values
+  
+def compute_precision(trueLabel, predictedLabel):
+  precision_values = np.zeros(len(np.unique(predictedLabel)))
+  for cl_index, cl_value in enumerate(np.unique(predictedLabel)):
+    tp = count_tp(cl_value, trueLabel, predictedLabel)
+    fp = count_fp(cl_value, trueLabel, predictedLabel)
+    precision_values[cl_index] = tp/(tp+fp)
+  return precision_values
+
+def compute_for(trueLabel, predictedLabel):
+  for_values = np.zeros(len(np.unique(predictedLabel)))
+  for cl_index, cl_value in enumerate(np.unique(predictedLabel)):
+    tn = count_tn(cl_value, trueLabel, predictedLabel)
+    fn = count_fn(cl_value, trueLabel, predictedLabel)
+    for_values[cl_index] = fn/(tn+fn)
+  return for_values
+>>>>>>> Dev
