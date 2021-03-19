@@ -73,7 +73,7 @@ class DataGenerator(Sequence):
     return X, y
   
   def remapLabels(self, labels_4D):
-    labels_5D = np.zeros(labels_4D.shape + (N_CLASSES, ))
+    labels_5D = np.zeros(labels_4D.shape + (self.n_classes, ))
     # Scan the classes 
     for c in range(self.n_classes):
       temp_indexes = np.where(labels_4D == c)
