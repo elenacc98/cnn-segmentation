@@ -305,6 +305,73 @@ def MeanDice_Loss(numClasses):
     return mean_dice
 
 
+# 5
+def JaccardContour_Loss(numClasses):
+    """
+    Wrapper function for Jaccard Index.
+    Args:
+        numClasses: number of classes
+
+    Returns:
+        mean jaccard weigthed by class
+
+    """
+    def mean_jaccard(y_true, y_pred):
+        """
+        Computed mean jaccard coefficient between probability output mask and ground truth cotour labels.
+        Args:
+            y_true:
+            y_pred:
+
+        Returns:
+            mean dice weigthed by class
+
+        """
+
+        if len(y_true.shape) == 5:
+            axisSum = (1, 2, 3)
+            y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
+            y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
+        elif len(y_true.shape) == 4:
+            axisSum = (1, 2)
+            y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
+            y_true = tf.transpose(y_true, [3, 0, 1, 2])
+        else:
+            print("Could not recognise input dimensions")
+            return
+
+        # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
+        y_true = tf.cast(y_true, tf.float32)
+        y_pred = tf.cast(y_pred, tf.float32)
+        nVoxels = tf.size(y_true) / numClasses
+        nVoxels = tf.cast(nVoxels, tf.float32)
+
+        contours, nEdgeVoxels = tf.py_function(func=computeContours,
+                                  inp=[y_true, numClasses],
+                                  Tout=[tf.float32, tf.float32])
+
+        mean_over_classes = tf.zeros((1,))
+        # Get loss weights
+        loss_weights = get_loss_weights(contours, nVoxels, numClasses)
+        # Loop over each class
+        for c in range(numClasses):
+            y_true_c = contours[c]
+            y_pred_c = y_pred[c]
+            numerator = tf.reduce_sum(tf.multiply(y_true_c, y_pred_c), axis = axisSum)
+            denominator = tf.subtract(
+                tf.add(tf.reduce_sum(y_true_c, axis = axisSum), tf.reduce_sum(y_pred_c, axis = axisSum)),
+                tf.reduce_sum(tf.multiply(y_true_c, y_pred_c), axis=axisSum))
+            class_loss_weight = loss_weights[c]
+
+            mean_over_classes = tf.add(mean_over_classes,
+                                       tf.multiply(class_loss_weight,
+                                       tf.divide(numerator, denominator)))
+
+        return tf.subtract(1.0, mean_over_classes)
+
+    return mean_jaccard
+
+
 # 6
 def ExpLog_Loss(numClasses, gamma=1):
     """
@@ -428,11 +495,10 @@ def Boundary_CE_Loss(numClasses):
         nVoxels = tf.size(y_true) / numClasses
         nVoxels = tf.cast(nVoxels, tf.float32)
 
-        contours = tf.py_function(func=computeContours,
+        contours, nEdgeVoxels = tf.py_function(func=computeContours,
                                   inp=[y_true, numClasses],
-                                  Tout=tf.float32)
+                                  Tout=[tf.float32, tf.float32])
 
-        nEdgeVoxels = tf.math.count_nonzero(contours)
         nEdgeVoxels = tf.cast(nEdgeVoxels, tf.float32)
         beta = 1 - nEdgeVoxels / nVoxels
         epsilon = backend_config.epsilon
@@ -489,7 +555,7 @@ def Distanced_Boundary_CE_Loss(numClasses):
         nVoxels = tf.size(y_true) / numClasses
         nVoxels = tf.cast(nVoxels, tf.float32)
 
-        SDM, contours = tf.py_function(func=calc_DM_batch_edge2,
+        SDM, contours = tf.py_function(func=calc_DM_batch_edge,
                                   inp=[y_true, numClasses],
                                   Tout=[tf.float32, tf.float32])
 
