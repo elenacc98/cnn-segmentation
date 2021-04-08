@@ -1,3 +1,3 @@
 {
-    "python.pythonPath": "/Users/Dado/.pyenv/versions/tf-venv/bin/python"
+    "python.pythonPath": "venv\\Scripts\\python.exe"
 }
