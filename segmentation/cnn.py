@@ -265,11 +265,13 @@ class CELUNet(object):
             max_pool_layer = layers.MaxPooling2D
             conv_transpose_layer = layers.Conv2DTranspose
             softmax_kernel_size = (1, 1)
+            pee_input_size = 2
         elif (self.n_dim == 4):
             conv_layer = layers.Conv3D
             max_pool_layer = layers.MaxPooling3D
             conv_transpose_layer = layers.Conv3DTranspose
             softmax_kernel_size = (1, 1, 1)
+            pee_input_size = 3
         else:
             print("Could not handle input dimensions.")
             return
@@ -366,7 +368,7 @@ class CELUNet(object):
                 temp_layer_mask = layers.Activation(self.activation)(temp_layer_mask)
 
             # if i % 2 != 1:
-            temp_layer_edge = PEE(temp_layer_edge, self.n_initial_filters * pow(2, (self.depth - 1) - i))
+            temp_layer_edge = PEE(temp_layer_edge, self.n_initial_filters * pow(2, (self.depth - 1) - i), input_dims=pee_input_size)
 
             temp_layer_merge = Concatenate()([temp_layer_edge, temp_layer_mask])
             temp_layer_merge = conv_layer(self.n_initial_filters * pow(2, (self.depth - 1) - i),
