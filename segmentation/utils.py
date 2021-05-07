@@ -267,13 +267,14 @@ def PEE(x, filters, input_dims=3):
         if filters > 30:
             pool_size_1 = (3, 3, 3)
             pool_size_2 = (5, 5, 5)
+            strides = (1,1,1)
         else:
             pool_size_1 = (5, 5, 5)
             pool_size_2 = (7, 7, 7)
             strides = (1,1,1)
 
     x = conv_layer(filters/2, strides, padding='same')(x)
-    x_1 = average_layer(pool_size=pool_size_1, strides = strides, padding='same')(x)
+    x_1 = average_layer (pool_size=pool_size_1, strides = strides, padding='same')(x)
     x_2 = average_layer(pool_size=pool_size_2, strides = strides, padding='same')(x)
 
     x_11 = Subtract()([x, x_1])
