@@ -249,23 +249,38 @@ def get_loss_weights(labels, nVoxels, numClasses):
 
 
 # Functions for Unet2
-def PEE(x, filters):
-    if filters > 30:
-        pool_size_1 = (3, 3, 3)
-        pool_size_2 = (5, 5, 5)
+def PEE(x, filters, input_dims=3):
+    if (input_dims == 2):
+        conv_layer = Conv2D
+        average_layer = AveragePooling2D
+        if filters > 30:
+            pool_size_1 = (3, 3)
+            pool_size_2 = (5, 5)
+            strides = (1,1)
+        else:
+            pool_size_1 = (5, 5)
+            pool_size_2 = (7, 7)
+            strides = (1,1)
     else:
-        pool_size_1 = (5, 5, 5)
-        pool_size_2 = (7, 7, 7)
+        conv_layer = Conv3D
+        average_layer = AveragePooling3D
+        if filters > 30:
+            pool_size_1 = (3, 3, 3)
+            pool_size_2 = (5, 5, 5)
+        else:
+            pool_size_1 = (5, 5, 5)
+            pool_size_2 = (7, 7, 7)
+            strides = (1,1,1)
 
-    x = Conv3D(filters/2, (1, 1, 1), padding='same')(x)
-    x_1 = AveragePooling3D(pool_size=pool_size_1, strides = (1, 1, 1), padding='same')(x)
-    x_2 = AveragePooling3D(pool_size=pool_size_2, strides = (1, 1, 1), padding='same')(x)
+    x = conv_layer(filters/2, strides, padding='same')(x)
+    x_1 = average_layer(pool_size=pool_size_1, strides = strides, padding='same')(x)
+    x_2 = average_layer(pool_size=pool_size_2, strides = strides, padding='same')(x)
 
     x_11 = Subtract()([x, x_1])
     x_22 = Subtract()([x, x_2])
 
     x = Concatenate()([x, x_11, x_22])
-    x = Conv3D(filters, (1, 1, 1), padding='same')(x)
+    x = conv_layer(filters, strides, padding='same')(x)
     return x
 
 
