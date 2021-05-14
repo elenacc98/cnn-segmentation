@@ -6,7 +6,8 @@ class DataGenerator(Sequence):
   '''
   Class used for data generators. 
   '''
-  def __init__(self, id_list, batch_size=10, dim=(128,128,64), shuffle=True, n_classes=3):
+  def __init__(self, id_list, batch_size=10, dim=(128,128,64), shuffle=True, n_classes=3,
+                  background_class_value=0, additional_background_classes=None):
     '''
     Function called when initializing the class.
     '''
@@ -16,6 +17,12 @@ class DataGenerator(Sequence):
     self.dim = dim
     self.on_epoch_end()
     self.n_classes = n_classes
+    self.background_class_value = background_class_value
+    if (isinstance(additional_background_classes, list)):
+      self.additional_background_classes = additional_background_classes
+    else:
+      self.additional_background_classes = [additional_background_classes]
+    
 
   def on_epoch_end(self):
     '''
@@ -72,13 +79,13 @@ class DataGenerator(Sequence):
 
     return X, y
   
-  def remapLabels(self, labels_4D, add_class_to_background=None):
+  def remapLabels(self, labels_4D):
     labels_5D = np.zeros(labels_4D.shape + (self.n_classes, ))
     # Scan the classes 
     for c in range(self.n_classes):
       temp_indexes = np.where(labels_4D == c)
-      if (c == add_class_to_background):
-        labels_5D[temp_indexes + (np.ones(temp_indexes[0].shape, dtype = 'int') * c, )] = 0
+      if (c in self.additional_background_classes):
+        labels_5D[temp_indexes + (np.ones(temp_indexes[0].shape, dtype = 'int') * c, )] = self.background_class_value
       else:
         labels_5D[temp_indexes + (np.ones(temp_indexes[0].shape, dtype = 'int') * c, )] = 1
     return labels_5D
