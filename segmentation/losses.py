@@ -5,7 +5,7 @@ in segmentation tasks.
 
 from segmentation.metrics import MeanDice
 from segmentation.utils import calc_SDM_batch, calc_DM_batch, \
-     calc_DM_batch_edge, computeContours
+    calc_DM_batch_edge, computeContours
 from segmentation.utils import count_class_voxels, get_loss_weights
 from tensorflow.keras import backend as K
 import numpy as np
@@ -73,8 +73,10 @@ def DistancedCELoss(numClasses, alpha):
         for c in range(numClasses):
             y_true_c = y_true[c]
             y_pred_c = y_pred[c]
-            numerator = tf.scalar_mul(2.0, tf.reduce_sum(tf.multiply(y_true_c, y_pred_c), axis=axisSum))
-            denominator = tf.add(tf.reduce_sum(y_true_c, axis=axisSum), tf.reduce_sum(y_pred_c, axis=axisSum))
+            numerator = tf.scalar_mul(2.0, tf.reduce_sum(
+                tf.multiply(y_true_c, y_pred_c), axis=axisSum))
+            denominator = tf.add(tf.reduce_sum(
+                y_true_c, axis=axisSum), tf.reduce_sum(y_pred_c, axis=axisSum))
             class_loss_weight = loss_weights[c]
 
             mean_over_classes = tf.add(mean_over_classes,
@@ -97,7 +99,8 @@ def DistancedCELoss(numClasses, alpha):
         epsilon_ = constant_op.constant(epsilon(), y_pred.dtype.base_dtype)
         y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
 
-        wcc_loss = -math_ops.reduce_sum(DWM * y_true * math_ops.log(y_pred))/tf.cast(nVoxels, tf.float32)
+        wcc_loss = -math_ops.reduce_sum(DWM * y_true *
+                                        math_ops.log(y_pred))/tf.cast(nVoxels, tf.float32)
         return alpha * tf.subtract(1.0, mean_over_classes) + (1-alpha) * wcc_loss
 
     return dice_distCE
@@ -137,30 +140,32 @@ def WeightedDiceBoundaryLoss(num_classes, alpha):
         # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
         y_true = tf.cast(y_true, tf.float32)
         y_pred = tf.cast(y_pred, tf.float32)
-        nVoxels = tf.size(y_true) / numClasses
+        nVoxels = tf.size(y_true) / num_classes
         nVoxels = tf.cast(nVoxels, tf.float32)
 
         mean_over_classes = tf.zeros((1,))
         # Get loss weights
-        loss_weights = get_loss_weights(y_true, nVoxels, numClasses)
+        loss_weights = get_loss_weights(y_true, nVoxels, num_classes)
         # Loop over each class
-        for c in range(numClasses):
+        for c in range(num_classes):
             y_true_c = y_true[c]
             y_pred_c = y_pred[c]
-            numerator = tf.scalar_mul(2.0, tf.reduce_sum(tf.multiply(y_true_c, y_pred_c), axis = axisSum))
-            denominator = tf.add(tf.reduce_sum(y_true_c, axis = axisSum), tf.reduce_sum(y_pred_c, axis = axisSum))
+            numerator = tf.scalar_mul(2.0, tf.reduce_sum(
+                tf.multiply(y_true_c, y_pred_c), axis=axisSum))
+            denominator = tf.add(tf.reduce_sum(
+                y_true_c, axis=axisSum), tf.reduce_sum(y_pred_c, axis=axisSum))
             class_loss_weight = loss_weights[c]
 
             mean_over_classes = tf.add(mean_over_classes,
                                        tf.multiply(class_loss_weight,
-                                       tf.divide(numerator, denominator)))
-
+                                                   tf.divide(numerator, denominator)))
 
         SDM = tf.py_function(func=calc_SDM_batch,
-                             inp=[y_true, numClasses],
+                             inp=[y_true, num_classes],
                              Tout=tf.float32)
 
-        boundary_loss = tf.multiply(tf.reduce_sum(tf.multiply(SDM, y_pred)), 1.0/nVoxels)
+        boundary_loss = tf.multiply(tf.reduce_sum(
+            tf.multiply(SDM, y_pred)), 1.0/nVoxels)
 
         return alpha * tf.subtract(1.0, mean_over_classes) + (1-alpha) * boundary_loss
 
@@ -220,14 +225,15 @@ def FocalLoss(numClasses, alpha):
         for c in range(numClasses):
             y_true_c = y_true[c]
             y_pred_c = y_pred[c]
-            numerator = tf.scalar_mul(2.0, tf.reduce_sum(tf.multiply(y_true_c, y_pred_c), axis=axisSum))
-            denominator = tf.add(tf.reduce_sum(y_true_c, axis=axisSum), tf.reduce_sum(y_pred_c, axis=axisSum))
+            numerator = tf.scalar_mul(2.0, tf.reduce_sum(
+                tf.multiply(y_true_c, y_pred_c), axis=axisSum))
+            denominator = tf.add(tf.reduce_sum(
+                y_true_c, axis=axisSum), tf.reduce_sum(y_pred_c, axis=axisSum))
             class_loss_weight = loss_weights[c]
 
             mean_over_classes = tf.add(mean_over_classes,
                                        tf.multiply(class_loss_weight,
                                                    tf.divide(numerator, denominator)))
-
 
         epsilon = backend_config.epsilon
         # scale preds so that the class probas of each sample sum to 1
@@ -236,7 +242,8 @@ def FocalLoss(numClasses, alpha):
         epsilon_ = constant_op.constant(epsilon(), y_pred.dtype.base_dtype)
         y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
 
-        focal_loss = -math_ops.reduce_sum(tf.math.square(1 - y_pred) * y_true * math_ops.log(y_pred))/tf.cast(nVoxels, tf.float32)
+        focal_loss = -math_ops.reduce_sum(tf.math.square(
+            1 - y_pred) * y_true * math_ops.log(y_pred))/tf.cast(nVoxels, tf.float32)
 
         return alpha * tf.subtract(1.0, mean_over_classes) + (1-alpha) * focal_loss
 
@@ -244,7 +251,7 @@ def FocalLoss(numClasses, alpha):
 
 
 # 5
-def MeanDiceLoss(numClasses):
+def MeanDiceLoss(numClasses, use_3D=True):
     """
     Wrapper function for mean_dice.
     Args:
@@ -266,17 +273,14 @@ def MeanDiceLoss(numClasses):
 
         """
 
-        if len(y_true.shape) == 5:
+        if use_3D:
             axisSum = (1, 2, 3)
             y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
             y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
-        elif len(y_true.shape) == 4:
+        else:
             axisSum = (1, 2)
             y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
             y_true = tf.transpose(y_true, [3, 0, 1, 2])
-        else:
-            print("Could not recognise input dimensions")
-            return
 
         # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
         y_true = tf.cast(y_true, tf.float32)
@@ -291,13 +295,15 @@ def MeanDiceLoss(numClasses):
         for c in range(numClasses):
             y_true_c = y_true[c]
             y_pred_c = y_pred[c]
-            numerator = tf.scalar_mul(2.0, tf.reduce_sum(tf.multiply(y_true_c, y_pred_c), axis = axisSum))
-            denominator = tf.add(tf.reduce_sum(y_true_c, axis = axisSum), tf.reduce_sum(y_pred_c, axis = axisSum))
+            numerator = tf.scalar_mul(2.0, tf.reduce_sum(
+                tf.multiply(y_true_c, y_pred_c), axis=axisSum))
+            denominator = tf.add(tf.reduce_sum(
+                y_true_c, axis=axisSum), tf.reduce_sum(y_pred_c, axis=axisSum))
             class_loss_weight = loss_weights[c]
 
             mean_over_classes = tf.add(mean_over_classes,
                                        tf.multiply(class_loss_weight,
-                                       tf.divide(numerator, denominator)))
+                                                   tf.divide(numerator, denominator)))
 
         return tf.subtract(1.0, mean_over_classes)
 
@@ -346,8 +352,8 @@ def JaccardContour_Loss(numClasses):
         nVoxels = tf.cast(nVoxels, tf.float32)
 
         contours, nEdgeVoxels = tf.py_function(func=computeContours,
-                                  inp=[y_true, numClasses],
-                                  Tout=[tf.float32, tf.float32])
+                                               inp=[y_true, numClasses],
+                                               Tout=[tf.float32, tf.float32])
 
         mean_over_classes = tf.zeros((1,))
         # Get loss weights
@@ -356,15 +362,17 @@ def JaccardContour_Loss(numClasses):
         for c in range(numClasses):
             y_true_c = contours[c]
             y_pred_c = y_pred[c]
-            numerator = tf.reduce_sum(tf.multiply(y_true_c, y_pred_c), axis = axisSum)
+            numerator = tf.reduce_sum(tf.multiply(
+                y_true_c, y_pred_c), axis=axisSum)
             denominator = tf.subtract(
-                tf.add(tf.reduce_sum(y_true_c, axis = axisSum), tf.reduce_sum(y_pred_c, axis = axisSum)),
+                tf.add(tf.reduce_sum(y_true_c, axis=axisSum),
+                       tf.reduce_sum(y_pred_c, axis=axisSum)),
                 tf.reduce_sum(tf.multiply(y_true_c, y_pred_c), axis=axisSum))
             class_loss_weight = loss_weights[c]
 
             mean_over_classes = tf.add(mean_over_classes,
                                        tf.multiply(class_loss_weight,
-                                       tf.divide(numerator, denominator)))
+                                                   tf.divide(numerator, denominator)))
 
         return tf.subtract(1.0, mean_over_classes)
 
@@ -433,8 +441,10 @@ def ExpLogLoss(numClasses, gamma=1):
         for c in range(numClasses):
             y_true_c = y_true[c]
             y_pred_c = y_pred[c]
-            numerator = tf.scalar_mul(2.0, tf.reduce_sum(tf.multiply(y_true_c, y_pred_c), axis=axisSum))
-            denominator = tf.add(tf.reduce_sum(y_true_c, axis=axisSum), tf.reduce_sum(y_pred_c, axis=axisSum))
+            numerator = tf.scalar_mul(2.0, tf.reduce_sum(
+                tf.multiply(y_true_c, y_pred_c), axis=axisSum))
+            denominator = tf.add(tf.reduce_sum(
+                y_true_c, axis=axisSum), tf.reduce_sum(y_pred_c, axis=axisSum))
             # class_loss_weight = loss_weights[c]
 
             add_dice = tf.add(add_dice,
@@ -446,7 +456,7 @@ def ExpLogLoss(numClasses, gamma=1):
         y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
 
         wcc_loss = -math_ops.reduce_sum(tf.math.pow(y_true * math_ops.log(y_pred), gamma),
-                                        axis=(1, 2, 3, 4)) / tf.cast(nVoxels,tf.float32)
+                                        axis=(1, 2, 3, 4)) / tf.cast(nVoxels, tf.float32)
         wcc_loss = tf.reduce_mean(tf.multiply(loss_weights, wcc_loss))
 
         return 0.8 * dice_loss + 0.2 * wcc_loss
@@ -495,8 +505,8 @@ def BoundaryCELoss(numClasses):
         nVoxels = tf.cast(nVoxels, tf.float32)
 
         contours, nEdgeVoxels = tf.py_function(func=computeContours,
-                                  inp=[y_true, numClasses],
-                                  Tout=[tf.float32, tf.float32])
+                                               inp=[y_true, numClasses],
+                                               Tout=[tf.float32, tf.float32])
 
         nEdgeVoxels = tf.cast(nEdgeVoxels, tf.float32)
         beta = 1 - nEdgeVoxels / nVoxels
@@ -505,7 +515,8 @@ def BoundaryCELoss(numClasses):
         y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
 
         first_term = beta * tf.multiply(contours, math_ops.log(y_pred))
-        second_term = (1 - beta) * tf.multiply((1 - contours), math_ops.log(1 - y_pred))
+        second_term = (1 - beta) * tf.multiply((1 - contours),
+                                               math_ops.log(1 - y_pred))
 
         bc = - tf.reduce_sum(tf.add(first_term, second_term)) / nEdgeVoxels
 
@@ -555,8 +566,8 @@ def DistancedBoundaryCE_Loss(numClasses):
         nVoxels = tf.cast(nVoxels, tf.float32)
 
         SDM, contours = tf.py_function(func=calc_DM_batch_edge,
-                                  inp=[y_true, numClasses],
-                                  Tout=[tf.float32, tf.float32])
+                                       inp=[y_true, numClasses],
+                                       Tout=[tf.float32, tf.float32])
 
         nEdgeVoxels = tf.math.count_nonzero(contours)
         nEdgeVoxels = tf.cast(nEdgeVoxels, tf.float32)
@@ -571,8 +582,10 @@ def DistancedBoundaryCE_Loss(numClasses):
         epsilon_ = constant_op.constant(epsilon(), y_pred.dtype.base_dtype)
         y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
 
-        first_term = beta * tf.multiply(DWM, tf.multiply(contours, math_ops.log(y_pred)))
-        second_term = (1 - beta) * tf.multiply(DWM, tf.multiply((1 - contours), math_ops.log(1 - y_pred)))
+        first_term = beta * \
+            tf.multiply(DWM, tf.multiply(contours, math_ops.log(y_pred)))
+        second_term = (1 - beta) * tf.multiply(DWM,
+                                               tf.multiply((1 - contours), math_ops.log(1 - y_pred)))
 
         bc = - tf.reduce_sum(tf.add(first_term, second_term)) / nEdgeVoxels
 
@@ -628,7 +641,8 @@ def RegionCELoss(numClasses):
         first_term = 0.5 * tf.multiply(y_true, math_ops.log(y_pred))
         second_term = 0.5 * tf.multiply((1 - y_true), math_ops.log(1 - y_pred))
 
-        bc_temp = - tf.reduce_sum(tf.add(first_term, second_term), axis=(1, 2, 3, 4))
+        bc_temp = - tf.reduce_sum(tf.add(first_term,
+                                  second_term), axis=(1, 2, 3, 4))
         bc = tf.reduce_sum(tf.multiply(loss_weights, bc_temp)) / nVoxels
 
         return bc
@@ -686,10 +700,14 @@ def DistancedRegionCELoss(numClasses):
         epsilon_ = constant_op.constant(epsilon(), y_pred.dtype.base_dtype)
         y_pred = clip_ops.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
 
-        first_term = 0.5 * tf.multiply(DWM, tf.multiply(y_true, math_ops.log(y_pred)))
-        second_term = 0.5 * tf.multiply(DWM, tf.multiply((1 - y_true), math_ops.log(1 - y_pred)))
+        first_term = 0.5 * \
+            tf.multiply(DWM, tf.multiply(y_true, math_ops.log(y_pred)))
+        second_term = 0.5 * \
+            tf.multiply(DWM, tf.multiply(
+                (1 - y_true), math_ops.log(1 - y_pred)))
 
-        bc_temp = - tf.reduce_sum(tf.add(first_term, second_term), axis=(1, 2, 3, 4))
+        bc_temp = - tf.reduce_sum(tf.add(first_term,
+                                  second_term), axis=(1, 2, 3, 4))
         bc = tf.reduce_sum(tf.multiply(loss_weights, bc_temp)) / nVoxels
 
         return bc
