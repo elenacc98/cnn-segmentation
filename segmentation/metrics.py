@@ -425,7 +425,7 @@ class IoUPerClass(Metric):
         if not self.use_3D:
             y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
             y_true = tf.transpose(y_true, [3, 0, 1, 2])
-        else self.use_3D:
+        else:
             y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
             y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
 
