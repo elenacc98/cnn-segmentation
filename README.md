@@ -26,3 +26,7 @@ You can install the package directly from GitHub:
 ## Documentation
 You can generate your local documentation by running: `make docs` to update the documentation of the project. Updated documentation can be found in the `docs` folder.
 Documentation of the package can be found at the following link: [https://dado93.github.io/cnn-segmentation/](https://dado93.github.io/cnn-segmentation/)
+
+## TODO
+- [ ] Documentation with Read The Docs
+- [ ] New format for loss functions
