@@ -406,10 +406,11 @@ class IoUPerClass(Metric):
     (batch, x, y, z, softmax_probabilities)
     """
 
-    def __init__(self, numClasses, name=None, dtype=None, class_to_return=0):
+    def __init__(self, numClasses, name=None, dtype=None, class_to_return=0, use_3D=True):
         super(IoUPerClass, self).__init__(name=name, dtype=dtype)
         self.numClasses = numClasses
         self.class_to_return = class_to_return
+        self.use_3D = use_3D
         self.tp = 0
         self.fn = 0
         self.fp = 0
@@ -421,15 +422,12 @@ class IoUPerClass(Metric):
         y_pred = tf.one_hot(indices=y_pred, depth=self.numClasses, axis=-1, dtype='int64')
         y_pred = tf.cast(y_pred, 'bool')
 
-        if len(y_true.shape) == 4:
+        if not self.use_3D:
             y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
             y_true = tf.transpose(y_true, [3, 0, 1, 2])
-        elif len(y_true.shape) == 5:
+        else:
             y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
             y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
-        else:
-            print("Could not handle input dimensions.")
-            return
 
         # Now dimensions are --> [Classes, Batch, Rows, Columns, Slices]
         # or [Classes, Batch, Rows, Columns]
