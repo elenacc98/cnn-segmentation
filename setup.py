@@ -1,6 +1,6 @@
 import setuptools
 
-requirements = ["tensorflow >= 2.3", "matplotlib", "pandas", "seaborn", "nibabel", "scikit-learn", "opencv-python", "scipy"]
+requirements = ["tensorflow >= 2.3", "matplotlib", "pandas", "seaborn", "nibabel", "scikit-learn", "opencv-python", "scipy", "numpy==1.19.2"]
 
 config = {
         'name': "CNN-Segmentation",
