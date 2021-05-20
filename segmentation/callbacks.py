@@ -74,7 +74,7 @@ class MetricsPlot(Callback):
         callbacks=MetricsPlot(output_dir='/path/to/folder', metrics='loss'))
     """
 
-    def __init__(self, output_dir=None, metrics=None, file_format='png'):
+    def __init__(self, output_dir=None, metrics=None, file_format='png', plot_every=10):
         super(MetricsPlot, self).__init__()
         # Flag to determine if there are previous data to be loaded
         self.previous_data = False
