@@ -1,4 +1,5 @@
-# CNN Segmentation Package
+CNN Segmentation Package
+==========================
 This repository contains the source code of the segmentation package. This package provides utility functions to be used for CNN-based segmentation of medical images.
 The code contained in the repository was used for data processing of the following paper:
 

@@ -1,5 +1,7 @@
 import setuptools
 
+requirements = ["tensorflow >= 2.3", "matplotlib", "pandas", "seaborn", "numpy", "nibabel", "scikit-learn", "opencv-python","numpy-stl","scipy"]
+
 config = {
         'name': "CNN-Segmentation",
         'version': "0.1",
@@ -7,7 +9,7 @@ config = {
         'author_email': "davide.marzorati@polimi.it",
         'packages': setuptools.find_packages(),
         'url': "https://github.com/ltebs-polimi/cnn-segmentation",
-        'install_requires': ["tensorflow >= 2.3", "matplotlib", "pandas"],
+        'install_requires': requirements,
         'tests_require': ['nose']
 }
 
