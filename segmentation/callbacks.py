@@ -61,12 +61,21 @@ class TimeInfoCallback(Callback):
 
 class MetricsPlot(Callback):
     """Callback to plot metrics obtained during the training of the network.
-    This call
+    
+    This callback allows to store, in both `csv` and custom image `format`,
+    the metrics computed during training and validation of a model. The 
+    saved files can be used to understand the model behaviour.
+
     Args:
-        output_dir: output directory where the plot file will be saved
-        metrics: list of metrics to be plot. The names of the metrics must be
-            contained in the `logs` dictionary
-        file_format: format for saving the plot. Default to 'png'
+        output_dir (str, required): output directory where the plot file will be saved
+        metrics (list, optional): list of metrics to be plotted and saved.
+            The names of the metrics must be contained in the model `logs` dictionary. 
+            Defaults to `None`.
+        file_format (str, optional): format for saving the plot. Default to 'png'.
+        plot_every (int, optional): number representing the number of epochs after
+            which the plot will be actually created and saved. This can be useful to
+            avoid creating and saving a new plot every epoch. Defaults to 10.
+
     Usage with `fit()` API:
     ```python
     model.fit(
@@ -82,17 +91,25 @@ class MetricsPlot(Callback):
         self.output_dir = Path(output_dir)
         self.metrics = metrics
         self.file_format = file_format
+        self.plot_every = plot_every
 
     def set_output_dir(self, output_dir):
         """Set output directory to store the plot.
+
+        Args:
+            output_dir (str, required): output directory where the files will be saved.
         """
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
     def load_data(self, file_path):
-        """Load file containing data from previous plot.
+        """Load file containing data from previous training.
+
         In case training was accidentally stopped, this function allows you
         to recover data from a previous plot and to continue plotting from it.
+
+        Args:
+            file_path (str, required): path to folder containing the `csv` file
         """
         self.previous_data = True
         if (Path(file_path).exists()):
@@ -112,22 +129,24 @@ class MetricsPlot(Callback):
                 self.data.loc[self.epoch_counter, metric] = float(logs.get(metric))
         self.epoch_counter += 1
 
-        fig, ax = plt.subplots(1, 1, figsize=(10, 10))
-        sns.set(style='darkgrid')
-        for metric in self.metrics:
-            if metric in logs.keys():
-                sns.lineplot(x=range(0,len(self.data)),y=metric,data=self.data, ci=None, 
-                            label=metric, linewidth=3)
+        if ((self.epoch_counter % self.plot_every) == 0):
+            fig, ax = plt.subplots(1, 1, figsize=(10, 10))
+            sns.set(style='darkgrid')
+            for metric in self.metrics:
+                if metric in logs.keys():
+                    sns.lineplot(x=range(0,len(self.data)),y=metric,data=self.data, ci=None, 
+                                label=metric, linewidth=3)
 
-        ax.set_xlabel("Epochs", fontsize=16)
-        ax.set_ylabel("", fontsize=16)
-        ax.set_title('Training Monitoring', fontsize=20)
-        # Save Figure
-        fig = ax.get_figure()
-        fig.savefig(self.output_dir / f'TrainingMonitoring.{self.file_format}')
+            ax.set_xlabel("Epochs", fontsize=16)
+            ax.set_ylabel("", fontsize=16)
+            ax.set_title('Training Monitoring', fontsize=20)
+            # Save Figure
+            fig = ax.get_figure()
+            fig.savefig(self.output_dir / f'TrainingMonitoring.{self.file_format}')
+            plt.close()
         # Save dataframe
         self.data.to_csv(self.output_dir / 'TrainingMonitoring.csv', index=False)
-        plt.close()
+        
 
 
 # Scheduler
