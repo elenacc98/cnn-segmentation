@@ -280,7 +280,8 @@ class MeanDice(Metric):
   Dice is defined as follows:
 
   .. math::
-    Dice = \\frac{2*true_positive}{2*true_positive + false_positive + false_negative}.
+
+    Dice = \\frac{2*TP}{2*TP + FP + FN}.
 
   The predictions are accumulated in a confusion matrix, weighted by
   `sample_weight` and the metric is then calculated from it.
@@ -292,28 +293,30 @@ class MeanDice(Metric):
       [num_classes, num_classes] will be allocated.
     name: (Optional) string name of the metric instance.
     dtype: (Optional) data type of the metric result.
-  Standalone usage:
-  >>> # cm = [[1, 1],
-  >>> #        [1, 1]]
-  >>> # sum_row = [2, 2], sum_col = [2, 2], true_positives = [1, 1]
-  >>> # dice = 2*true_positives / (sum_row + sum_col - true_positives))
-  >>> # result = (1 / (2 + 2 - 1) , 1 / (2 + 2 - 1)) = 0.33, 0.33
-  >>> m = tf.keras.metrics.MeanIoU(num_classes=2)
-  >>> m.update_state([0, 0, 1, 1], [0, 1, 0, 1])
-  >>> m.result().numpy()
-  0.33333334, 0.33333334
-  >>> m.reset_states()
-  >>> m.update_state([0, 0, 1, 1], [0, 1, 0, 1],
-  ...                sample_weight=[0.3, 0.3, 0.3, 0.1])
-  >>> m.result().numpy()
-  0.33333334, 0.14285715
-  Usage with `compile()` API:
-  ```python
-  model.compile(
-    optimizer='sgd',
-    loss='mse',
-    metrics=[tf.keras.metrics.MeanIoU(num_classes=2)])
-  ```
+  Standalone usage: ::
+
+    >>> # cm = [[1, 1],
+    >>> #        [1, 1]]
+    >>> # sum_row = [2, 2], sum_col = [2, 2], true_positives = [1, 1]
+    >>> # dice = 2*true_positives / (sum_row + sum_col - true_positives))
+    >>> # result = (1 / (2 + 2 - 1) , 1 / (2 + 2 - 1)) = 0.33, 0.33
+    >>> m = tf.keras.metrics.MeanIoU(num_classes=2)
+    >>> m.update_state([0, 0, 1, 1], [0, 1, 0, 1])
+    >>> m.result().numpy()
+    0.33333334, 0.33333334
+    >>> m.reset_states()
+    >>> m.update_state([0, 0, 1, 1], [0, 1, 0, 1],
+    ...                sample_weight=[0.3, 0.3, 0.3, 0.1])
+    >>> m.result().numpy()
+    0.33333334, 0.14285715
+
+  Usage with ``compile()`` API: ::
+
+    model.compile(
+      optimizer='sgd',
+      loss='mse',
+      metrics=[segmentation.metrics.MeanDice(num_classes=2)])
+  
   """
 
   def __init__(self, num_classes, name=None, dtype=None):
@@ -394,7 +397,7 @@ class MeanDice(Metric):
 
   def get_config(self):
     config = {'num_classes': self.num_classes}
-    base_config = super(MeanIoU, self).get_config()
+    base_config = super(MeanDice, self).get_config()
     return dict(list(base_config.items()) + list(config.items()))
 
   
@@ -444,61 +447,6 @@ class IoUPerClass(Metric):
         This function is only used to assign a name to the given IoU metric.
         """
         return self.tp / (self.tp + self.fn + self.fp)
-
-# def IoUmetricWrapper(numClasses):
-#
-#     def IoUMetricFunction(y_true, y_pred, class_value):
-#         '''
-#         Compute metric IoU for parameter y_true and y_pred only for the
-#         specified class.
-#
-#         Input y_true and y_pred is supposed to be 5-dimensional:
-#         (batch, x, y, z, softmax_probabilities)
-#         '''
-#         class_IoU_list = []
-#         y_true = tf.cast(y_true, 'bool')
-#         y_pred = tf.argmax(y_pred, axis=-1,
-#                            output_type='int64')  # argmax to choose which class the model predicts for each voxel
-#         y_pred = tf.one_hot(indices=y_pred, depth=N_CLASSES, axis=-1, dtype='int64')
-#         y_pred = tf.cast(y_pred, 'bool')
-#
-#         if len(y_true.shape) == 4:
-#             y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
-#             y_true = tf.transpose(y_true, [3, 0, 1, 2])
-#         elif len(y_true.shape) == 5:
-#             y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
-#             y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
-#         else:
-#             print("Could not handle input dimensions.")
-#             return
-#
-#         # Now dimensions are --> [Classes, Batch, Rows, Columns, Slices]
-#         # or [Classes, Batch, Rows, Columns]
-#
-#         y_true_c = y_true[class_value]
-#         y_pred_c = y_pred[class_value]
-#         tp = tf.math.count_nonzero(tf.logical_and(y_true_c, y_pred_c))
-#         fn = tf.math.count_nonzero(tf.logical_and(tf.math.logical_xor(y_true_c, y_pred_c), y_true_c))
-#         fp = tf.math.count_nonzero(tf.logical_and(tf.math.logical_xor(y_true_c, y_pred_c), y_pred_c))
-#         return tp / (tp + fn + fp)  # single scalar, already averaged over different instances
-#
-#     def IouMetricFactory(class_value):
-#         '''
-#         This function is only used to assign a name to the given IoU metric.
-#         '''
-#
-#         def fn(y_true, y_pred):
-#             return IoUMetricFunction(y_true, y_pred, class_value)
-#
-#         fn.__name__ = 'class_{}_IoU'.format(class_value)
-#         return fn
-#
-#     my_metrics = []
-#     for c in range(numClasses):
-#         my_metrics.append(IouMetricFactory(c))
-#
-#     return my_metrics
-
 
 def count_tp(cl, trueLabel, predictedLabel):
   '''
