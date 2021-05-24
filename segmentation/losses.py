@@ -20,7 +20,7 @@ from tensorflow.python.keras import backend_config
 
 
 # 0
-def DistancedCELoss(numClasses, alpha):
+def DistancedCELoss(numClasses, alpha, use_3D=True):
     """
     Wrapper function for dice_categorical_cross_entropy.
     Arguments:
@@ -43,17 +43,14 @@ def DistancedCELoss(numClasses, alpha):
             Balanced combination of Distanced CrossEntropy and Dice
         """
 
-        if len(y_true.shape) == 5:
+        if use_3D:
             axisSum = (1, 2, 3)
             y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
             y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
-        elif len(y_true.shape) == 4:
+        else:
             axisSum = (1, 2)
             y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
             y_true = tf.transpose(y_true, [3, 0, 1, 2])
-        else:
-            print("Could not recognise input dimensions")
-            return
 
         # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
         y_true = ops.convert_to_tensor_v2(y_true)
@@ -106,7 +103,7 @@ def DistancedCELoss(numClasses, alpha):
     return dice_distCE
 
 
-def WeightedDiceBoundaryLoss(num_classes, alpha):
+def WeightedDiceBoundaryLoss(num_classes, alpha, use_3D=True):
     """
     Wrapper function for multiclass_weighted_dice_boundary_loss.
     Args:
@@ -125,17 +122,14 @@ def WeightedDiceBoundaryLoss(num_classes, alpha):
             y_pred: softmax probabilities predicting classes. Shape must be the same as y_true.
         """
 
-        if len(y_true.shape) == 5:
+        if use_3D:
             axisSum = (1, 2, 3)
             y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
             y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
-        elif len(y_true.shape) == 4:
+        else:
             axisSum = (1, 2)
             y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
             y_true = tf.transpose(y_true, [3, 0, 1, 2])
-        else:
-            print("Could not recognise input dimensions")
-            return
 
         # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
         y_true = tf.cast(y_true, tf.float32)
@@ -173,7 +167,7 @@ def WeightedDiceBoundaryLoss(num_classes, alpha):
 
 
 # 3
-def FocalLoss(numClasses, alpha):
+def FocalLoss(numClasses, alpha, use_3D=True):
     """
     Wrapper function for dice_focal.
     Arguments:
@@ -195,17 +189,14 @@ def FocalLoss(numClasses, alpha):
             Balanced combination of Focal Categorical Crossentropy and Dice
         """
 
-        if len(y_true.shape) == 5:
+        if use_3D:
             axisSum = (1, 2, 3)
             y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
             y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
-        elif len(y_true.shape) == 4:
+        else:
             axisSum = (1, 2)
             y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
             y_true = tf.transpose(y_true, [3, 0, 1, 2])
-        else:
-            print("Could not recognise input dimensions")
-            return
 
         # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
         y_true = ops.convert_to_tensor_v2(y_true)
@@ -311,7 +302,7 @@ def MeanDiceLoss(numClasses, use_3D=True):
 
 
 # 5
-def JaccardContour_Loss(numClasses):
+def JaccardContour_Loss(numClasses, use_3D=True):
     """
     Wrapper function for Jaccard Index.
     Args:
@@ -333,18 +324,14 @@ def JaccardContour_Loss(numClasses):
 
         """
 
-        if len(y_true.shape) == 5:
+        if use_3D:
             axisSum = (1, 2, 3)
             y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
             y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
-        elif len(y_true.shape) == 4:
+        else:
             axisSum = (1, 2)
             y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
             y_true = tf.transpose(y_true, [3, 0, 1, 2])
-        else:
-            print("Could not recognise input dimensions")
-            return
-
         # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
         y_true = tf.cast(y_true, tf.float32)
         y_pred = tf.cast(y_pred, tf.float32)
@@ -380,7 +367,7 @@ def JaccardContour_Loss(numClasses):
 
 
 # 6
-def ExpLogLoss(numClasses, gamma=1):
+def ExpLogLoss(numClasses, gamma=1, use_3D=True):
     """
     Wrapper function for exp_log.
     Arguments:
@@ -402,17 +389,14 @@ def ExpLogLoss(numClasses, gamma=1):
             Balanced combination of explog Crossentropy and explog Dice
         """
 
-        if len(y_true.shape) == 5:
+        if use_3D:
             axisSum = (1, 2, 3)
             y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
             y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
-        elif len(y_true.shape) == 4:
+        else:
             axisSum = (1, 2)
             y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
             y_true = tf.transpose(y_true, [3, 0, 1, 2])
-        else:
-            print("Could not recognise input dimensions")
-            return
 
         # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
         y_true = ops.convert_to_tensor_v2(y_true)
@@ -465,7 +449,7 @@ def ExpLogLoss(numClasses, gamma=1):
 
 
 # 7
-def BoundaryCELoss(numClasses):
+def BoundaryCELoss(numClasses, use_3D=True):
     """
     Wrapper function for boundary_crossentropy.
     Args:
@@ -486,17 +470,14 @@ def BoundaryCELoss(numClasses):
 
         """
 
-        if len(y_true.shape) == 5:
+        if use_3D:
             axisSum = (1, 2, 3)
             y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
             y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
-        elif len(y_true.shape) == 4:
+        else:
             axisSum = (1, 2)
             y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
             y_true = tf.transpose(y_true, [3, 0, 1, 2])
-        else:
-            print("Could not recognise input dimensions")
-            return
 
             # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
         y_true = tf.cast(y_true, tf.float32)
@@ -525,7 +506,7 @@ def BoundaryCELoss(numClasses):
     return boundary_crossentropy
 
 
-def DistancedBoundaryCE_Loss(numClasses):
+def DistancedBoundaryCE_Loss(numClasses, use_3D=True):
     """
     Wrapper function for dist_boundary_crossentropy.
     Args:
@@ -547,17 +528,14 @@ def DistancedBoundaryCE_Loss(numClasses):
 
         """
 
-        if len(y_true.shape) == 5:
+        if use_3D:
             axisSum = (1, 2, 3)
             y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
             y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
-        elif len(y_true.shape) == 4:
+        else:
             axisSum = (1, 2)
             y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
             y_true = tf.transpose(y_true, [3, 0, 1, 2])
-        else:
-            print("Could not recognise input dimensions")
-            return
 
             # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
         y_true = tf.cast(y_true, tf.float32)
@@ -595,7 +573,7 @@ def DistancedBoundaryCE_Loss(numClasses):
 
 
 # 8
-def RegionCELoss(numClasses):
+def RegionCELoss(numClasses, use_3D=True):
     """
     Wrapper function for region_crossentropy_loss
     Args:
@@ -615,17 +593,14 @@ def RegionCELoss(numClasses):
         value of the the "double-faced" regional cross entropy
         """
 
-        if len(y_true.shape) == 5:
+        if use_3D:
             axisSum = (1, 2, 3)
             y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
             y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
-        elif len(y_true.shape) == 4:
+        else:
             axisSum = (1, 2)
             y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
             y_true = tf.transpose(y_true, [3, 0, 1, 2])
-        else:
-            print("Could not recognise input dimensions")
-            return
 
         # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
         y_true = tf.cast(y_true, tf.float32)
@@ -642,7 +617,7 @@ def RegionCELoss(numClasses):
         second_term = 0.5 * tf.multiply((1 - y_true), math_ops.log(1 - y_pred))
 
         bc_temp = - tf.reduce_sum(tf.add(first_term,
-                                  second_term), axis=(1, 2, 3, 4))
+                                         second_term), axis=(1, 2, 3, 4))
         bc = tf.reduce_sum(tf.multiply(loss_weights, bc_temp)) / nVoxels
 
         return bc
@@ -650,7 +625,7 @@ def RegionCELoss(numClasses):
     return region_crossentropy_loss
 
 
-def DistancedRegionCELoss(numClasses):
+def DistancedRegionCELoss(numClasses, use_3D=True):
     """
      Wrapper function for dist_region_crossentropy_loss.
     Args:
@@ -670,17 +645,14 @@ def DistancedRegionCELoss(numClasses):
             value of distanced "double-faced" regional cross entropy
         """
 
-        if len(y_true.shape) == 5:
+        if use_3D:
             axisSum = (1, 2, 3)
             y_pred = tf.transpose(y_pred, [4, 0, 1, 2, 3])
             y_true = tf.transpose(y_true, [4, 0, 1, 2, 3])
-        elif len(y_true.shape) == 4:
+        else:
             axisSum = (1, 2)
             y_pred = tf.transpose(y_pred, [3, 0, 1, 2])
             y_true = tf.transpose(y_true, [3, 0, 1, 2])
-        else:
-            print("Could not recognise input dimensions")
-            return
 
         # Now dimensions are --> (numClasses, batchSize, Rows, Columns, Slices)
         y_true = tf.cast(y_true, tf.float32)
@@ -707,7 +679,7 @@ def DistancedRegionCELoss(numClasses):
                 (1 - y_true), math_ops.log(1 - y_pred)))
 
         bc_temp = - tf.reduce_sum(tf.add(first_term,
-                                  second_term), axis=(1, 2, 3, 4))
+                                         second_term), axis=(1, 2, 3, 4))
         bc = tf.reduce_sum(tf.multiply(loss_weights, bc_temp)) / nVoxels
 
         return bc
