@@ -3,9 +3,9 @@ import numpy as np
 import nibabel as nib
 
 class DataGenerator(Sequence):
-  '''
+  """
   Class used for data generators. 
-  '''
+  """
   def __init__(self, id_list, batch_size=10, dim=(128,128,64), shuffle=True, n_classes=3):
     '''
     Function called when initializing the class.
