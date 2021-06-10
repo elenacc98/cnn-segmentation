@@ -18,7 +18,6 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('../segmentation'))
 
-import segmentation
 
 # -- Project information -----------------------------------------------------
 
@@ -49,8 +48,8 @@ extensions = [
     'sphinx.ext.viewcode',
 ]
 
-napoleon_google_docstring = False
-napoleon_numpy_docstring = True
+napoleon_google_docstring = True
+napoleon_numpy_docstring = False
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

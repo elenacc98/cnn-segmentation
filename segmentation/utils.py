@@ -174,7 +174,9 @@ def calc_DM_batch_edge(y_true, numClasses):
     for i in range(y_true_numpy.shape[1]):
         dist_batch[0, i] = calc_DM_edge(surface_label[0, i])
     surface_label[0] = 1 - surface_label[0]  # invert background label
-    return np.array(dist_batch).astype(np.float32), np.array(surface_label).astype(np.float32)
+    return np.array(dist_batch).astype(
+        np.float32), np.array(surface_label).astype(
+        np.float32)
 
 
 def computeContours(y_true, numClasses):
@@ -210,7 +212,9 @@ def computeContours(y_true, numClasses):
         surface_label[0] += surface_label[c]
         contour_voxels += np.count_nonzero(surface_label[c])
 
-    return np.array(surface_label).astype(np.float32), np.array(contour_voxels).astype(np.float32)
+    return np.array(surface_label).astype(
+        np.float32), np.array(contour_voxels).astype(
+        np.float32)
 
 
 def count_class_voxels(labels, nVoxels, numClasses):
@@ -280,7 +284,7 @@ def PEE(x, filters, input_dims=3):
             pool_size_2 = (7, 7, 7)
             strides = (1, 1, 1)
 
-    x = conv_layer(filters/2, strides, padding='same')(x)
+    x = conv_layer(filters / 2, strides, padding='same')(x)
     x_1 = average_layer(pool_size=pool_size_1,
                         strides=strides, padding='same')(x)
     x_2 = average_layer(pool_size=pool_size_2,
@@ -359,26 +363,26 @@ def build_MINI_MTL(input_shape, filters, numClasses, i):
 
 
 def CFF(input_list, input_size, filters, i):
-    out_shape = input_size/pow(2, i)
+    out_shape = input_size / pow(2, i)
 
-    y = tf.zeros_like(input_list[i-1])
+    y = tf.zeros_like(input_list[i - 1])
     for j, x in enumerate(input_list):
-        if j < i-1:
-            down_factor = int((input_size/pow(2, j+1)) / out_shape)
+        if j < i - 1:
+            down_factor = int((input_size / pow(2, j + 1)) / out_shape)
             x = AveragePooling3D((down_factor, down_factor, down_factor))(x)
             x = Conv3D(filters, (1, 1, 1), padding='same')(x)
             sigm = Activation('sigmoid')(x)
             x = Multiply()([x, sigm])
             y = Add()([y, x])
-        if j > i-1:
-            up_factor = int(out_shape / (input_size/pow(2, j+1)))
+        if j > i - 1:
+            up_factor = int(out_shape / (input_size / pow(2, j + 1)))
             x = Conv3D(filters, (1, 1, 1), padding='same')(x)
             x = UpSampling3D((up_factor, up_factor, up_factor))(x)
             sigm = Activation('sigmoid')(x)
             x = Multiply()([x, sigm])
             y = Add()([y, x])
 
-    x_i = input_list[i-1]
+    x_i = input_list[i - 1]
     x_i_sigm = Activation('sigmoid')(x_i)
     x_i_sigm = -1 * x_i_sigm + 1
     out = Multiply()([x_i_sigm, y])
@@ -390,27 +394,27 @@ def ASPP(x, filters):
     shape = x.shape
 
     y1 = AveragePooling3D(pool_size=(shape[1], shape[2], shape[3]))(x)
-    y1 = Conv3D(filters/2, 1, padding="same")(y1)
+    y1 = Conv3D(filters / 2, 1, padding="same")(y1)
     y1 = BatchNormalization()(y1)
     y1 = Activation("relu")(y1)
     y1 = UpSampling3D((shape[1], shape[2], shape[3]))(y1)
 
-    y2 = Conv3D(filters/2, 1, dilation_rate=1,
+    y2 = Conv3D(filters / 2, 1, dilation_rate=1,
                 padding="same", use_bias=False)(x)
     y2 = BatchNormalization()(y2)
     y2 = Activation("relu")(y2)
 
-    y3 = Conv3D(filters/2, 3, dilation_rate=2,
+    y3 = Conv3D(filters / 2, 3, dilation_rate=2,
                 padding="same", use_bias=False)(x)
     y3 = BatchNormalization()(y3)
     y3 = Activation("relu")(y3)
 
-    y4 = Conv3D(filters/2, 3, dilation_rate=4,
+    y4 = Conv3D(filters / 2, 3, dilation_rate=4,
                 padding="same", use_bias=False)(x)
     y4 = BatchNormalization()(y4)
     y4 = Activation("relu")(y4)
 
-    y5 = Conv3D(filters/2, 3, dilation_rate=8,
+    y5 = Conv3D(filters / 2, 3, dilation_rate=8,
                 padding="same", use_bias=False)(x)
     y5 = BatchNormalization()(y5)
     y5 = Activation("relu")(y5)
