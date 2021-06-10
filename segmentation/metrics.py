@@ -525,9 +525,11 @@ def compute_dice_class(cl, trueLabel, predictedLabel):
     return dice
 
 
-def compute_dice(trueLabel, predictedLabel, return_average=True):
-    dice_values = np.zeros(len(np.unique(predictedLabel)))
-    for cl_index, cl_value in enumerate(np.unique(predictedLabel)):
+def compute_dice(trueLabel, predictedLabel, return_average=True, classes=None):
+    if (classes == None):
+        classes = np.unique(predictedLabel)
+    dice_values = np.zeros(len(classes))
+    for cl_index, cl_value in enumerate(classes):
         try:
             dice_values[cl_index] = compute_dice_class(cl_value,
                                                        trueLabel,
@@ -541,9 +543,11 @@ def compute_dice(trueLabel, predictedLabel, return_average=True):
         return dice_values
 
 
-def compute_jaccard(trueLabel, predictedLabel, return_average=True):
-    jaccard_values = np.zeros(len(np.unique(predictedLabel)))
-    for cl_index, cl_value in enumerate(np.unique(predictedLabel)):
+def compute_jaccard(trueLabel, predictedLabel, return_average=True, classes=None):
+    if (classes == None):
+        classes = np.unique(predictedLabel)
+    jaccard_values = np.zeros(len(classes))
+    for cl_index, cl_value in enumerate(classes):
         try:
             dice_temp = compute_dice_class(cl_value,
                                            trueLabel,
@@ -558,9 +562,11 @@ def compute_jaccard(trueLabel, predictedLabel, return_average=True):
         return jaccard_values
 
 
-def compute_sensitivity(trueLabel, predictedLabel):
-    sensitivity_values = np.zeros(len(np.unique(predictedLabel)))
-    for cl_index, cl_value in enumerate(np.unique(predictedLabel)):
+def compute_sensitivity(trueLabel, predictedLabel, classes=None):
+    if (classes == None):
+        classes = np.unique(predictedLabel)
+    sensitivity_values = np.zeros(len(classes))
+    for cl_index, cl_value in enumerate(classes):
         tp = count_tp(cl_value, trueLabel, predictedLabel)
         fn = count_fn(cl_value, trueLabel, predictedLabel)
         try:
@@ -570,9 +576,11 @@ def compute_sensitivity(trueLabel, predictedLabel):
     return sensitivity_values
 
 
-def compute_precision(trueLabel, predictedLabel):
-    precision_values = np.zeros(len(np.unique(predictedLabel)))
-    for cl_index, cl_value in enumerate(np.unique(predictedLabel)):
+def compute_precision(trueLabel, predictedLabel, classes=None):
+    if (classes == None):
+        classes = np.unique(predictedLabel)
+    precision_values = np.zeros(len(classes))
+    for cl_index, cl_value in enumerate(classes):
         tp = count_tp(cl_value, trueLabel, predictedLabel)
         fp = count_fp(cl_value, trueLabel, predictedLabel)
         try:
@@ -582,9 +590,11 @@ def compute_precision(trueLabel, predictedLabel):
     return precision_values
 
 
-def compute_for(trueLabel, predictedLabel):
-    for_values = np.zeros(len(np.unique(predictedLabel)))
-    for cl_index, cl_value in enumerate(np.unique(predictedLabel)):
+def compute_for(trueLabel, predictedLabel, classes=None):
+    if (classes == None):
+        classes = np.unique(predictedLabel)
+    for_values = np.zeros(len(classes))
+    for cl_index, cl_value in enumerate(classes):
         tn = count_tn(cl_value, trueLabel, predictedLabel)
         fn = count_fn(cl_value, trueLabel, predictedLabel)
         try:
