@@ -3,20 +3,19 @@ The losses submodule implements loss function to be used
 in segmentation tasks.
 """
 
-from segmentation.metrics import MeanDice
-from segmentation.utils import calc_SDM_batch, calc_DM_batch, \
-    calc_DM_batch_edge, computeContours
-from segmentation.utils import count_class_voxels, get_loss_weights
-from tensorflow.keras import backend as K
 import numpy as np
 import tensorflow as tf
 from scipy.ndimage import distance_transform_edt as distance
+from tensorflow.keras import backend as K
 from tensorflow.keras.losses import Loss
-from tensorflow.python.framework import ops
-from tensorflow.python.ops import math_ops
-from tensorflow.python.ops import clip_ops
-from tensorflow.python.framework import constant_op
+from tensorflow.python.framework import constant_op, ops
 from tensorflow.python.keras import backend_config
+from tensorflow.python.ops import clip_ops, math_ops
+
+from segmentation.metrics import MeanDice
+from segmentation.utils import (calc_DM_batch, calc_DM_batch_edge,
+                                calc_SDM_batch, computeContours,
+                                count_class_voxels, get_loss_weights)
 
 
 # 0
