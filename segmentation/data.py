@@ -3,6 +3,7 @@ import numpy as np
 from tensorflow.keras.utils import Sequence
 
 class DataGenerator(Sequence):
+
     """
     Class used for data generators.
     """
