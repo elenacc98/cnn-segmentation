@@ -479,10 +479,19 @@ def count_tp(cl, trueLabel, predictedLabel):
 
 
 def count_fp(cl, trueLabel, predictedLabel):
-    '''
-    Return total number of false positives for the specified class, given
-    the true and predicted labels.
-    '''
+    """Compute total number of false positives for given class.
+
+    This function returns the total number of false positives
+    for the specified class, given the true and predicted labels.
+
+    Args:
+        cl (int): The class of interest.
+        trueLabel (array): The true label.
+        predictedLabel (array): The predicted label.
+
+    Return:
+        total number of false positives.
+    """
     match = trueLabel[np.nonzero(predictedLabel == cl)]
     return(len(np.nonzero(match != cl)[0]))
 
