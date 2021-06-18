@@ -35,5 +35,6 @@ Documentation of the package can be found at the following link: [https://dado93
 
 TODO
 ----
-- [x] Documentation with Read The Docs
-- [ ] New format for loss functions
+- [x] Documentation w
+
+elenacazzant
