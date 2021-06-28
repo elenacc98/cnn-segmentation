@@ -4,6 +4,7 @@ in segmentation tasks.
 """
 
 import numpy as np
+from numpy.core.numeric import False_
 import tensorflow as tf
 from scipy.ndimage import distance_transform_edt as distance
 from tensorflow.keras import backend as K
@@ -19,7 +20,7 @@ from segmentation.utils import (calc_DM_batch, calc_DM_batch_edge,
 
 
 # 0
-def DistancedCELoss(numClasses, alpha, use_3D=True):
+def DistancedCELoss(numClasses, alpha, use_3D=False):
     """
     Wrapper function for dice_categorical_cross_entropy.
     Arguments:
@@ -102,7 +103,7 @@ def DistancedCELoss(numClasses, alpha, use_3D=True):
     return dice_distCE
 
 
-def WeightedDiceBoundaryLoss(num_classes, alpha, use_3D=True):
+def WeightedDiceBoundaryLoss(num_classes, alpha, use_3D=False):
     """
     Wrapper function for multiclass_weighted_dice_boundary_loss.
     Args:
@@ -166,7 +167,7 @@ def WeightedDiceBoundaryLoss(num_classes, alpha, use_3D=True):
 
 
 # 3
-def FocalLoss(numClasses, alpha, use_3D=True):
+def FocalLoss(numClasses, alpha, use_3D=False):
     """
     Wrapper function for dice_focal.
     Arguments:
@@ -241,7 +242,7 @@ def FocalLoss(numClasses, alpha, use_3D=True):
 
 
 # 5
-def MeanDiceLoss(numClasses, use_3D=True):
+def MeanDiceLoss(numClasses, use_3D=False):
     """
     Wrapper function for mean_dice.
     Args:
@@ -301,7 +302,7 @@ def MeanDiceLoss(numClasses, use_3D=True):
 
 
 # 5
-def JaccardContour_Loss(numClasses, use_3D=True):
+def JaccardContour_Loss(numClasses, use_3D=False):
     """
     Wrapper function for Jaccard Index.
     Args:
@@ -366,7 +367,7 @@ def JaccardContour_Loss(numClasses, use_3D=True):
 
 
 # 6
-def ExpLogLoss(numClasses, gamma=1, use_3D=True):
+def ExpLogLoss(numClasses, gamma=1, use_3D=False):
     """
     Wrapper function for exp_log.
     Arguments:
@@ -448,7 +449,7 @@ def ExpLogLoss(numClasses, gamma=1, use_3D=True):
 
 
 # 7
-def BoundaryCELoss(numClasses, use_3D=True):
+def BoundaryCELoss(numClasses, use_3D=False):
     """
     Wrapper function for boundary_crossentropy.
     Args:
@@ -505,7 +506,7 @@ def BoundaryCELoss(numClasses, use_3D=True):
     return boundary_crossentropy
 
 
-def DistancedBoundaryCE_Loss(numClasses, use_3D=True):
+def DistancedBoundaryCE_Loss(numClasses, use_3D=False):
     """
     Wrapper function for dist_boundary_crossentropy.
     Args:
@@ -572,7 +573,7 @@ def DistancedBoundaryCE_Loss(numClasses, use_3D=True):
 
 
 # 8
-def RegionCELoss(numClasses, use_3D=True):
+def RegionCELoss(numClasses, use_3D=False):
     """
     Wrapper function for region_crossentropy_loss
     Args:
@@ -624,7 +625,7 @@ def RegionCELoss(numClasses, use_3D=True):
     return region_crossentropy_loss
 
 
-def DistancedRegionCELoss(numClasses, use_3D=True):
+def DistancedRegionCELoss(numClasses, use_3D=False):
     """
      Wrapper function for dist_region_crossentropy_loss.
     Args:
