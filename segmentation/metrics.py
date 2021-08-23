@@ -425,7 +425,7 @@ class IoUPerClass(Metric):
     """
 
     def __init__(self, numClasses, name=None, dtype=None,
-                 class_to_return=0, use_3D=False):
+                 class_to_return=0, use_3D=True):
         super(IoUPerClass, self).__init__(name=name, dtype=dtype)
         self.numClasses = numClasses
         self.class_to_return = class_to_return
